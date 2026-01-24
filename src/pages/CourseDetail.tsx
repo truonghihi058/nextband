@@ -101,7 +101,7 @@ export default function CourseDetail() {
         .select('*')
         .eq('course_id', slug)
         .eq('student_id', user.id)
-        .single();
+        .maybeSingle();
       return data;
     },
     enabled: !!user && !!slug,
