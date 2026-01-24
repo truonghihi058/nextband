@@ -24,24 +24,30 @@ export default function CourseStudentsList({ courseId }: CourseStudentsListProps
   const { data: enrollments, isLoading } = useQuery({
     queryKey: ['course-enrollments', courseId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get enrollments
+      const { data: enrollments, error: enrollError } = await supabase
         .from('enrollments')
-        .select(`
-          id,
-          enrolled_at,
-          progress_percent,
-          student_id,
-          profiles!inner (
-            id,
-            email,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('id, enrolled_at, progress_percent, student_id')
         .eq('course_id', courseId);
       
-      if (error) throw error;
-      return data || [];
+      if (enrollError) throw enrollError;
+      if (!enrollments || enrollments.length === 0) return [];
+
+      // Get student_ids and fetch their profiles
+      const studentIds = enrollments.map(e => e.student_id);
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, user_id, email, full_name, avatar_url')
+        .in('user_id', studentIds);
+      
+      if (profileError) throw profileError;
+
+      // Combine data
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      return enrollments.map(enrollment => ({
+        ...enrollment,
+        profiles: profileMap.get(enrollment.student_id) || null
+      }));
     },
     enabled: !!courseId,
   });
