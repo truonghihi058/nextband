@@ -70,6 +70,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_active: boolean | null
           is_published: boolean | null
           level: Database["public"]["Enums"]["course_level"]
           price: number | null
@@ -83,6 +84,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean | null
           is_published?: boolean | null
           level?: Database["public"]["Enums"]["course_level"]
           price?: number | null
@@ -96,6 +98,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean | null
           is_published?: boolean | null
           level?: Database["public"]["Enums"]["course_level"]
           price?: number | null
@@ -259,9 +262,11 @@ export type Database = {
           description: string | null
           duration_minutes: number | null
           id: string
+          is_active: boolean | null
           is_published: boolean | null
           title: string
           updated_at: string
+          week: number | null
         }
         Insert: {
           course_id?: string | null
@@ -270,9 +275,11 @@ export type Database = {
           description?: string | null
           duration_minutes?: number | null
           id?: string
+          is_active?: boolean | null
           is_published?: boolean | null
           title: string
           updated_at?: string
+          week?: number | null
         }
         Update: {
           course_id?: string | null
@@ -281,9 +288,11 @@ export type Database = {
           description?: string | null
           duration_minutes?: number | null
           id?: string
+          is_active?: boolean | null
           is_published?: boolean | null
           title?: string
           updated_at?: string
+          week?: number | null
         }
         Relationships: [
           {
@@ -380,6 +389,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          is_active: boolean | null
           updated_at: string
           user_id: string
         }
@@ -390,6 +400,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id?: string
+          is_active?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -400,6 +411,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          is_active?: boolean | null
           updated_at?: string
           user_id?: string
         }

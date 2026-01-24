@@ -6,7 +6,8 @@ import {
   FileText, 
   Settings,
   GraduationCap,
-  ChevronLeft
+  ChevronLeft,
+  ClipboardCheck
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import {
@@ -40,6 +41,11 @@ const navigationItems = [
     title: 'Bài thi',
     url: '/admin/exams',
     icon: FileText,
+  },
+  {
+    title: 'Chấm bài',
+    url: '/admin/check-attempt',
+    icon: ClipboardCheck,
   },
   {
     title: 'Người dùng',
