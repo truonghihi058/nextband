@@ -22,10 +22,13 @@ import NotFound from "@/pages/NotFound";
 // Admin Pages
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminCourses from "@/pages/admin/Courses";
+import AdminCourseCreate from "@/pages/admin/CourseCreate";
 import AdminCourseEdit from "@/pages/admin/CourseEdit";
 import AdminExams from "@/pages/admin/Exams";
+import AdminExamCreate from "@/pages/admin/ExamCreate";
 import AdminExamEdit from "@/pages/admin/ExamEdit";
 import AdminUsers from "@/pages/admin/Users";
+import AdminCheckAttempt from "@/pages/admin/CheckAttempt";
 
 const queryClient = new QueryClient();
 
@@ -56,10 +59,13 @@ const App = () => (
             <Route element={<ProtectedRoute requiredRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/courses" element={<AdminCourses />} />
+              <Route path="/admin/courses/create" element={<AdminCourseCreate />} />
               <Route path="/admin/courses/:id" element={<AdminCourseEdit />} />
               <Route path="/admin/exams" element={<AdminExams />} />
+              <Route path="/admin/exams/create" element={<AdminExamCreate />} />
               <Route path="/admin/exams/:id" element={<AdminExamEdit />} />
               <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/check-attempt" element={<AdminCheckAttempt />} />
             </Route>
 
             {/* Catch-all */}

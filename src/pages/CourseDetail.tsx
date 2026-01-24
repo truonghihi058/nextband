@@ -82,7 +82,8 @@ export default function CourseDetail() {
         `)
         .eq('course_id', slug)
         .eq('is_published', true)
-        .order('created_at', { ascending: true });
+        .eq('is_active', true)
+        .order('week', { ascending: true });
 
       if (error) throw error;
       return data;
