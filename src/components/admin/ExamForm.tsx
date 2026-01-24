@@ -123,13 +123,9 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
       };
 
       if (mode === "create") {
-        const { data: userData } = await supabase.auth.getUser();
         const { data: newExam, error } = await supabase
           .from("exams")
-          .insert({
-            ...examData,
-            created_by: userData.user?.id,
-          } as any)
+          .insert(examData as any)
           .select()
           .single();
 
