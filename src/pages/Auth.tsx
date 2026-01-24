@@ -177,14 +177,30 @@ export default function Auth() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Mật khẩu</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={isLoading}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="login-password"
+                        type=""
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoading}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={isLoading}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
                     {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
@@ -227,27 +243,33 @@ export default function Auth() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="register-password">Mật khẩu</Label>
-                    <Input
-                      id="register-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={isLoading}
-                    />
-                    <Button
-                      className="absolute top-0 right-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                      size="icon"
-                      type="button"
-                      variant="ghost"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Button>
+                    <div className="relative">
+                      {" "}
+                      {/* Bọc div relative ở đây */}
+                      <Input
+                        id="register-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoading}
+                        className="pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={isLoading}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
                     {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
