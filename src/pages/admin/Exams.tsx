@@ -1,31 +1,71 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, ArrowUpDown } from 'lucide-react';
+import { Plus, Edit, ArrowUpDown, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useServerPagination } from '@/hooks/useServerPagination';
+import { DataTablePagination } from '@/components/admin/DataTablePagination';
 
 type SortField = 'title' | 'created_at' | 'week';
-type SortOrder = 'asc' | 'desc';
 
 export default function AdminExams() {
-  const [sortField, setSortField] = useState<SortField>('created_at');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: exams, isLoading } = useQuery({
-    queryKey: ['admin-exams', sortField, sortOrder],
+  const {
+    page,
+    pageSize,
+    sortField,
+    sortOrder,
+    setPage,
+    setPageSize,
+    toggleSort,
+    resetPage,
+    getRange,
+  } = useServerPagination<SortField>('created_at', 10);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      resetPage();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search, resetPage]);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-exams', debouncedSearch, sortField, sortOrder, page, pageSize],
     queryFn: async () => {
-      const { data } = await supabase
+      const { from, to } = getRange();
+      
+      let query = supabase
         .from('exams')
-        .select('*, courses(title)')
-        .order(sortField, { ascending: sortOrder === 'asc' });
-      return data || [];
+        .select('*, courses(title)', { count: 'exact' })
+        .order(sortField, { ascending: sortOrder === 'asc' })
+        .range(from, to);
+
+      if (debouncedSearch) {
+        query = query.ilike('title', `%${debouncedSearch}%`);
+      }
+
+      const { data, count, error } = await query;
+      if (error) throw error;
+      
+      return {
+        data: data || [],
+        total: count || 0,
+        currentPage: page,
+        perPage: pageSize,
+        lastPage: Math.ceil((count || 0) / pageSize),
+      };
     },
   });
 
@@ -43,23 +83,14 @@ export default function AdminExams() {
     },
   });
 
-  const toggleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('asc');
-    }
-  };
-
   const SortHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <TableHead 
-      className="cursor-pointer hover:bg-muted/50" 
+      className="cursor-pointer hover:bg-muted/50 transition-colors" 
       onClick={() => toggleSort(field)}
     >
       <div className="flex items-center gap-1">
         {children}
-        <ArrowUpDown className="h-3 w-3" />
+        <ArrowUpDown className={`h-3 w-3 ${sortField === field ? 'text-primary' : 'text-muted-foreground'}`} />
       </div>
     </TableHead>
   );
@@ -75,6 +106,17 @@ export default function AdminExams() {
           </Link>
         </Button>
       </div>
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input 
+          placeholder="Tìm kiếm..." 
+          value={search} 
+          onChange={(e) => setSearch(e.target.value)} 
+          className="pl-10" 
+        />
+      </div>
+
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
@@ -92,7 +134,13 @@ export default function AdminExams() {
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8">Đang tải...</TableCell>
               </TableRow>
-            ) : exams?.map((exam: any) => (
+            ) : data?.data.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  Không tìm thấy bài thi nào
+                </TableCell>
+              </TableRow>
+            ) : data?.data.map((exam: any) => (
               <TableRow key={exam.id}>
                 <TableCell className="font-medium">{exam.title}</TableCell>
                 <TableCell>{exam.courses?.title || '-'}</TableCell>
@@ -119,6 +167,17 @@ export default function AdminExams() {
             ))}
           </TableBody>
         </Table>
+        
+        {data && (
+          <DataTablePagination
+            currentPage={data.currentPage}
+            totalPages={data.lastPage}
+            pageSize={pageSize}
+            totalItems={data.total}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        )}
       </div>
     </div>
   );
