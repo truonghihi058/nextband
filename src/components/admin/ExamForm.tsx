@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Save, ArrowLeft } from "lucide-react";
 
 // Exam section types
-const EXAM_SECTION_TYPES = ['listening', 'reading', 'writing', 'speaking'] as const;
+const EXAM_SECTION_TYPES = ["listening", "reading", "writing", "speaking"] as const;
 
 const examSchema = z.object({
   title: z.string().min(1, "Tiêu đề không được để trống"),
@@ -125,7 +125,9 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
       if (mode === "create") {
         const { data: newExam, error } = await supabase
           .from("exams")
-          .insert(examData as any)
+          .insert({
+            ...examData,
+          } as any)
           .select()
           .single();
 
