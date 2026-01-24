@@ -1,36 +1,26 @@
-import { useParams, Link } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  ArrowLeft, 
-  BookOpen, 
-  Clock, 
-  GraduationCap, 
-  Headphones, 
-  FileText,
-  Mic,
-  PenTool,
-  Play
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useParams, Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, BookOpen, Clock, GraduationCap, Headphones, FileText, Mic, PenTool, Play } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const levelLabels: Record<string, string> = {
-  beginner: 'Người mới',
-  intermediate: 'Trung cấp',
-  ielts_5: 'IELTS 5.0',
-  ielts_5_5: 'IELTS 5.5',
-  ielts_6: 'IELTS 6.0',
-  ielts_6_5: 'IELTS 6.5',
-  ielts_7: 'IELTS 7.0',
-  ielts_7_5: 'IELTS 7.5',
-  ielts_8: 'IELTS 8.0',
-  ielts_8_5: 'IELTS 8.5',
-  ielts_9: 'IELTS 9.0',
+  beginner: "Người mới",
+  intermediate: "Trung cấp",
+  ielts_5: "IELTS 5.0",
+  ielts_5_5: "IELTS 5.5",
+  ielts_6: "IELTS 6.0",
+  ielts_6_5: "IELTS 6.5",
+  ielts_7: "IELTS 7.0",
+  ielts_7_5: "IELTS 7.5",
+  ielts_8: "IELTS 8.0",
+  ielts_8_5: "IELTS 8.5",
+  ielts_9: "IELTS 9.0",
 };
 
 const sectionIcons = {
@@ -41,10 +31,10 @@ const sectionIcons = {
 };
 
 const sectionColors = {
-  listening: 'bg-listening text-white',
-  reading: 'bg-reading text-white',
-  writing: 'bg-writing text-white',
-  speaking: 'bg-speaking text-white',
+  listening: "bg-listening text-white",
+  reading: "bg-reading text-white",
+  writing: "bg-writing text-white",
+  speaking: "bg-speaking text-white",
 };
 
 export default function CourseDetail() {
@@ -54,13 +44,9 @@ export default function CourseDetail() {
   const queryClient = useQueryClient();
 
   const { data: course, isLoading: courseLoading } = useQuery({
-    queryKey: ['course', slug],
+    queryKey: ["course", slug],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('courses')
-        .select('*')
-        .eq('id', slug)
-        .single();
+      const { data, error } = await supabase.from("courses").select("*").eq("id", slug).maybeSingle();
 
       if (error) throw error;
       return data;
@@ -68,11 +54,12 @@ export default function CourseDetail() {
   });
 
   const { data: exams, isLoading: examsLoading } = useQuery({
-    queryKey: ['course-exams', slug],
+    queryKey: ["course-exams", slug],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('exams')
-        .select(`
+        .from("exams")
+        .select(
+          `
           *,
           exam_sections (
             id,
@@ -80,11 +67,12 @@ export default function CourseDetail() {
             title,
             duration_minutes
           )
-        `)
-        .eq('course_id', slug)
-        .eq('is_published', true)
-        .eq('is_active', true)
-        .order('week', { ascending: true });
+        `,
+        )
+        .eq("course_id", slug)
+        .eq("is_published", true)
+        .eq("is_active", true)
+        .order("week", { ascending: true });
 
       if (error) throw error;
       return data;
@@ -93,14 +81,14 @@ export default function CourseDetail() {
   });
 
   const { data: enrollment } = useQuery({
-    queryKey: ['enrollment', slug, user?.id],
+    queryKey: ["enrollment", slug, user?.id],
     queryFn: async () => {
       if (!user) return null;
       const { data } = await supabase
-        .from('enrollments')
-        .select('*')
-        .eq('course_id', slug)
-        .eq('student_id', user.id)
+        .from("enrollments")
+        .select("*")
+        .eq("course_id", slug)
+        .eq("student_id", user.id)
         .maybeSingle();
       return data;
     },
@@ -110,32 +98,30 @@ export default function CourseDetail() {
   const handleEnroll = async () => {
     if (!user) {
       toast({
-        title: 'Vui lòng đăng nhập',
-        description: 'Bạn cần đăng nhập để đăng ký khóa học',
-        variant: 'destructive',
+        title: "Vui lòng đăng nhập",
+        description: "Bạn cần đăng nhập để đăng ký khóa học",
+        variant: "destructive",
       });
       return;
     }
 
-    const { error } = await supabase
-      .from('enrollments')
-      .insert({
-        course_id: slug!,
-        student_id: user.id,
-      });
+    const { error } = await supabase.from("enrollments").insert({
+      course_id: slug!,
+      student_id: user.id,
+    });
 
     if (error) {
       toast({
-        title: 'Đăng ký thất bại',
+        title: "Đăng ký thất bại",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } else {
       // Invalidate enrollment query immediately to update UI
-      await queryClient.invalidateQueries({ queryKey: ['enrollment', slug, user.id] });
+      await queryClient.invalidateQueries({ queryKey: ["enrollment", slug, user.id] });
       toast({
-        title: 'Đăng ký thành công',
-        description: 'Bạn đã tham gia khóa học này!',
+        title: "Đăng ký thành công",
+        description: "Bạn đã tham gia khóa học này!",
       });
     }
   };
@@ -191,9 +177,7 @@ export default function CourseDetail() {
               </CardHeader>
               <CardContent>
                 <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
-                  {typeof course.syllabus === 'string' 
-                    ? course.syllabus 
-                    : JSON.stringify(course.syllabus, null, 2)}
+                  {typeof course.syllabus === "string" ? course.syllabus : JSON.stringify(course.syllabus, null, 2)}
                 </pre>
               </CardContent>
             </Card>
@@ -212,7 +196,7 @@ export default function CourseDetail() {
                 />
               )}
               <CardTitle className="text-2xl">
-                {course.price ? `${course.price.toLocaleString()} VND` : 'Miễn phí'}
+                {course.price ? `${course.price.toLocaleString()} VND` : "Miễn phí"}
               </CardTitle>
               <CardDescription>
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -241,7 +225,7 @@ export default function CourseDetail() {
       {/* Exams Section */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">Bài thi trong khóa học</h2>
-        
+
         {examsLoading ? (
           <div className="grid gap-4 md:grid-cols-2">
             {[...Array(2)].map((_, i) => (
@@ -254,9 +238,7 @@ export default function CourseDetail() {
               <Card key={exam.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <CardTitle className="text-lg">{exam.title}</CardTitle>
-                  {exam.description && (
-                    <CardDescription>{exam.description}</CardDescription>
-                  )}
+                  {exam.description && <CardDescription>{exam.description}</CardDescription>}
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2 mb-4">
