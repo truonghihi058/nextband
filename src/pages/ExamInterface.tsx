@@ -269,6 +269,8 @@ export default function ExamInterface() {
         {currentSection && activeSection === 'speaking' && (
           <SpeakingSection 
             section={currentSection}
+            answers={answers}
+            onAnswerChange={handleAnswerChange}
           />
         )}
       </main>

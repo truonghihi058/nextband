@@ -1,9 +1,13 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Highlighter, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useTextHighlight, Highlight } from '@/hooks/useTextHighlight';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface ReadingSectionProps {
   section: any;
@@ -12,20 +16,159 @@ interface ReadingSectionProps {
 }
 
 export function ReadingSection({ section, answers, onAnswerChange }: ReadingSectionProps) {
+  const passageRef = useRef<HTMLDivElement>(null);
+  const [selectedText, setSelectedText] = useState<{ text: string; startIndex: number; endIndex: number } | null>(null);
+  const [showHighlightMenu, setShowHighlightMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const { highlights, addHighlight, removeHighlight, loadHighlights } = useTextHighlight(section.id);
+
+  useEffect(() => {
+    if (section.id) {
+      loadHighlights(section.id);
+    }
+  }, [section.id, loadHighlights]);
+
+  const handleTextSelection = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !passageRef.current) {
+      setShowHighlightMenu(false);
+      return;
+    }
+
+    const text = selection.toString().trim();
+    if (!text) {
+      setShowHighlightMenu(false);
+      return;
+    }
+
+    const passageText = section.passage_text || '';
+    const startIndex = passageText.indexOf(text);
+    
+    if (startIndex >= 0) {
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      
+      setSelectedText({
+        text,
+        startIndex,
+        endIndex: startIndex + text.length,
+      });
+      setMenuPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10,
+      });
+      setShowHighlightMenu(true);
+    }
+  }, [section.passage_text]);
+
+  const handleHighlight = async (color: 'yellow' | 'green') => {
+    if (selectedText) {
+      await addHighlight(selectedText.startIndex, selectedText.endIndex, color);
+      setShowHighlightMenu(false);
+      setSelectedText(null);
+      window.getSelection()?.removeAllRanges();
+    }
+  };
+
+  const renderHighlightedText = () => {
+    const text = section.passage_text || '';
+    if (highlights.length === 0) return text;
+
+    const sortedHighlights = [...highlights].sort((a, b) => a.startIndex - b.startIndex);
+    const result: React.ReactNode[] = [];
+    let lastIndex = 0;
+
+    sortedHighlights.forEach((highlight) => {
+      if (highlight.startIndex > lastIndex) {
+        result.push(text.slice(lastIndex, highlight.startIndex));
+      }
+      
+      const highlightBg = highlight.color === 'yellow' 
+        ? 'bg-yellow-200 dark:bg-yellow-900/50' 
+        : 'bg-green-200 dark:bg-green-900/50';
+      
+      result.push(
+        <mark 
+          key={highlight.id} 
+          className={`${highlightBg} px-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity`}
+          onClick={() => removeHighlight(highlight.id)}
+          title="Click để xóa highlight"
+        >
+          {text.slice(highlight.startIndex, highlight.endIndex)}
+        </mark>
+      );
+      
+      lastIndex = highlight.endIndex;
+    });
+
+    if (lastIndex < text.length) {
+      result.push(text.slice(lastIndex));
+    }
+
+    return result;
+  };
+
   return (
-    <div className="h-full grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x">
+    <div className="h-full grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x relative">
+      {/* Highlight Menu */}
+      {showHighlightMenu && (
+        <div
+          className="fixed z-50 bg-card border rounded-lg shadow-lg p-2 flex items-center gap-1"
+          style={{
+            left: menuPosition.x,
+            top: menuPosition.y,
+            transform: 'translate(-50%, -100%)',
+          }}
+        >
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0 bg-yellow-200 hover:bg-yellow-300"
+            onClick={() => handleHighlight('yellow')}
+          >
+            <Highlighter className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0 bg-green-200 hover:bg-green-300"
+            onClick={() => handleHighlight('green')}
+          >
+            <Highlighter className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0"
+            onClick={() => setShowHighlightMenu(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Left - Passage */}
       <ScrollArea className="h-[calc(100vh-180px)]">
-        <div className="p-6">
-          <div className="flex items-center gap-2 text-reading mb-4">
-            <BookOpen className="h-5 w-5" />
-            <h2 className="text-xl font-semibold">{section.title}</h2>
+        <div 
+          ref={passageRef}
+          className="p-6"
+          onMouseUp={handleTextSelection}
+        >
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <div className="flex items-center gap-2 text-[hsl(var(--reading))]">
+              <BookOpen className="h-5 w-5" />
+              <h2 className="text-xl font-semibold">{section.title}</h2>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Highlighter className="h-3 w-3" />
+              <span>Chọn văn bản để highlight</span>
+            </div>
           </div>
           
           {section.passage_text && (
             <div className="prose prose-sm max-w-none">
-              <p className="whitespace-pre-wrap leading-relaxed text-foreground">
-                {section.passage_text}
+              <p className="whitespace-pre-wrap leading-relaxed text-foreground select-text">
+                {renderHighlightedText()}
               </p>
             </div>
           )}
@@ -50,7 +193,7 @@ export function ReadingSection({ section, answers, onAnswerChange }: ReadingSect
               )}
 
               {group.questions?.map((question: any, qIndex: number) => (
-                <Card key={question.id}>
+                <Card key={question.id} className="transition-shadow hover:shadow-md">
                   <CardContent className="p-4">
                     <p className="font-medium mb-3">
                       {question.order_index || qIndex + 1}. {question.question_text}
@@ -60,11 +203,14 @@ export function ReadingSection({ section, answers, onAnswerChange }: ReadingSect
                       <RadioGroup
                         value={answers[question.id] || ''}
                         onValueChange={(value) => onAnswerChange(question.id, value)}
+                        className="space-y-2"
                       >
                         {(question.options as string[]).map((option: string, i: number) => (
-                          <div key={i} className="flex items-center space-x-2">
+                          <div key={i} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
                             <RadioGroupItem value={option} id={`${question.id}-${i}`} />
-                            <Label htmlFor={`${question.id}-${i}`}>{option}</Label>
+                            <Label htmlFor={`${question.id}-${i}`} className="flex-1 cursor-pointer">
+                              {option}
+                            </Label>
                           </div>
                         ))}
                       </RadioGroup>
@@ -82,11 +228,14 @@ export function ReadingSection({ section, answers, onAnswerChange }: ReadingSect
                       <RadioGroup
                         value={answers[question.id] || ''}
                         onValueChange={(value) => onAnswerChange(question.id, value)}
+                        className="space-y-2"
                       >
                         {['TRUE', 'FALSE', 'NOT GIVEN'].map((option) => (
-                          <div key={option} className="flex items-center space-x-2">
+                          <div key={option} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
                             <RadioGroupItem value={option} id={`${question.id}-${option}`} />
-                            <Label htmlFor={`${question.id}-${option}`}>{option}</Label>
+                            <Label htmlFor={`${question.id}-${option}`} className="cursor-pointer">
+                              {option}
+                            </Label>
                           </div>
                         ))}
                       </RadioGroup>

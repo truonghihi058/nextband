@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -9,28 +9,63 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Edit, ArrowUpDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useServerPagination } from '@/hooks/useServerPagination';
+import { DataTablePagination } from '@/components/admin/DataTablePagination';
 
 type SortField = 'title' | 'created_at' | 'level';
-type SortOrder = 'asc' | 'desc';
 
 export default function AdminCourses() {
   const [search, setSearch] = useState('');
-  const [sortField, setSortField] = useState<SortField>('created_at');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  const { data: courses, isLoading } = useQuery({
-    queryKey: ['admin-courses', search, sortField, sortOrder],
+
+  const {
+    page,
+    pageSize,
+    sortField,
+    sortOrder,
+    setPage,
+    setPageSize,
+    toggleSort,
+    resetPage,
+    getRange,
+  } = useServerPagination<SortField>('created_at', 10);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      resetPage();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search, resetPage]);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-courses', debouncedSearch, sortField, sortOrder, page, pageSize],
     queryFn: async () => {
+      const { from, to } = getRange();
+      
       let query = supabase
         .from('courses')
-        .select('*')
-        .order(sortField, { ascending: sortOrder === 'asc' });
+        .select('*', { count: 'exact' })
+        .order(sortField, { ascending: sortOrder === 'asc' })
+        .range(from, to);
       
-      if (search) query = query.ilike('title', `%${search}%`);
-      const { data } = await query;
-      return data || [];
+      if (debouncedSearch) {
+        query = query.ilike('title', `%${debouncedSearch}%`);
+      }
+      
+      const { data, count, error } = await query;
+      if (error) throw error;
+      
+      return {
+        data: data || [],
+        total: count || 0,
+        currentPage: page,
+        perPage: pageSize,
+        lastPage: Math.ceil((count || 0) / pageSize),
+      };
     },
   });
 
@@ -48,23 +83,14 @@ export default function AdminCourses() {
     },
   });
 
-  const toggleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('asc');
-    }
-  };
-
   const SortHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <TableHead 
-      className="cursor-pointer hover:bg-muted/50" 
+      className="cursor-pointer hover:bg-muted/50 transition-colors" 
       onClick={() => toggleSort(field)}
     >
       <div className="flex items-center gap-1">
         {children}
-        <ArrowUpDown className="h-3 w-3" />
+        <ArrowUpDown className={`h-3 w-3 ${sortField === field ? 'text-primary' : 'text-muted-foreground'}`} />
       </div>
     </TableHead>
   );
@@ -83,7 +109,12 @@ export default function AdminCourses() {
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Tìm kiếm..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+        <Input 
+          placeholder="Tìm kiếm..." 
+          value={search} 
+          onChange={(e) => setSearch(e.target.value)} 
+          className="pl-10" 
+        />
       </div>
 
       <div className="border rounded-lg">
@@ -102,7 +133,13 @@ export default function AdminCourses() {
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8">Đang tải...</TableCell>
               </TableRow>
-            ) : courses?.map((course: any) => (
+            ) : data?.data.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  Không tìm thấy khóa học nào
+                </TableCell>
+              </TableRow>
+            ) : data?.data.map((course: any) => (
               <TableRow key={course.id}>
                 <TableCell className="font-medium">{course.title}</TableCell>
                 <TableCell>{course.level}</TableCell>
@@ -128,6 +165,17 @@ export default function AdminCourses() {
             ))}
           </TableBody>
         </Table>
+        
+        {data && (
+          <DataTablePagination
+            currentPage={data.currentPage}
+            totalPages={data.lastPage}
+            pageSize={pageSize}
+            totalItems={data.total}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        )}
       </div>
     </div>
   );

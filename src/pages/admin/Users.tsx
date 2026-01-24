@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
@@ -7,28 +7,63 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Search, User, ArrowUpDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useServerPagination } from '@/hooks/useServerPagination';
+import { DataTablePagination } from '@/components/admin/DataTablePagination';
 
 type SortField = 'full_name' | 'email' | 'created_at';
-type SortOrder = 'asc' | 'desc';
 
 export default function AdminUsers() {
   const [search, setSearch] = useState('');
-  const [sortField, setSortField] = useState<SortField>('created_at');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const {
+    page,
+    pageSize,
+    sortField,
+    sortOrder,
+    setPage,
+    setPageSize,
+    toggleSort,
+    resetPage,
+    getRange,
+  } = useServerPagination<SortField>('created_at', 10);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      resetPage();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search, resetPage]);
   
-  const { data: users, isLoading } = useQuery({
-    queryKey: ['admin-users', search, sortField, sortOrder],
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-users', debouncedSearch, sortField, sortOrder, page, pageSize],
     queryFn: async () => {
+      const { from, to } = getRange();
+      
       let query = supabase
         .from('profiles')
-        .select('*')
-        .order(sortField, { ascending: sortOrder === 'asc' });
+        .select('*', { count: 'exact' })
+        .order(sortField, { ascending: sortOrder === 'asc' })
+        .range(from, to);
       
-      if (search) query = query.or(`email.ilike.%${search}%,full_name.ilike.%${search}%`);
-      const { data } = await query;
-      return data || [];
+      if (debouncedSearch) {
+        query = query.or(`email.ilike.%${debouncedSearch}%,full_name.ilike.%${debouncedSearch}%`);
+      }
+      
+      const { data, count, error } = await query;
+      if (error) throw error;
+      
+      return {
+        data: data || [],
+        total: count || 0,
+        currentPage: page,
+        perPage: pageSize,
+        lastPage: Math.ceil((count || 0) / pageSize),
+      };
     },
   });
 
@@ -46,23 +81,14 @@ export default function AdminUsers() {
     },
   });
 
-  const toggleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('asc');
-    }
-  };
-
   const SortHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <TableHead 
-      className="cursor-pointer hover:bg-muted/50" 
+      className="cursor-pointer hover:bg-muted/50 transition-colors" 
       onClick={() => toggleSort(field)}
     >
       <div className="flex items-center gap-1">
         {children}
-        <ArrowUpDown className="h-3 w-3" />
+        <ArrowUpDown className={`h-3 w-3 ${sortField === field ? 'text-primary' : 'text-muted-foreground'}`} />
       </div>
     </TableHead>
   );
@@ -70,10 +96,17 @@ export default function AdminUsers() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Quản lý người dùng</h1>
+      
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Tìm theo email hoặc tên..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+        <Input 
+          placeholder="Tìm theo email hoặc tên..." 
+          value={search} 
+          onChange={(e) => setSearch(e.target.value)} 
+          className="pl-10" 
+        />
       </div>
+
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
@@ -89,7 +122,13 @@ export default function AdminUsers() {
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-8">Đang tải...</TableCell>
               </TableRow>
-            ) : users?.map((user: any) => (
+            ) : data?.data.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  Không tìm thấy người dùng nào
+                </TableCell>
+              </TableRow>
+            ) : data?.data.map((user: any) => (
               <TableRow key={user.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -114,6 +153,17 @@ export default function AdminUsers() {
             ))}
           </TableBody>
         </Table>
+        
+        {data && (
+          <DataTablePagination
+            currentPage={data.currentPage}
+            totalPages={data.lastPage}
+            pageSize={pageSize}
+            totalItems={data.total}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        )}
       </div>
     </div>
   );
