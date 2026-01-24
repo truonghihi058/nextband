@@ -9,11 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowUpDown, Eye, User, Filter } from 'lucide-react';
-import { Constants } from '@/integrations/supabase/types';
 
 type SortField = 'submitted_at' | 'status';
 type SortOrder = 'asc' | 'desc';
-type StatusFilter = 'all' | 'pending_grading' | 'graded' | 'submitted';
+type StatusFilter = 'all' | 'in_progress' | 'submitted' | 'graded';
 
 export default function AdminCheckAttempt() {
   const [sortField, setSortField] = useState<SortField>('submitted_at');
@@ -81,8 +80,8 @@ export default function AdminCheckAttempt() {
     switch (status) {
       case 'graded':
         return <Badge className="bg-green-500">Đã chấm</Badge>;
-      case 'pending_grading':
-        return <Badge variant="secondary">Chờ chấm</Badge>;
+      case 'in_progress':
+        return <Badge variant="secondary">Đang làm</Badge>;
       case 'submitted':
         return <Badge variant="outline">Đã nộp</Badge>;
       default:
@@ -110,9 +109,9 @@ export default function AdminCheckAttempt() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                <SelectItem value="pending_grading">Chờ chấm</SelectItem>
-                <SelectItem value="graded">Đã chấm</SelectItem>
+                <SelectItem value="in_progress">Đang làm</SelectItem>
                 <SelectItem value="submitted">Đã nộp</SelectItem>
+                <SelectItem value="graded">Đã chấm</SelectItem>
               </SelectContent>
             </Select>
 

@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      answers: {
+        Row: {
+          answer_text: string | null
+          audio_url: string | null
+          created_at: string
+          feedback: string | null
+          id: string
+          question_id: string
+          score: number | null
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          answer_text?: string | null
+          audio_url?: string | null
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          question_id: string
+          score?: number | null
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          answer_text?: string | null
+          audio_url?: string | null
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          question_id?: string
+          score?: number | null
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "answers_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "exam_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           created_at: string
@@ -94,6 +145,188 @@ export type Database = {
           },
         ]
       }
+      exam_sections: {
+        Row: {
+          audio_url: string | null
+          content: Json | null
+          created_at: string
+          duration_minutes: number | null
+          exam_id: string
+          id: string
+          instructions: string | null
+          order_index: number | null
+          section_type: Database["public"]["Enums"]["exam_section_type"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audio_url?: string | null
+          content?: Json | null
+          created_at?: string
+          duration_minutes?: number | null
+          exam_id: string
+          id?: string
+          instructions?: string | null
+          order_index?: number | null
+          section_type: Database["public"]["Enums"]["exam_section_type"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audio_url?: string | null
+          content?: Json | null
+          created_at?: string
+          duration_minutes?: number | null
+          exam_id?: string
+          id?: string
+          instructions?: string | null
+          order_index?: number | null
+          section_type?: Database["public"]["Enums"]["exam_section_type"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_sections_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_submissions: {
+        Row: {
+          created_at: string
+          exam_id: string
+          graded_at: string | null
+          graded_by: string | null
+          id: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["submission_status"] | null
+          student_id: string
+          submitted_at: string | null
+          total_score: number | null
+        }
+        Insert: {
+          created_at?: string
+          exam_id: string
+          graded_at?: string | null
+          graded_by?: string | null
+          id?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["submission_status"] | null
+          student_id: string
+          submitted_at?: string | null
+          total_score?: number | null
+        }
+        Update: {
+          created_at?: string
+          exam_id?: string
+          graded_at?: string | null
+          graded_by?: string | null
+          id?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["submission_status"] | null
+          student_id?: string
+          submitted_at?: string | null
+          total_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_submissions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exams: {
+        Row: {
+          course_id: string
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          is_active: boolean | null
+          is_published: boolean | null
+          title: string
+          updated_at: string
+          week: number | null
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_published?: boolean | null
+          title: string
+          updated_at?: string
+          week?: number | null
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_published?: boolean | null
+          title?: string
+          updated_at?: string
+          week?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exams_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      highlights: {
+        Row: {
+          color: string | null
+          created_at: string
+          end_index: number
+          id: string
+          section_id: string
+          start_index: number
+          student_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          end_index: number
+          id?: string
+          section_id: string
+          start_index: number
+          student_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          end_index?: number
+          id?: string
+          section_id?: string
+          start_index?: number
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "highlights_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "exam_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -129,6 +362,88 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      question_groups: {
+        Row: {
+          created_at: string
+          id: string
+          instructions: string | null
+          order_index: number | null
+          passage: string | null
+          section_id: string
+          title: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          order_index?: number | null
+          passage?: string | null
+          section_id: string
+          title?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          order_index?: number | null
+          passage?: string | null
+          section_id?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_groups_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "exam_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questions: {
+        Row: {
+          correct_answer: string | null
+          created_at: string
+          group_id: string
+          id: string
+          options: Json | null
+          order_index: number | null
+          points: number | null
+          question_text: string
+          question_type: Database["public"]["Enums"]["question_type"]
+        }
+        Insert: {
+          correct_answer?: string | null
+          created_at?: string
+          group_id: string
+          id?: string
+          options?: Json | null
+          order_index?: number | null
+          points?: number | null
+          question_text: string
+          question_type: Database["public"]["Enums"]["question_type"]
+        }
+        Update: {
+          correct_answer?: string | null
+          created_at?: string
+          group_id?: string
+          id?: string
+          options?: Json | null
+          order_index?: number | null
+          points?: number | null
+          question_text?: string
+          question_type?: Database["public"]["Enums"]["question_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "question_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -167,6 +482,14 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "teacher" | "student"
+      exam_section_type: "listening" | "reading" | "writing" | "speaking"
+      question_type:
+        | "multiple_choice"
+        | "fill_blank"
+        | "matching"
+        | "essay"
+        | "speaking"
+      submission_status: "in_progress" | "submitted" | "graded"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -295,6 +618,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "teacher", "student"],
+      exam_section_type: ["listening", "reading", "writing", "speaking"],
+      question_type: [
+        "multiple_choice",
+        "fill_blank",
+        "matching",
+        "essay",
+        "speaking",
+      ],
+      submission_status: ["in_progress", "submitted", "graded"],
     },
   },
 } as const

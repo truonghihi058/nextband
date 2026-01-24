@@ -12,6 +12,19 @@ interface CourseExamsListProps {
   courseId: string;
 }
 
+interface Exam {
+  id: string;
+  course_id: string;
+  title: string;
+  description: string | null;
+  week: number;
+  duration_minutes: number;
+  is_published: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 type SortField = 'week' | 'title' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
@@ -29,7 +42,7 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
         .order(sortField, { ascending: sortOrder === 'asc' });
       
       if (error) throw error;
-      return data || [];
+      return (data || []) as Exam[];
     },
     enabled: !!courseId,
   });

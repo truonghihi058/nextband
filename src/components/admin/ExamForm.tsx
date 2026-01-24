@@ -14,7 +14,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Save, ArrowLeft } from "lucide-react";
-import { Constants } from "@/integrations/supabase/types";
+
+// Exam section types
+const EXAM_SECTION_TYPES = ['listening', 'reading', 'writing', 'speaking'] as const;
 
 const examSchema = z.object({
   title: z.string().min(1, "Tiêu đề không được để trống"),
@@ -97,16 +99,14 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
   };
 
   const createDefaultSections = async (examId: string) => {
-    const sectionTypes = Constants.public.Enums.exam_section_type;
-    const sectionsToCreate = sectionTypes.map((type, index) => ({
+    const sectionsToCreate = EXAM_SECTION_TYPES.map((type, index) => ({
       exam_id: examId,
       section_type: type,
       title: type.charAt(0).toUpperCase() + type.slice(1),
       order_index: index,
     }));
 
-    const { error } = await supabase.from("exam_sections").insert(sectionsToCreate);
-    if (error) throw error;
+    await supabase.from("exam_sections").insert(sectionsToCreate as any);
   };
 
   const onSubmit = async (values: ExamFormData) => {
