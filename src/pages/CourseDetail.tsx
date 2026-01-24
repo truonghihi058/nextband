@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,7 @@ export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ['course', slug],
@@ -130,6 +131,8 @@ export default function CourseDetail() {
         variant: 'destructive',
       });
     } else {
+      // Invalidate enrollment query immediately to update UI
+      await queryClient.invalidateQueries({ queryKey: ['enrollment', slug, user.id] });
       toast({
         title: 'Đăng ký thành công',
         description: 'Bạn đã tham gia khóa học này!',
