@@ -69,9 +69,7 @@ export default function Auth() {
       toast({
         variant: "destructive",
         title: "Đăng nhập thất bại",
-        description: error.message === "Invalid login credentials" 
-          ? "Email hoặc mật khẩu không đúng" 
-          : error.message,
+        description: error.message === "Invalid login credentials" ? "Email hoặc mật khẩu không đúng" : error.message,
       });
     } else {
       toast({
@@ -85,7 +83,7 @@ export default function Auth() {
     setIsGoogleLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: "google",
         options: {
           redirectTo: `${window.location.origin}/`,
         },
@@ -95,14 +93,14 @@ export default function Auth() {
         toast({
           variant: "destructive",
           title: "Đăng nhập Google thất bại",
-          description: error.message,
+          description: "Đăng nhập Google hiện chưa khả dụng. Vui lòng thử lại sau.",
         });
       }
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Đăng nhập Google thất bại",
-        description: error.message,
+        description: "Đăng nhập Google hiện chưa khả dụng. Vui lòng thử lại sau.",
       });
     } finally {
       setIsGoogleLoading(false);
