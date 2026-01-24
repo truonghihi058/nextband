@@ -22,6 +22,7 @@ const examSchema = z.object({
   title: z.string().min(1, "Tiêu đề không được để trống"),
   description: z.string().optional(),
   course_id: z.string().optional().nullable(),
+  exam_type: z.enum(['ielts', 'grammar']).default('ielts'),
   week: z.coerce.number().min(1).default(1),
   duration_minutes: z.coerce.number().min(1).default(60),
   is_published: z.boolean().default(false),
@@ -58,6 +59,7 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
       title: "",
       description: "",
       course_id: defaultCourseId || null,
+      exam_type: 'ielts',
       week: 1,
       duration_minutes: 60,
       is_published: false,
@@ -81,6 +83,7 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
           title: data.title,
           description: data.description || "",
           course_id: data.course_id,
+          exam_type: (data as any).exam_type || 'ielts',
           week: data.week || 1,
           duration_minutes: data.duration_minutes || 60,
           is_published: data.is_published || false,
@@ -98,8 +101,12 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
     }
   };
 
-  const createDefaultSections = async (examId: string) => {
-    const sectionsToCreate = EXAM_SECTION_TYPES.map((type, index) => ({
+  const createDefaultSections = async (examId: string, examType: string) => {
+    const sectionTypes = examType === 'grammar' 
+      ? ['general'] 
+      : EXAM_SECTION_TYPES;
+    
+    const sectionsToCreate = sectionTypes.map((type, index) => ({
       exam_id: examId,
       section_type: type,
       title: type.charAt(0).toUpperCase() + type.slice(1),
@@ -116,6 +123,7 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
         title: values.title,
         description: values.description || null,
         course_id: values.course_id || null,
+        exam_type: values.exam_type,
         week: values.week,
         duration_minutes: values.duration_minutes,
         is_published: values.is_published,
@@ -133,10 +141,11 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
 
         if (error) throw error;
 
-        // Auto-create 4 sections
-        await createDefaultSections(newExam.id);
+        // Auto-create sections based on exam type
+        await createDefaultSections(newExam.id, values.exam_type);
 
-        toast({ title: "Thành công", description: "Bài thi đã được tạo với 4 sections!" });
+        const sectionCount = values.exam_type === 'grammar' ? 1 : 4;
+        toast({ title: "Thành công", description: `Bài thi đã được tạo với ${sectionCount} section!` });
         navigate(`/admin/exams/${newExam.id}`);
       } else if (mode === "edit") {
         const { error } = await supabase

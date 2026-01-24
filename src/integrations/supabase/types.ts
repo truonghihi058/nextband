@@ -248,6 +248,7 @@ export type Database = {
           created_at: string
           description: string | null
           duration_minutes: number | null
+          exam_type: string
           id: string
           is_active: boolean | null
           is_published: boolean | null
@@ -260,6 +261,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration_minutes?: number | null
+          exam_type?: string
           id?: string
           is_active?: boolean | null
           is_published?: boolean | null
@@ -272,6 +274,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration_minutes?: number | null
+          exam_type?: string
           id?: string
           is_active?: boolean | null
           is_published?: boolean | null

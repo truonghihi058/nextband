@@ -27,6 +27,7 @@ import AdminCourseEdit from "@/pages/admin/CourseEdit";
 import AdminExams from "@/pages/admin/Exams";
 import AdminExamCreate from "@/pages/admin/ExamCreate";
 import AdminExamEdit from "@/pages/admin/ExamEdit";
+import AdminSectionEdit from "@/pages/admin/SectionEdit";
 import AdminUsers from "@/pages/admin/Users";
 import AdminCheckAttempt from "@/pages/admin/CheckAttempt";
 
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="/admin/exams" element={<AdminExams />} />
               <Route path="/admin/exams/create" element={<AdminExamCreate />} />
               <Route path="/admin/exams/:id" element={<AdminExamEdit />} />
+              <Route path="/admin/sections/:id" element={<AdminSectionEdit />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/check-attempt" element={<AdminCheckAttempt />} />
             </Route>

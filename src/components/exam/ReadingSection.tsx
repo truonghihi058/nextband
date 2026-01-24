@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, MutableRefObject } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,20 +7,34 @@ import { Label } from '@/components/ui/label';
 import { BookOpen, Highlighter, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTextHighlight, Highlight } from '@/hooks/useTextHighlight';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { DropdownSelect } from './DropdownSelect';
 
 interface ReadingSectionProps {
   section: any;
   answers: Record<string, string>;
   onAnswerChange: (questionId: string, answer: string) => void;
+  questionRefs?: MutableRefObject<Map<string, HTMLElement>>;
+  currentQuestionId?: string;
+  onQuestionFocus?: (questionId: string) => void;
 }
 
-export function ReadingSection({ section, answers, onAnswerChange }: ReadingSectionProps) {
+export function ReadingSection({ 
+  section, 
+  answers, 
+  onAnswerChange,
+  questionRefs,
+  currentQuestionId,
+  onQuestionFocus,
+}: ReadingSectionProps) {
   const passageRef = useRef<HTMLDivElement>(null);
   const [selectedText, setSelectedText] = useState<{ text: string; startIndex: number; endIndex: number } | null>(null);
   const [showHighlightMenu, setShowHighlightMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const { highlights, addHighlight, removeHighlight, loadHighlights } = useTextHighlight(section.id);
+
+  // Get passage text from first question group or section
+  const passageText = section.question_groups?.[0]?.passage || section.passage_text || '';
 
   useEffect(() => {
     if (section.id) {
@@ -41,7 +55,6 @@ export function ReadingSection({ section, answers, onAnswerChange }: ReadingSect
       return;
     }
 
-    const passageText = section.passage_text || '';
     const startIndex = passageText.indexOf(text);
     
     if (startIndex >= 0) {
@@ -59,7 +72,7 @@ export function ReadingSection({ section, answers, onAnswerChange }: ReadingSect
       });
       setShowHighlightMenu(true);
     }
-  }, [section.passage_text]);
+  }, [passageText]);
 
   const handleHighlight = async (color: 'yellow' | 'green') => {
     if (selectedText) {
@@ -71,7 +84,8 @@ export function ReadingSection({ section, answers, onAnswerChange }: ReadingSect
   };
 
   const renderHighlightedText = () => {
-    const text = section.passage_text || '';
+    const text = passageText;
+    if (!text) return null;
     if (highlights.length === 0) return text;
 
     const sortedHighlights = [...highlights].sort((a, b) => a.startIndex - b.startIndex);
@@ -107,6 +121,15 @@ export function ReadingSection({ section, answers, onAnswerChange }: ReadingSect
 
     return result;
   };
+
+  // Flatten all questions from all groups
+  const allQuestions = section.question_groups?.flatMap((group: any, gIdx: number) => 
+    (group.questions || []).map((q: any) => ({
+      ...q,
+      groupTitle: group.title,
+      groupInstructions: group.instructions,
+    }))
+  ) || [];
 
   return (
     <div className="h-full grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x relative">
@@ -148,7 +171,7 @@ export function ReadingSection({ section, answers, onAnswerChange }: ReadingSect
       )}
 
       {/* Left - Passage */}
-      <ScrollArea className="h-[calc(100vh-180px)]">
+      <ScrollArea className="h-[calc(100vh-200px)]">
         <div 
           ref={passageRef}
           className="p-6"
@@ -165,7 +188,7 @@ export function ReadingSection({ section, answers, onAnswerChange }: ReadingSect
             </div>
           </div>
           
-          {section.passage_text && (
+          {passageText && (
             <div className="prose prose-sm max-w-none">
               <p className="whitespace-pre-wrap leading-relaxed text-foreground select-text">
                 {renderHighlightedText()}
@@ -176,7 +199,7 @@ export function ReadingSection({ section, answers, onAnswerChange }: ReadingSect
       </ScrollArea>
 
       {/* Right - Questions */}
-      <ScrollArea className="h-[calc(100vh-180px)]">
+      <ScrollArea className="h-[calc(100vh-200px)]">
         <div className="p-6 space-y-6">
           {section.instructions && (
             <Card className="bg-muted/30">
@@ -186,63 +209,94 @@ export function ReadingSection({ section, answers, onAnswerChange }: ReadingSect
             </Card>
           )}
 
-          {section.question_groups?.map((group: any) => (
+          {section.question_groups?.map((group: any, gIdx: number) => (
             <div key={group.id} className="space-y-4">
               {group.title && (
-                <h3 className="font-medium text-foreground">{group.title}</h3>
+                <h3 className="font-semibold text-lg text-foreground">{group.title}</h3>
+              )}
+              {group.instructions && (
+                <p className="text-sm text-muted-foreground">{group.instructions}</p>
               )}
 
-              {group.questions?.map((question: any, qIndex: number) => (
-                <Card key={question.id} className="transition-shadow hover:shadow-md">
-                  <CardContent className="p-4">
-                    <p className="font-medium mb-3">
-                      {question.order_index || qIndex + 1}. {question.question_text}
-                    </p>
-
-                    {question.question_type === 'multiple_choice' && question.options && (
-                      <RadioGroup
-                        value={answers[question.id] || ''}
-                        onValueChange={(value) => onAnswerChange(question.id, value)}
-                        className="space-y-2"
-                      >
-                        {(question.options as string[]).map((option: string, i: number) => (
-                          <div key={i} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                            <RadioGroupItem value={option} id={`${question.id}-${i}`} />
-                            <Label htmlFor={`${question.id}-${i}`} className="flex-1 cursor-pointer">
-                              {option}
-                            </Label>
-                          </div>
-                        ))}
-                      </RadioGroup>
+              {group.questions?.map((question: any, qIndex: number) => {
+                const isCurrent = question.id === currentQuestionId;
+                
+                return (
+                  <Card 
+                    key={question.id}
+                    ref={(el) => {
+                      if (el && questionRefs) {
+                        questionRefs.current.set(question.id, el);
+                      }
+                    }}
+                    className={cn(
+                      'transition-all hover:shadow-md',
+                      isCurrent && 'ring-2 ring-primary shadow-lg'
                     )}
+                    onClick={() => onQuestionFocus?.(question.id)}
+                  >
+                    <CardContent className="p-4">
+                      <p className="font-medium mb-3">
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[hsl(var(--reading))] text-white text-sm font-bold mr-2">
+                          {question.order_index || qIndex + 1}
+                        </span>
+                        {question.question_text}
+                      </p>
 
-                    {(question.question_type === 'fill_blank' || question.question_type === 'short_answer') && (
-                      <Input
-                        placeholder="Nhập câu trả lời..."
-                        value={answers[question.id] || ''}
-                        onChange={(e) => onAnswerChange(question.id, e.target.value)}
-                      />
-                    )}
+                      {question.question_type === 'multiple_choice' && question.options && (
+                        <RadioGroup
+                          value={answers[question.id] || ''}
+                          onValueChange={(value) => onAnswerChange(question.id, value)}
+                          className="space-y-2 ml-9"
+                        >
+                          {(question.options as string[]).map((option: string, i: number) => (
+                            <div key={i} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                              <RadioGroupItem value={option} id={`${question.id}-${i}`} />
+                              <Label htmlFor={`${question.id}-${i}`} className="flex-1 cursor-pointer">
+                                {option}
+                              </Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      )}
 
-                    {question.question_type === 'true_false_not_given' && (
-                      <RadioGroup
-                        value={answers[question.id] || ''}
-                        onValueChange={(value) => onAnswerChange(question.id, value)}
-                        className="space-y-2"
-                      >
-                        {['TRUE', 'FALSE', 'NOT GIVEN'].map((option) => (
-                          <div key={option} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                            <RadioGroupItem value={option} id={`${question.id}-${option}`} />
-                            <Label htmlFor={`${question.id}-${option}`} className="cursor-pointer">
-                              {option}
-                            </Label>
-                          </div>
-                        ))}
-                      </RadioGroup>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                      {(question.question_type === 'fill_blank' || question.question_type === 'short_answer') && (
+                        <div className="ml-9">
+                          <Input
+                            placeholder="Nhập câu trả lời..."
+                            value={answers[question.id] || ''}
+                            onChange={(e) => onAnswerChange(question.id, e.target.value)}
+                            className="max-w-md"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1 italic">ONE WORD ONLY</p>
+                        </div>
+                      )}
+
+                      {question.question_type === 'true_false_not_given' && (
+                        <div className="ml-9">
+                          <DropdownSelect
+                            value={answers[question.id] || ''}
+                            onChange={(value) => onAnswerChange(question.id, value)}
+                            options={['TRUE', 'FALSE', 'NOT GIVEN']}
+                            placeholder="Chọn đáp án"
+                          />
+                        </div>
+                      )}
+
+                      {question.question_type === 'yes_no_not_given' && (
+                        <div className="ml-9">
+                          <DropdownSelect
+                            value={answers[question.id] || ''}
+                            onChange={(value) => onAnswerChange(question.id, value)}
+                            options={['YES', 'NO', 'NOT GIVEN']}
+                            placeholder="Chọn đáp án"
+                          />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           ))}
         </div>
