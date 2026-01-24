@@ -17,7 +17,7 @@ import { Loader2, Save, ArrowLeft } from "lucide-react";
 
 // Exam section types
 const EXAM_SECTION_TYPES = ["listening", "reading", "writing", "speaking"] as const;
-
+const EXAM_TYPES = ['ielts', 'grammar'] as const;
 const examSchema = z.object({
   title: z.string().min(1, "Tiêu đề không được để trống"),
   description: z.string().optional(),
@@ -219,6 +219,31 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
             />
 
             <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="course_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Khóa học</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""} disabled={isReadOnly}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Chọn khóa học (tuỳ chọn)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {courses?.map((course) => (
+                          <SelectItem key={course.id} value={course.id}>
+                            {course.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="course_id"
