@@ -13,12 +13,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Save, ArrowLeft } from 'lucide-react';
-import { Constants } from '@/integrations/supabase/types';
+// Course level options
+const COURSE_LEVELS = ['beginner', 'intermediate', 'ielts_5', 'ielts_5_5', 'ielts_6', 'ielts_6_5', 'ielts_7', 'ielts_7_5', 'ielts_8', 'ielts_8_5', 'ielts_9'] as const;
 
 const courseSchema = z.object({
   title: z.string().min(1, 'Tiêu đề không được để trống'),
   description: z.string().optional(),
-  level: z.enum(Constants.public.Enums.course_level as unknown as [string, ...string[]]),
+  level: z.enum(COURSE_LEVELS),
   price: z.coerce.number().min(0).optional(),
   thumbnail_url: z.string().url().optional().or(z.literal('')),
   is_published: z.boolean().default(false),
@@ -86,7 +87,7 @@ export default function CourseForm({ mode, courseId, onSuccess }: CourseFormProp
         form.reset({
           title: data.title,
           description: data.description || '',
-          level: data.level,
+          level: (data.level || 'beginner') as typeof COURSE_LEVELS[number],
           price: data.price || 0,
           thumbnail_url: data.thumbnail_url || '',
           is_published: data.is_published || false,
@@ -209,7 +210,7 @@ export default function CourseForm({ mode, courseId, onSuccess }: CourseFormProp
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Constants.public.Enums.course_level.map((level) => (
+                        {COURSE_LEVELS.map((level) => (
                           <SelectItem key={level} value={level}>
                             {levelLabels[level] || level}
                           </SelectItem>
