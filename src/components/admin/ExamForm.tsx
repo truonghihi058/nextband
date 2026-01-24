@@ -21,10 +21,28 @@ const EXAM_TYPES = ["ielts", "grammar"] as const;
 const examSchema = z.object({
   title: z.string().min(1, "Tiêu đề không được để trống"),
   description: z.string().optional(),
-  course_id: z.string().optional().nullable(),
-  exam_type: z.enum(["ielts", "grammar"]).default("ielts"),
-  week: z.coerce.number().min(1).default(1),
-  duration_minutes: z.coerce.number().min(1).default(60),
+  course_id: z.string({
+    required_error: "Vui lòng chọn khóa học",
+    invalid_type_error: "Vui lòng chọn khóa học",
+  }),
+  exam_type: z.enum(["ielts", "grammar"], {
+    required_error: "Vui lòng chọn loại bài thi",
+    invalid_type_error: "Vui lòng chọn loại bài thi",
+  }),
+  week: z.coerce
+    .number({
+      required_error: "Vui lòng nhập tuần",
+      invalid_type_error: "Vui lòng nhập số",
+    })
+    .min(1, { message: "Tuần phải lớn hơn 0" })
+    .default(1),
+  duration_minutes: z.coerce
+    .number({
+      required_error: "Vui lòng nhập thời gian",
+      invalid_type_error: "Vui lòng nhập số",
+    })
+    .min(1, { message: "Thời gian phải lớn hơn 0" })
+    .default(60),
   is_published: z.boolean().default(false),
   is_active: z.boolean().default(true),
 });
