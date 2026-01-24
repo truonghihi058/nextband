@@ -17,12 +17,12 @@ import { Loader2, Save, ArrowLeft } from "lucide-react";
 
 // Exam section types
 const EXAM_SECTION_TYPES = ["listening", "reading", "writing", "speaking"] as const;
-const EXAM_TYPES = ['ielts', 'grammar'] as const;
+const EXAM_TYPES = ["ielts", "grammar"] as const;
 const examSchema = z.object({
   title: z.string().min(1, "Tiêu đề không được để trống"),
   description: z.string().optional(),
   course_id: z.string().optional().nullable(),
-  exam_type: z.enum(['ielts', 'grammar']).default('ielts'),
+  exam_type: z.enum(["ielts", "grammar"]).default("ielts"),
   week: z.coerce.number().min(1).default(1),
   duration_minutes: z.coerce.number().min(1).default(60),
   is_published: z.boolean().default(false),
@@ -40,11 +40,11 @@ interface ExamFormProps {
 
 export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: ExamFormProps) {
   const navigate = useNavigate();
+
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(mode !== "create");
   const isReadOnly = mode === "view";
-
   const { data: courses } = useQuery({
     queryKey: ["admin-courses-select"],
     queryFn: async () => {
@@ -59,7 +59,7 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
       title: "",
       description: "",
       course_id: defaultCourseId || null,
-      exam_type: 'ielts',
+      exam_type: "ielts",
       week: 1,
       duration_minutes: 60,
       is_published: false,
@@ -71,7 +71,7 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
     if (examId && mode !== "create") {
       fetchExam();
     }
-  }, [examId, mode]);
+  }, [mode]);
 
   const fetchExam = async () => {
     try {
@@ -83,7 +83,7 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
           title: data.title,
           description: data.description || "",
           course_id: data.course_id,
-          exam_type: (data as any).exam_type || 'ielts',
+          exam_type: (data as any).exam_type || "ielts",
           week: data.week || 1,
           duration_minutes: data.duration_minutes || 60,
           is_published: data.is_published || false,
@@ -102,10 +102,8 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
   };
 
   const createDefaultSections = async (examId: string, examType: string) => {
-    const sectionTypes = examType === 'grammar' 
-      ? ['general'] 
-      : EXAM_SECTION_TYPES;
-    
+    const sectionTypes = examType === "grammar" ? ["general"] : EXAM_SECTION_TYPES;
+
     const sectionsToCreate = sectionTypes.map((type, index) => ({
       exam_id: examId,
       section_type: type,
@@ -144,7 +142,7 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
         // Auto-create sections based on exam type
         await createDefaultSections(newExam.id, values.exam_type);
 
-        const sectionCount = values.exam_type === 'grammar' ? 1 : 4;
+        const sectionCount = values.exam_type === "grammar" ? 1 : 4;
         toast({ title: "Thành công", description: `Bài thi đã được tạo với ${sectionCount} section!` });
         navigate(`/admin/exams/${newExam.id}`);
       } else if (mode === "edit") {
@@ -243,23 +241,26 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
                   </FormItem>
                 )}
               />
-              <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
-                name="course_id"
+                name="exam_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Khóa học</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""} disabled={isReadOnly}>
+                    <FormLabel>Loại đề thi</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || ""}
+                      disabled={isReadOnly || mode == "edit"}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Chọn khóa học (tuỳ chọn)" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {courses?.map((course) => (
-                          <SelectItem key={course.id} value={course.id}>
-                            {course.title}
+                        {EXAM_TYPES.map((type: string, index) => (
+                          <SelectItem key={index} value={type}>
+                            {type}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -283,21 +284,20 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="duration_minutes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Thời gian làm bài (phút)</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} disabled={isReadOnly} min={1} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-
-            <FormField
-              control={form.control}
-              name="duration_minutes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Thời gian làm bài (phút)</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} disabled={isReadOnly} min={1} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <div className="grid gap-4 md:grid-cols-2">
               <FormField
