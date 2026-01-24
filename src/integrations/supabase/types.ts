@@ -485,7 +485,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "teacher" | "student"
-      exam_section_type: "listening" | "reading" | "writing" | "speaking"
+      exam_section_type:
+        | "listening"
+        | "reading"
+        | "writing"
+        | "speaking"
+        | "general"
       question_type:
         | "multiple_choice"
         | "fill_blank"
@@ -621,7 +626,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "teacher", "student"],
-      exam_section_type: ["listening", "reading", "writing", "speaking"],
+      exam_section_type: [
+        "listening",
+        "reading",
+        "writing",
+        "speaking",
+        "general",
+      ],
       question_type: [
         "multiple_choice",
         "fill_blank",
