@@ -1,23 +1,23 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Save, ArrowLeft } from 'lucide-react';
-import { Constants } from '@/integrations/supabase/types';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Save, ArrowLeft } from "lucide-react";
+import { Constants } from "@/integrations/supabase/types";
 
 const examSchema = z.object({
-  title: z.string().min(1, 'Tiêu đề không được để trống'),
+  title: z.string().min(1, "Tiêu đề không được để trống"),
   description: z.string().optional(),
   course_id: z.string().optional().nullable(),
   week: z.coerce.number().min(1).default(1),
@@ -29,7 +29,7 @@ const examSchema = z.object({
 type ExamFormData = z.infer<typeof examSchema>;
 
 interface ExamFormProps {
-  mode: 'create' | 'edit' | 'view';
+  mode: "create" | "edit" | "view";
   examId?: string;
   defaultCourseId?: string;
   onSuccess?: () => void;
@@ -39,13 +39,13 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(mode !== 'create');
-  const isReadOnly = mode === 'view';
+  const [initialLoading, setInitialLoading] = useState(mode !== "create");
+  const isReadOnly = mode === "view";
 
   const { data: courses } = useQuery({
-    queryKey: ['admin-courses-select'],
+    queryKey: ["admin-courses-select"],
     queryFn: async () => {
-      const { data } = await supabase.from('courses').select('id, title').order('title');
+      const { data } = await supabase.from("courses").select("id, title").order("title");
       return data || [];
     },
   });
@@ -53,8 +53,8 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
   const form = useForm<ExamFormData>({
     resolver: zodResolver(examSchema),
     defaultValues: {
-      title: '',
-      description: '',
+      title: "",
+      description: "",
       course_id: defaultCourseId || null,
       week: 1,
       duration_minutes: 60,
@@ -64,24 +64,20 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
   });
 
   useEffect(() => {
-    if (examId && mode !== 'create') {
+    if (examId && mode !== "create") {
       fetchExam();
     }
   }, [examId, mode]);
 
   const fetchExam = async () => {
     try {
-      const { data, error } = await supabase
-        .from('exams')
-        .select('*')
-        .eq('id', examId!)
-        .single();
+      const { data, error } = await supabase.from("exams").select("*").eq("id", examId!).single();
 
       if (error) throw error;
       if (data) {
         form.reset({
           title: data.title,
-          description: data.description || '',
+          description: data.description || "",
           course_id: data.course_id,
           week: data.week || 1,
           duration_minutes: data.duration_minutes || 60,
@@ -89,11 +85,11 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
           is_active: data.is_active ?? true,
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       toast({
-        title: 'Lỗi',
+        title: "Lỗi",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setInitialLoading(false);
@@ -109,7 +105,7 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
       order_index: index,
     }));
 
-    const { error } = await supabase.from('exam_sections').insert(sectionsToCreate);
+    const { error } = await supabase.from("exam_sections").insert(sectionsToCreate);
     if (error) throw error;
   };
 
@@ -126,38 +122,38 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
         is_active: values.is_active,
       };
 
-      if (mode === 'create') {
+      if (mode === "create") {
         const { data: userData } = await supabase.auth.getUser();
         const { data: newExam, error } = await supabase
-          .from('exams')
+          .from("exams")
           .insert({
             ...examData,
             created_by: userData.user?.id,
           } as any)
           .select()
           .single();
-        
+
         if (error) throw error;
 
         // Auto-create 4 sections
         await createDefaultSections(newExam.id);
-        
-        toast({ title: 'Thành công', description: 'Bài thi đã được tạo với 4 sections!' });
+
+        toast({ title: "Thành công", description: "Bài thi đã được tạo với 4 sections!" });
         navigate(`/admin/exams/${newExam.id}`);
-      } else if (mode === 'edit') {
+      } else if (mode === "edit") {
         const { error } = await supabase
-          .from('exams')
+          .from("exams")
           .update(examData as any)
-          .eq('id', examId!);
+          .eq("id", examId!);
         if (error) throw error;
-        toast({ title: 'Thành công', description: 'Bài thi đã được cập nhật!' });
+        toast({ title: "Thành công", description: "Bài thi đã được cập nhật!" });
         onSuccess?.();
       }
     } catch (error: any) {
       toast({
-        title: 'Lỗi',
+        title: "Lỗi",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -179,7 +175,11 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
           <CardHeader>
             <CardTitle>Thông tin bài thi</CardTitle>
             <CardDescription>
-              {mode === 'create' ? 'Tạo bài thi mới (sẽ tự động tạo 4 sections)' : mode === 'edit' ? 'Chỉnh sửa thông tin' : 'Xem chi tiết'}
+              {mode === "create"
+                ? "Tạo bài thi mới (sẽ tự động tạo 4 sections)"
+                : mode === "edit"
+                  ? "Chỉnh sửa thông tin"
+                  : "Xem chi tiết"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -218,18 +218,13 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Khóa học</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      value={field.value || ''} 
-                      disabled={isReadOnly}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value || ""} disabled={isReadOnly}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Chọn khóa học (tuỳ chọn)" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Không thuộc khóa học</SelectItem>
                         {courses?.map((course) => (
                           <SelectItem key={course.id} value={course.id}>
                             {course.title}
@@ -280,16 +275,10 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
                   <FormItem className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <FormLabel>Xuất bản</FormLabel>
-                      <FormDescription>
-                        Bài thi sẽ hiển thị cho học viên
-                      </FormDescription>
+                      <FormDescription>Bài thi sẽ hiển thị cho học viên</FormDescription>
                     </div>
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={isReadOnly}
-                      />
+                      <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isReadOnly} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -302,16 +291,10 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
                   <FormItem className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <FormLabel>Kích hoạt</FormLabel>
-                      <FormDescription>
-                        Cho phép học viên làm bài
-                      </FormDescription>
+                      <FormDescription>Cho phép học viên làm bài</FormDescription>
                     </div>
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={isReadOnly}
-                      />
+                      <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isReadOnly} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -329,7 +312,7 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Save className="mr-2 h-4 w-4" />
-              {mode === 'create' ? 'Tạo bài thi' : 'Lưu thay đổi'}
+              {mode === "create" ? "Tạo bài thi" : "Lưu thay đổi"}
             </Button>
           </div>
         )}
