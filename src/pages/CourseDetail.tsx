@@ -46,7 +46,7 @@ export default function CourseDetail() {
   const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ["course", slug],
     queryFn: async () => {
-      const { data, error } = await supabase.from("courses").select("*").eq("id", slug).maybeSingle();
+      const { data, error } = await supabase.from("courses").select("*").eq("id", slug).single();
 
       if (error) throw error;
       return data;
@@ -177,7 +177,7 @@ export default function CourseDetail() {
               </CardHeader>
               <CardContent>
                 <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
-                  {typeof course.syllabus === "string" ? course.syllabus : JSON.stringify(course.syllabus, null, 2)}
+                  {typeof course.syllabus === "string" ? course.syllabus : JSON.stringify("")}
                 </pre>
               </CardContent>
             </Card>
@@ -185,41 +185,41 @@ export default function CourseDetail() {
         </div>
 
         {/* Enrollment Card */}
-        <div>
-          <Card className="sticky top-20">
-            <CardHeader>
-              {course.thumbnail_url && (
-                <img
-                  src={course.thumbnail_url}
-                  alt={course.title}
-                  className="w-full h-48 object-cover rounded-lg mb-4"
-                />
-              )}
-              <CardTitle className="text-2xl">
-                {course.price ? `${course.price.toLocaleString()} VND` : "Miễn phí"}
-              </CardTitle>
-              <CardDescription>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <GraduationCap className="h-4 w-4" />
-                  <span>{levelLabels[course.level]}</span>
-                </div>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {enrollment ? (
-                <Button className="w-full" size="lg">
-                  <Play className="mr-2 h-4 w-4" />
-                  Tiếp tục học
-                </Button>
-              ) : (
-                <Button className="w-full" size="lg" onClick={handleEnroll}>
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Đăng ký ngay
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {/*<div>*/}
+        {/*  <Card className="sticky top-20">*/}
+        {/*    <CardHeader>*/}
+        {/*      {course.thumbnail_url && (*/}
+        {/*        <img*/}
+        {/*          src={course.thumbnail_url}*/}
+        {/*          alt={course.title}*/}
+        {/*          className="w-full h-48 object-cover rounded-lg mb-4"*/}
+        {/*        />*/}
+        {/*      )}*/}
+        {/*      <CardTitle className="text-2xl">*/}
+        {/*        {course.price ? `${course.price.toLocaleString()} VND` : 'Miễn phí'}*/}
+        {/*      </CardTitle>*/}
+        {/*      <CardDescription>*/}
+        {/*        <div className="flex items-center gap-2 text-muted-foreground">*/}
+        {/*          <GraduationCap className="h-4 w-4" />*/}
+        {/*          <span>{levelLabels[course.level]}</span>*/}
+        {/*        </div>*/}
+        {/*      </CardDescription>*/}
+        {/*    </CardHeader>*/}
+        {/*    /!*<CardContent>*!/*/}
+        {/*    /!*  {enrollment ? (*!/*/}
+        {/*    /!*    <Button className="w-full" size="lg">*!/*/}
+        {/*    /!*      <Play className="mr-2 h-4 w-4" />*!/*/}
+        {/*    /!*      Tiếp tục học*!/*/}
+        {/*    /!*    </Button>*!/*/}
+        {/*    /!*  ) : (*!/*/}
+        {/*    /!*    <Button className="w-full" size="lg" onClick={handleEnroll}>*!/*/}
+        {/*    /!*      <BookOpen className="mr-2 h-4 w-4" />*!/*/}
+        {/*    /!*      Đăng ký ngay*!/*/}
+        {/*    /!*    </Button>*!/*/}
+        {/*    /!*  )}*!/*/}
+        {/*    /!*</CardContent>*!/*/}
+        {/*  </Card>*/}
+        {/*</div>*/}
       </div>
 
       {/* Exams Section */}
@@ -233,47 +233,50 @@ export default function CourseDetail() {
             ))}
           </div>
         ) : exams && exams.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            {exams.map((exam) => (
-              <Card key={exam.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <CardTitle className="text-lg">{exam.title}</CardTitle>
-                  {exam.description && <CardDescription>{exam.description}</CardDescription>}
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {exam.exam_sections?.map((section: any) => {
-                      const Icon = sectionIcons[section.section_type as keyof typeof sectionIcons];
-                      return (
-                        <Badge
-                          key={section.id}
-                          className={sectionColors[section.section_type as keyof typeof sectionColors]}
-                        >
-                          <Icon className="mr-1 h-3 w-3" />
-                          {section.section_type}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Clock className="mr-1 h-4 w-4" />
-                      {exam.duration_minutes || 60} phút
-                    </div>
-                    {enrollment && (
-                      <Button size="sm" asChild>
-                        <Link to={`/exam/${exam.id}`}>
-                          <Play className="mr-1 h-4 w-4" />
-                          Làm bài
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <div></div>
         ) : (
+          // <div className="grid gap-4 md:grid-cols-2">
+          //   {exams.map((exam) => (
+          //     <Card key={exam.id} className="hover:shadow-md transition-shadow">
+          //       <CardHeader>
+          //         <CardTitle className="text-lg">{exam.title}</CardTitle>
+          //         {exam.description && (
+          //           <CardDescription>{exam.description}</CardDescription>
+          //         )}
+          //       </CardHeader>
+          //       <CardContent>
+          //         <div className="flex flex-wrap gap-2 mb-4">
+          //           {exam.exam_sections?.map((section: any) => {
+          //             const Icon = sectionIcons[section.section_type as keyof typeof sectionIcons];
+          //             return (
+          //               <Badge
+          //                 key={section.id}
+          //                 className={sectionColors[section.section_type as keyof typeof sectionColors]}
+          //               >
+          //                 <Icon className="mr-1 h-3 w-3" />
+          //                 {section.section_type}
+          //               </Badge>
+          //             );
+          //           })}
+          //         </div>
+          //         <div className="flex items-center justify-between">
+          //           <div className="flex items-center text-sm text-muted-foreground">
+          //             <Clock className="mr-1 h-4 w-4" />
+          //             {exam.duration_minutes || 60} phút
+          //           </div>
+          //           {enrollment && (
+          //             <Button size="sm" asChild>
+          //               <Link to={`/exam/${exam.id}`}>
+          //                 <Play className="mr-1 h-4 w-4" />
+          //                 Làm bài
+          //               </Link>
+          //             </Button>
+          //           )}
+          //         </div>
+          //       </CardContent>
+          //     </Card>
+          //   ))}
+          // </div>
           <Card className="text-center py-8">
             <CardContent>
               <FileText className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
