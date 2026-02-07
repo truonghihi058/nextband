@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom';
-import { Home, BookOpen, GraduationCap, User } from 'lucide-react';
+import { Home, BookOpen, ClipboardList, GraduationCap, User } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import {
   Sidebar,
@@ -29,6 +29,12 @@ const navigationItems = [
     url: '/my-courses',
     icon: BookOpen,
     description: 'Khóa học đã đăng ký',
+  },
+  {
+    title: 'Bài Đã Làm',
+    url: '/my-submissions',
+    icon: ClipboardList,
+    description: 'Lịch sử bài thi',
   },
 ];
 
