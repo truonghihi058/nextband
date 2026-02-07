@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Save, ArrowLeft } from "lucide-react";
+import FileUpload from "@/components/admin/FileUpload";
 // Course level options
 const COURSE_LEVELS = [
   "beginner",
@@ -33,7 +34,7 @@ const courseSchema = z.object({
   description: z.string().optional(),
   level: z.enum(COURSE_LEVELS),
   price: z.coerce.number().min(0).optional(),
-  thumbnail_url: z.string().url().optional().or(z.literal("")),
+  thumbnail_url: z.string().optional(),
   is_published: z.boolean().default(false),
   is_active: z.boolean().default(true),
 });
@@ -248,9 +249,18 @@ export default function CourseForm({ mode, courseId, onSuccess }: CourseFormProp
               name="thumbnail_url"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Ảnh thumbnail (URL)</FormLabel>
+                  <FormLabel>Ảnh thumbnail</FormLabel>
                   <FormControl>
-                    <Input {...field} disabled={isReadOnly} placeholder="https://..." />
+                    <FileUpload
+                      bucket="course-thumbnails"
+                      folder={courseId || "new"}
+                      accept="image/*"
+                      currentUrl={field.value || undefined}
+                      onUploadComplete={(url) => field.onChange(url)}
+                      onRemove={() => field.onChange("")}
+                      disabled={isReadOnly}
+                      maxSizeMB={5}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
