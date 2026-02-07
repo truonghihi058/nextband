@@ -1,89 +1,144 @@
 
 
-# Cho phep chinh sua loai de thi va cap nhat Section tuong ung
+# Chuyen doi tu nhap URL sang Upload File
 
 ## Hien trang
 
-Hien tai, truong "Loai de thi" (`exam_type`) bi **khoa** khi o che do chinh sua (`mode === "edit"`), khong cho phep admin thay doi loai de thi sau khi da tao. Khi thay doi tu IELTS sang Grammar (hoac nguoc lai), cac section cu van ton tai va khong phu hop voi cau truc moi.
+Hien tai, he thong co 2 noi yeu cau nhap URL de tai file len:
 
-## Thay doi can thuc hien
+1. **CourseForm** (`src/components/admin/CourseForm.tsx`): Truong "Anh thumbnail (URL)" - yeu cau dan link hinh anh
+2. **SectionEdit** (`src/pages/admin/SectionEdit.tsx`): Truong "URL Audio (Listening)" - yeu cau dan link audio
 
-### 1. Mo khoa truong exam_type trong ExamForm (edit mode)
+Ca hai deu la Input text, bat nguoi dung tu tim va dan URL. Cach nay bat tien va de loi.
 
-**File:** `src/components/admin/ExamForm.tsx`
+## Giai phap
 
-- Xoa dieu kien `mode == "edit"` khoi prop `disabled` cua Select exam_type, chi giu `isReadOnly`
-- Them logic: khi nguoi dung thay doi `exam_type` trong edit mode, hien thi canh bao rang viec doi loai se **xoa tat ca sections cu** va tao lai sections moi phu hop
-- Su dung AlertDialog de xac nhan truoc khi thuc hien thay doi
+Tao storage buckets de luu file, tao component upload file dung chung, va thay the cac input URL bang component upload thuc su.
 
-### 2. Them logic xoa va tao lai sections khi doi exam_type
+---
 
-**File:** `src/components/admin/ExamForm.tsx`
+## Cac buoc thuc hien
 
-Khi submit form o edit mode voi `exam_type` da thay doi:
-- Xoa tat ca `exam_sections` thuoc exam hien tai (cung cascade xoa `question_groups` va `questions` lien quan)
-- Tao lai sections moi dua tren exam_type moi:
-  - **IELTS**: 4 sections (Listening, Reading, Writing, Speaking)
-  - **Grammar**: 1 section (General)
-- Hien toast thong bao thanh cong
+### Buoc 1: Tao Storage Buckets (Database Migration)
 
-### 3. Cap nhat giao dien Sections trong ExamEdit
+Tao 2 storage buckets:
+- **`course-thumbnails`**: Luu anh thumbnail khoa hoc (public, cho phep xem cong khai)
+- **`exam-assets`**: Luu audio, hinh anh cua bai thi (public, cho phep xem cong khai)
 
-**File:** `src/pages/admin/ExamEdit.tsx`
+Tao RLS policies cho phep:
+- Admin va Teacher upload/delete file
+- Tat ca nguoi dung doc file (public bucket)
 
-- Them icon va color cho section type `general` (hien tai chi co 4 loai IELTS)
-- Cap nhat thong bao khi khong co section: phan biet giua IELTS va Grammar
-- Sau khi ExamForm luu thanh cong, invalidate ca query `exam-sections` de cap nhat danh sach sections
+### Buoc 2: Tao component FileUpload dung chung
 
-### 4. Cai thien GrammarSection cho de thi Grammar Viet Nam
+**File moi:** `src/components/admin/FileUpload.tsx`
 
-**File:** `src/components/exam/GrammarSection.tsx`
+Component nay se:
+- Cho phep chon file tu may tinh (click hoac keo tha)
+- Hien thi trang thai dang upload (progress)
+- Upload file len storage bucket tuong ung
+- Tra ve URL cua file da upload
+- Hien thi preview file da upload (anh hoac audio player)
+- Co nut xoa file da upload
+- Ho tro gioi han loai file (image/*, audio/*)
+- Ho tro gioi han kich thuoc file
 
-- Them ho tro loai cau hoi `yes_no_not_given` (da co san)
-- Dam bao hien thi dung cac dang cau hoi pho bien trong de thi Grammar tieng Viet: trac nghiem, dien vao cho trong, True/False/Not Given
+Props cua component:
+
+| Prop | Type | Mo ta |
+|------|------|-------|
+| bucket | string | Ten storage bucket (vd: "course-thumbnails") |
+| folder | string | Thu muc con (vd: "courses/abc123") |
+| accept | string | Loai file chap nhan (vd: "image/*", "audio/*") |
+| currentUrl | string | URL file hien tai (neu da co) |
+| onUploadComplete | (url: string) => void | Callback khi upload xong |
+| onRemove | () => void | Callback khi xoa file |
+| maxSizeMB | number | Gioi han kich thuoc (mac dinh 10MB) |
+
+### Buoc 3: Cap nhat CourseForm - Upload anh thumbnail
+
+**File:** `src/components/admin/CourseForm.tsx`
+
+Thay doi:
+- Thay Input URL (`<Input placeholder="https://...">`) bang component `<FileUpload>`
+- Cau hinh: bucket = "course-thumbnails", accept = "image/*"
+- Khi upload xong, tu dong cap nhat gia tri `thumbnail_url` trong form
+- Hien thi preview anh hien tai neu da co
+- Cap nhat validation schema: bo kiem tra URL format, chi can string
+
+### Buoc 4: Cap nhat SectionEdit - Upload file audio
+
+**File:** `src/pages/admin/SectionEdit.tsx`
+
+Thay doi:
+- Thay Input URL ("URL Audio") bang component `<FileUpload>`
+- Cau hinh: bucket = "exam-assets", accept = "audio/*", folder = section id
+- Khi upload xong, tu dong goi `updateSectionMutation` voi audio_url moi
+- Hien thi audio player nho neu da co file audio
+- Cho phep xoa file audio hien tai
 
 ---
 
 ## Chi tiet ky thuat
 
-### ExamForm - Logic xu ly khi doi exam_type
+### Storage Bucket SQL Migration
 
 ```text
-User thay doi exam_type
+-- Tao bucket course-thumbnails (public)
+INSERT INTO storage.buckets (id, name, public) VALUES ('course-thumbnails', 'course-thumbnails', true);
+
+-- Tao bucket exam-assets (public)
+INSERT INTO storage.buckets (id, name, public) VALUES ('exam-assets', 'exam-assets', true);
+
+-- RLS policies cho phep admin/teacher upload
+-- RLS policies cho phep public read
+```
+
+### Luong Upload File
+
+```text
+Nguoi dung chon file
        |
        v
-Hien AlertDialog canh bao:
-"Doi loai de thi se xoa tat ca sections va cau hoi hien tai. Ban co chac chan?"
+Validate (loai file, kich thuoc)
        |
-  [Xac nhan] --> Luu exam_type moi
-       |         --> DELETE FROM exam_sections WHERE exam_id = ?
-       |         --> INSERT sections moi (4 IELTS hoac 1 General)
-       |         --> Toast thanh cong + Refresh sections
+       v
+Hien thi progress bar
        |
-  [Huy bo] --> Khong thay doi gi
+       v
+Upload len Supabase Storage
+  supabase.storage.from(bucket).upload(path, file)
+       |
+       v
+Lay public URL
+  supabase.storage.from(bucket).getPublicUrl(path)
+       |
+       v
+Goi onUploadComplete(url)
+       |
+       v
+Hien thi preview (anh hoac audio)
 ```
 
-### ExamEdit - Bo sung icon/color cho "general"
+### FileUpload Component UI
 
-```text
-sectionIcons = {
-  listening: Headphones,
-  reading: BookOpen,
-  writing: PenTool,
-  speaking: Mic,
-  general: FileText,    // <-- them moi
-}
+Khi chua co file:
+- Vung keo tha voi icon Upload, text "Keo tha file vao day hoac nhan de chon"
+- Hien thi loai file chap nhan va gioi han kich thuoc
 
-sectionColors = {
-  ...existing,
-  general: 'bg-primary text-primary-foreground',  // <-- them moi
-}
-```
+Khi dang upload:
+- Progress bar voi phan tram
+
+Khi da co file:
+- Preview anh (neu la image) hoac audio player nho (neu la audio)
+- Nut "Xoa" de go file va upload file moi
 
 ### Cac file can chinh sua
 
 | File | Thay doi |
 |------|----------|
-| `src/components/admin/ExamForm.tsx` | Mo khoa exam_type dropdown, them logic xoa/tao lai sections khi doi type |
-| `src/pages/admin/ExamEdit.tsx` | Them icon/color cho `general`, invalidate sections query sau khi save |
+| Migration SQL | Tao 2 storage buckets + RLS policies |
+| `src/components/admin/FileUpload.tsx` | **TAO MOI** - Component upload file dung chung |
+| `src/components/admin/CourseForm.tsx` | Thay Input URL thumbnail bang FileUpload |
+| `src/pages/admin/SectionEdit.tsx` | Thay Input URL audio bang FileUpload |
 
