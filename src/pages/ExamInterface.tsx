@@ -318,11 +318,25 @@ export default function ExamInterface() {
     );
   }
 
-  if (!exam || availableSections.length === 0) {
+  if (!exam) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <h2 className="text-xl font-semibold mb-4">Không tìm thấy bài thi</h2>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <h2 className="text-xl font-semibold">Không tìm thấy bài thi</h2>
+        <p className="text-muted-foreground">Bài thi không tồn tại hoặc bạn không có quyền truy cập.</p>
         <Button asChild>
+          <Link to="/">Quay về trang chủ</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (availableSections.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <FileText className="h-16 w-16 text-muted-foreground/50" />
+        <h2 className="text-xl font-semibold">{exam.title}</h2>
+        <p className="text-muted-foreground">Bài thi này chưa có nội dung câu hỏi. Vui lòng liên hệ giáo viên.</p>
+        <Button asChild variant="outline">
           <Link to="/">Quay về trang chủ</Link>
         </Button>
       </div>
