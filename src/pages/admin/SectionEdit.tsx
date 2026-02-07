@@ -15,7 +15,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -37,6 +36,7 @@ import {
   PenTool,
   Mic,
   FileText,
+  Zap,
 } from 'lucide-react';
 import FileUpload from '@/components/admin/FileUpload';
 import {
@@ -67,8 +67,9 @@ const QUESTION_TYPES = [
   { value: 'fill_blank', label: 'Điền vào chỗ trống' },
   { value: 'short_answer', label: 'Trả lời ngắn' },
   { value: 'true_false_not_given', label: 'TRUE/FALSE/NOT GIVEN' },
+  { value: 'yes_no_not_given', label: 'YES/NO/NOT GIVEN' },
   { value: 'matching', label: 'Nối đáp án' },
-  { value: 'essay', label: 'Bài luận' },
+  { value: 'essay', label: 'Bài luận / Viết dài' },
 ];
 
 interface QuestionGroup {
@@ -101,6 +102,11 @@ export default function AdminSectionEdit() {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [editingGroup, setEditingGroup] = useState<QuestionGroup | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+
+  // Bulk import states
+  const [bulkImportGroupId, setBulkImportGroupId] = useState<string | null>(null);
+  const [bulkImportText, setBulkImportText] = useState('');
+  const [bulkImportType, setBulkImportType] = useState('short_answer');
 
   // Form states
   const [groupForm, setGroupForm] = useState({ title: '', passage: '', instructions: '' });
@@ -143,9 +149,11 @@ export default function AdminSectionEdit() {
     enabled: !!id,
   });
 
+  // --- Mutations ---
+
   const createGroupMutation = useMutation({
     mutationFn: async (data: { title: string; passage: string; instructions: string }) => {
-      const orderIndex = (questionGroups?.length || 0);
+      const orderIndex = questionGroups?.length || 0;
       const { error } = await supabase.from('question_groups').insert({
         section_id: id,
         title: data.title || null,
@@ -200,8 +208,8 @@ export default function AdminSectionEdit() {
   const createQuestionMutation = useMutation({
     mutationFn: async (data: typeof questionForm & { groupId: string }) => {
       const group = questionGroups?.find((g) => g.id === data.groupId);
-      const orderIndex = (group?.questions?.length || 0);
-      
+      const orderIndex = group?.questions?.length || 0;
+
       const { error } = await supabase.from('questions').insert({
         group_id: data.groupId,
         question_text: data.question_text,
@@ -275,6 +283,42 @@ export default function AdminSectionEdit() {
     },
   });
 
+  // Bulk import mutation
+  const bulkImportMutation = useMutation({
+    mutationFn: async ({ groupId, text, questionType }: { groupId: string; text: string; questionType: string }) => {
+      const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+      if (lines.length === 0) throw new Error('Không có câu hỏi nào để nhập');
+
+      const group = questionGroups?.find((g) => g.id === groupId);
+      const startIndex = group?.questions?.length || 0;
+
+      const questions = lines.map((line, i) => ({
+        group_id: groupId,
+        question_text: line,
+        question_type: questionType,
+        points: 1,
+        order_index: startIndex + i,
+        options: null,
+        correct_answer: null,
+      }));
+
+      const { error } = await supabase.from('questions').insert(questions as any);
+      if (error) throw error;
+      return lines.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['question-groups', id] });
+      setBulkImportGroupId(null);
+      setBulkImportText('');
+      toast({ title: 'Thành công', description: `Đã tạo ${count} câu hỏi` });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // --- Handlers ---
+
   const handleOpenGroupDialog = (group?: QuestionGroup) => {
     if (group) {
       setEditingGroup(group);
@@ -329,6 +373,17 @@ export default function AdminSectionEdit() {
       createQuestionMutation.mutate({ ...questionForm, groupId: selectedGroupId });
     }
   };
+
+  const handleBulkImport = () => {
+    if (!bulkImportGroupId) return;
+    bulkImportMutation.mutate({
+      groupId: bulkImportGroupId,
+      text: bulkImportText,
+      questionType: bulkImportType,
+    });
+  };
+
+  const bulkImportLineCount = bulkImportText.split('\n').map((l) => l.trim()).filter(Boolean).length;
 
   if (sectionLoading || groupsLoading) {
     return (
@@ -451,7 +506,14 @@ export default function AdminSectionEdit() {
                     {group.passage && (
                       <div className="mb-4 p-4 bg-muted/50 rounded-lg">
                         <div className="text-sm font-medium mb-2">Đoạn văn:</div>
-                        <p className="text-sm text-muted-foreground line-clamp-3">{group.passage}</p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{group.passage}</p>
+                      </div>
+                    )}
+
+                    {group.instructions && (
+                      <div className="mb-4 p-3 bg-accent/30 rounded-lg border border-accent">
+                        <div className="text-sm font-medium mb-1">Hướng dẫn:</div>
+                        <p className="text-sm text-muted-foreground">{group.instructions}</p>
                       </div>
                     )}
 
@@ -471,6 +533,9 @@ export default function AdminSectionEdit() {
                                 {QUESTION_TYPES.find((t) => t.value === q.question_type)?.label || q.question_type}
                               </Badge>
                               <span className="text-xs text-muted-foreground">{q.points} điểm</span>
+                              {q.correct_answer && (
+                                <span className="text-xs text-primary">✓ Có đáp án</span>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
@@ -489,14 +554,88 @@ export default function AdminSectionEdit() {
                         </div>
                       ))}
 
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => handleOpenQuestionDialog(group.id)}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Thêm câu hỏi
-                      </Button>
+                      {/* Action buttons */}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => handleOpenQuestionDialog(group.id)}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Thêm câu hỏi
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => {
+                            setBulkImportGroupId(group.id);
+                            setBulkImportText('');
+                            setBulkImportType('short_answer');
+                          }}
+                        >
+                          <Zap className="mr-2 h-4 w-4" />
+                          Nhập nhanh
+                        </Button>
+                      </div>
+
+                      {/* Bulk import inline panel */}
+                      {bulkImportGroupId === group.id && (
+                        <Card className="border-2 border-primary/30 bg-primary/5">
+                          <CardContent className="p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold text-sm flex items-center gap-2">
+                                <Zap className="h-4 w-4 text-primary" />
+                                Nhập nhanh câu hỏi
+                              </h4>
+                              <Button variant="ghost" size="sm" onClick={() => setBulkImportGroupId(null)}>
+                                ✕
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Mỗi dòng = 1 câu hỏi. Dòng trống sẽ được bỏ qua.
+                            </p>
+                            <Textarea
+                              placeholder={`Ví dụ:\nNhiều học sinh cảm thấy căng thẳng trước kỳ thi. (feel stressed)\nSinh viên cần chú ý khi giáo viên giải thích bài. (pay attention to)\nTôi thường dành thời gian cho gia đình vào cuối tuần. (spend time with)`}
+                              value={bulkImportText}
+                              onChange={(e) => setBulkImportText(e.target.value)}
+                              rows={8}
+                              className="font-mono text-sm"
+                            />
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2 flex-1">
+                                <Label className="text-xs whitespace-nowrap">Loại câu hỏi:</Label>
+                                <Select value={bulkImportType} onValueChange={setBulkImportType}>
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {QUESTION_TYPES.map((t) => (
+                                      <SelectItem key={t.value} value={t.value}>
+                                        {t.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <Badge variant="secondary" className="text-xs">
+                                {bulkImportLineCount} câu hỏi
+                              </Badge>
+                              <Button
+                                size="sm"
+                                onClick={handleBulkImport}
+                                disabled={bulkImportLineCount === 0 || bulkImportMutation.isPending}
+                              >
+                                {bulkImportMutation.isPending ? (
+                                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Zap className="mr-1 h-3 w-3" />
+                                )}
+                                Tạo {bulkImportLineCount} câu
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
                     </div>
                   </AccordionContent>
                 </AccordionItem>
@@ -516,34 +655,34 @@ export default function AdminSectionEdit() {
           <DialogHeader>
             <DialogTitle>{editingGroup ? 'Chỉnh sửa nhóm' : 'Thêm nhóm mới'}</DialogTitle>
             <DialogDescription>
-              Nhóm câu hỏi có thể chứa một đoạn văn (passage) hoặc hướng dẫn riêng
+              Nhóm câu hỏi có thể chứa đoạn văn (passage), hướng dẫn, và nhiều câu hỏi
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Tiêu đề nhóm</Label>
               <Input
-                placeholder="VD: Part 1, Questions 1-5"
+                placeholder="VD: Dịch câu sang tiếng Anh, Nhận diện Subject-Verb, Đọc hiểu..."
                 value={groupForm.title}
                 onChange={(e) => setGroupForm((f) => ({ ...f, title: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label>Đoạn văn (Passage)</Label>
-              <Textarea
-                placeholder="Nhập đoạn văn đọc hiểu..."
-                value={groupForm.passage}
-                onChange={(e) => setGroupForm((f) => ({ ...f, passage: e.target.value }))}
-                rows={6}
-              />
-            </div>
-            <div className="space-y-2">
               <Label>Hướng dẫn</Label>
               <Textarea
-                placeholder="Hướng dẫn làm bài cho nhóm câu hỏi này..."
+                placeholder="VD: Dịch các câu sau sang câu đơn tiếng Anh, Gạch chân S và in đậm V..."
                 value={groupForm.instructions}
                 onChange={(e) => setGroupForm((f) => ({ ...f, instructions: e.target.value }))}
                 rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Đoạn văn (Passage) — nếu có</Label>
+              <Textarea
+                placeholder="Nhập đoạn văn đọc hiểu (nếu nhóm này cần bài đọc kèm theo)..."
+                value={groupForm.passage}
+                onChange={(e) => setGroupForm((f) => ({ ...f, passage: e.target.value }))}
+                rows={6}
               />
             </div>
           </div>

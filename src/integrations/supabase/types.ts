@@ -497,6 +497,9 @@ export type Database = {
         | "matching"
         | "essay"
         | "speaking"
+        | "short_answer"
+        | "true_false_not_given"
+        | "yes_no_not_given"
       submission_status: "in_progress" | "submitted" | "graded"
     }
     CompositeTypes: {
@@ -639,6 +642,9 @@ export const Constants = {
         "matching",
         "essay",
         "speaking",
+        "short_answer",
+        "true_false_not_given",
+        "yes_no_not_given",
       ],
       submission_status: ["in_progress", "submitted", "graded"],
     },
