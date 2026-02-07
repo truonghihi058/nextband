@@ -80,12 +80,74 @@ export default function ExamInterface() {
         .from('exams')
         .select('*')
         .eq('id', examId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
     },
   });
+
+  // Create or fetch existing submission (needed for RLS on exam_sections)
+  const { data: submission, isLoading: submissionLoading } = useQuery({
+    queryKey: ['exam-submission', examId, user?.id],
+    queryFn: async () => {
+      if (!user || !examId) return null;
+
+      // Check for existing in_progress submission
+      const { data: existing, error: fetchError } = await supabase
+        .from('exam_submissions')
+        .select('*')
+        .eq('exam_id', examId)
+        .eq('student_id', user.id)
+        .eq('status', 'in_progress')
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+      if (existing) return existing;
+
+      // Create new submission
+      const { data: created, error: createError } = await supabase
+        .from('exam_submissions')
+        .insert({
+          exam_id: examId,
+          student_id: user.id,
+          status: 'in_progress',
+          started_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+      return created;
+    },
+    enabled: !!examId && !!user && !!exam,
+  });
+
+  // Load existing answers if resuming
+  const { data: savedAnswers } = useQuery({
+    queryKey: ['exam-saved-answers', submission?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('answers')
+        .select('question_id, answer_text, audio_url')
+        .eq('submission_id', submission!.id);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!submission?.id,
+  });
+
+  // Restore saved answers
+  useEffect(() => {
+    if (savedAnswers && savedAnswers.length > 0) {
+      const restored: Record<string, string> = {};
+      savedAnswers.forEach((a) => {
+        if (a.answer_text) restored[a.question_id] = a.answer_text;
+      });
+      setAnswers((prev) => ({ ...restored, ...prev }));
+    }
+  }, [savedAnswers]);
 
   const { data: sections, isLoading: sectionsLoading } = useQuery({
     queryKey: ['exam-sections', examId],
@@ -105,7 +167,7 @@ export default function ExamInterface() {
       if (error) throw error;
       return data;
     },
-    enabled: !!examId,
+    enabled: !!examId && !!submission,
   });
 
   // Set default active section
@@ -185,25 +247,22 @@ export default function ExamInterface() {
   }, []);
 
   const handleSubmit = async () => {
-    if (!user || !examId) return;
+    if (!user || !examId || !submission) return;
 
     setIsSubmitting(true);
     try {
-      // Create submission
-      const { data: submission, error: submissionError } = await supabase
+      // Update submission status
+      const { error: submissionError } = await supabase
         .from('exam_submissions')
-        .insert({
-          exam_id: examId,
-          student_id: user.id,
+        .update({
           status: 'submitted',
           submitted_at: new Date().toISOString(),
         })
-        .select()
-        .single();
+        .eq('id', submission.id);
 
       if (submissionError) throw submissionError;
 
-      // Save answers
+      // Upsert answers (some may already exist from saved progress)
       const answerEntries = Object.entries(answers).map(([questionId, answerText]) => ({
         submission_id: submission.id,
         question_id: questionId,
@@ -211,6 +270,12 @@ export default function ExamInterface() {
       }));
 
       if (answerEntries.length > 0) {
+        // Delete existing answers and re-insert
+        await supabase
+          .from('answers')
+          .delete()
+          .eq('submission_id', submission.id);
+
         const { error: answersError } = await supabase
           .from('answers')
           .insert(answerEntries);
@@ -223,7 +288,7 @@ export default function ExamInterface() {
         description: 'Bài thi của bạn đã được ghi nhận',
       });
 
-      navigate('/my-courses');
+      navigate('/my-submissions');
     } catch (error: any) {
       toast({
         title: 'Lỗi',
@@ -245,7 +310,7 @@ export default function ExamInterface() {
     handleSubmit();
   }, []);
 
-  if (examLoading || sectionsLoading) {
+  if (examLoading || submissionLoading || sectionsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
