@@ -30,6 +30,7 @@ import AdminExamEdit from "@/pages/admin/ExamEdit";
 import AdminSectionEdit from "@/pages/admin/SectionEdit";
 import AdminUsers from "@/pages/admin/Users";
 import AdminCheckAttempt from "@/pages/admin/CheckAttempt";
+import AdminSubmissionGrade from "@/pages/admin/SubmissionGrade";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ const App = () => (
               <Route path="/admin/sections/:id" element={<AdminSectionEdit />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/check-attempt" element={<AdminCheckAttempt />} />
+              <Route path="/admin/submissions/:id" element={<AdminSubmissionGrade />} />
             </Route>
 
             {/* Catch-all */}
