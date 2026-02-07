@@ -1,10 +1,10 @@
-import { RefObject, MutableRefObject } from 'react';
+import { useState, MutableRefObject } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { FileText } from 'lucide-react';
+import { FileText, BookOpen } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { DropdownSelect } from './DropdownSelect';
@@ -18,6 +18,15 @@ interface GrammarSectionProps {
   onQuestionFocus?: (questionId: string) => void;
 }
 
+function WordCount({ text }: { text: string }) {
+  const count = text.trim() ? text.trim().split(/\s+/).length : 0;
+  return (
+    <div className="text-xs text-muted-foreground text-right mt-1">
+      {count} từ
+    </div>
+  );
+}
+
 export function GrammarSection({ 
   section, 
   answers, 
@@ -27,17 +36,6 @@ export function GrammarSection({
   onQuestionFocus,
 }: GrammarSectionProps) {
   const questionGroups = section.question_groups || [];
-  
-  // Flatten all questions
-  const allQuestions = questionGroups.flatMap((g: any, gIdx: number) => 
-    (g.questions || []).map((q: any, qIdx: number) => ({
-      ...q,
-      groupId: g.id,
-      groupTitle: g.title,
-      groupInstructions: g.instructions,
-      isFirstInGroup: qIdx === 0,
-    }))
-  );
 
   return (
     <div className="h-full overflow-auto">
@@ -50,105 +48,169 @@ export function GrammarSection({
           </div>
 
           {section.instructions && (
-            <Card className="bg-muted/30">
+            <Card className="bg-muted/30 border-muted">
               <CardContent className="p-4 text-sm text-muted-foreground">
                 {section.instructions}
               </CardContent>
             </Card>
           )}
 
-          {/* Questions */}
-          <div className="space-y-4">
-            {allQuestions.map((question: any, qIndex: number) => {
-              const isCurrent = question.id === currentQuestionId;
-              
-              return (
-                <div key={question.id}>
-                  {/* Group Header */}
-                  {question.isFirstInGroup && question.groupTitle && (
-                    <div className="mb-3">
-                      <h3 className="font-semibold text-lg">{question.groupTitle}</h3>
-                      {question.groupInstructions && (
-                        <p className="text-sm text-muted-foreground mt-1">{question.groupInstructions}</p>
-                      )}
-                    </div>
-                  )}
-
-                  <Card 
-                    ref={(el) => {
-                      if (el && questionRefs) {
-                        questionRefs.current.set(question.id, el);
-                      }
-                    }}
-                    className={cn(
-                      'transition-all',
-                      isCurrent && 'ring-2 ring-primary shadow-lg'
-                    )}
-                    onClick={() => onQuestionFocus?.(question.id)}
-                  >
-                    <CardContent className="p-4">
-                      <p className="font-medium mb-3">
-                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold mr-2">
-                          {question.order_index || qIndex + 1}
+          {/* Question Groups */}
+          <div className="space-y-8">
+            {questionGroups.map((group: any, gIndex: number) => (
+              <div key={group.id} className="space-y-4">
+                {/* Group Header */}
+                {(group.title || group.instructions) && (
+                  <div className="space-y-2">
+                    {group.title && (
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wide">
+                          Phần {gIndex + 1}
                         </span>
-                        {question.question_text}
-                      </p>
+                        <h3 className="font-semibold text-lg">{group.title}</h3>
+                      </div>
+                    )}
+                    {group.instructions && (
+                      <Card className="bg-accent/20 border-accent/40">
+                        <CardContent className="p-3 text-sm text-accent-foreground">
+                          {group.instructions}
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                )}
 
-                      {question.question_type === 'multiple_choice' && question.options && (
-                        <RadioGroup
-                          value={answers[question.id] || ''}
-                          onValueChange={(value) => onAnswerChange(question.id, value)}
-                          className="space-y-2 ml-9"
-                        >
-                          {(question.options as string[]).map((option: string, i: number) => (
-                            <div key={i} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                              <RadioGroupItem value={option} id={`${question.id}-${i}`} />
-                              <Label htmlFor={`${question.id}-${i}`} className="flex-1 cursor-pointer">
-                                <span className="font-medium mr-2">{String.fromCharCode(65 + i)}.</span>
-                                {option}
-                              </Label>
-                            </div>
-                          ))}
-                        </RadioGroup>
-                      )}
-
-                      {question.question_type === 'fill_blank' && (
-                        <div className="ml-9">
-                          <Input
-                            placeholder="Nhập câu trả lời..."
-                            value={answers[question.id] || ''}
-                            onChange={(e) => onAnswerChange(question.id, e.target.value)}
-                            className="max-w-md"
-                          />
-                        </div>
-                      )}
-
-                      {question.question_type === 'true_false_not_given' && (
-                        <div className="ml-9">
-                          <DropdownSelect
-                            value={answers[question.id] || ''}
-                            onChange={(value) => onAnswerChange(question.id, value)}
-                            options={['TRUE', 'FALSE', 'NOT GIVEN']}
-                            placeholder="Chọn đáp án"
-                          />
-                        </div>
-                      )}
-
-                      {question.question_type === 'yes_no_not_given' && (
-                        <div className="ml-9">
-                          <DropdownSelect
-                            value={answers[question.id] || ''}
-                            onChange={(value) => onAnswerChange(question.id, value)}
-                            options={['YES', 'NO', 'NOT GIVEN']}
-                            placeholder="Chọn đáp án"
-                          />
-                        </div>
-                      )}
+                {/* Group Passage */}
+                {group.passage && (
+                  <Card className="bg-muted/40 border-muted">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                        <BookOpen className="h-4 w-4" />
+                        Bài đọc
+                      </div>
+                      <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                        {group.passage}
+                      </div>
                     </CardContent>
                   </Card>
+                )}
+
+                {/* Questions */}
+                <div className="space-y-3">
+                  {(group.questions || [])
+                    .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+                    .map((question: any, qIndex: number) => {
+                      const isCurrent = question.id === currentQuestionId;
+
+                      return (
+                        <Card
+                          key={question.id}
+                          ref={(el) => {
+                            if (el && questionRefs) {
+                              questionRefs.current.set(question.id, el);
+                            }
+                          }}
+                          className={cn(
+                            'transition-all',
+                            isCurrent && 'ring-2 ring-primary shadow-lg'
+                          )}
+                          onClick={() => onQuestionFocus?.(question.id)}
+                        >
+                          <CardContent className="p-4">
+                            <p className="font-medium mb-3">
+                              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold mr-2">
+                                {question.order_index || qIndex + 1}
+                              </span>
+                              {question.question_text}
+                            </p>
+
+                            {/* Multiple Choice */}
+                            {question.question_type === 'multiple_choice' && question.options && (
+                              <RadioGroup
+                                value={answers[question.id] || ''}
+                                onValueChange={(value) => onAnswerChange(question.id, value)}
+                                className="space-y-2 ml-9"
+                              >
+                                {(question.options as string[]).map((option: string, i: number) => (
+                                  <div key={i} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                                    <RadioGroupItem value={option} id={`${question.id}-${i}`} />
+                                    <Label htmlFor={`${question.id}-${i}`} className="flex-1 cursor-pointer">
+                                      <span className="font-medium mr-2">{String.fromCharCode(65 + i)}.</span>
+                                      {option}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </RadioGroup>
+                            )}
+
+                            {/* Fill Blank */}
+                            {question.question_type === 'fill_blank' && (
+                              <div className="ml-9">
+                                <Input
+                                  placeholder="Nhập đáp án..."
+                                  value={answers[question.id] || ''}
+                                  onChange={(e) => onAnswerChange(question.id, e.target.value)}
+                                  className="max-w-xs"
+                                />
+                              </div>
+                            )}
+
+                            {/* Short Answer */}
+                            {question.question_type === 'short_answer' && (
+                              <div className="ml-9">
+                                <Input
+                                  placeholder="Nhập câu trả lời..."
+                                  value={answers[question.id] || ''}
+                                  onChange={(e) => onAnswerChange(question.id, e.target.value)}
+                                  className="max-w-2xl"
+                                />
+                              </div>
+                            )}
+
+                            {/* Essay */}
+                            {question.question_type === 'essay' && (
+                              <div className="ml-9">
+                                <Textarea
+                                  placeholder="Viết câu trả lời của bạn..."
+                                  value={answers[question.id] || ''}
+                                  onChange={(e) => onAnswerChange(question.id, e.target.value)}
+                                  rows={6}
+                                  className="resize-y"
+                                />
+                                <WordCount text={answers[question.id] || ''} />
+                              </div>
+                            )}
+
+                            {/* TRUE/FALSE/NOT GIVEN */}
+                            {question.question_type === 'true_false_not_given' && (
+                              <div className="ml-9">
+                                <DropdownSelect
+                                  value={answers[question.id] || ''}
+                                  onChange={(value) => onAnswerChange(question.id, value)}
+                                  options={['TRUE', 'FALSE', 'NOT GIVEN']}
+                                  placeholder="Chọn đáp án"
+                                />
+                              </div>
+                            )}
+
+                            {/* YES/NO/NOT GIVEN */}
+                            {question.question_type === 'yes_no_not_given' && (
+                              <div className="ml-9">
+                                <DropdownSelect
+                                  value={answers[question.id] || ''}
+                                  onChange={(value) => onAnswerChange(question.id, value)}
+                                  options={['YES', 'NO', 'NOT GIVEN']}
+                                  placeholder="Chọn đáp án"
+                                />
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
       </ScrollArea>
