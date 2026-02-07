@@ -17,6 +17,7 @@ import HomePage from "@/pages/HomePage";
 import MyCourses from "@/pages/MyCourses";
 import MySubmissions from "@/pages/MySubmissions";
 import CourseDetail from "@/pages/CourseDetail";
+import SubmissionDetail from "@/pages/SubmissionDetail";
 import ExamInterface from "@/pages/ExamInterface";
 import NotFound from "@/pages/NotFound";
 
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="/my-courses" element={<MyCourses />} />
               <Route path="/my-submissions" element={<MySubmissions />} />
               <Route path="/course/:slug" element={<CourseDetail />} />
+              <Route path="/submissions/:id" element={<SubmissionDetail />} />
             </Route>
 
             {/* Exam Interface - Minimal Layout */}
