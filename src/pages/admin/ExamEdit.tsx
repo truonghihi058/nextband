@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Settings, Headphones, BookOpen, PenTool, Mic, Edit } from 'lucide-react';
+import { ArrowLeft, Settings, Headphones, BookOpen, PenTool, Mic, Edit, FileText } from 'lucide-react';
 import ExamForm from '@/components/admin/ExamForm';
 
 const sectionIcons = {
@@ -13,6 +13,7 @@ const sectionIcons = {
   reading: BookOpen,
   writing: PenTool,
   speaking: Mic,
+  general: FileText,
 };
 
 const sectionColors = {
@@ -20,6 +21,7 @@ const sectionColors = {
   reading: 'bg-reading text-white',
   writing: 'bg-writing text-white',
   speaking: 'bg-speaking text-white',
+  general: 'bg-primary text-primary-foreground',
 };
 
 export default function AdminExamEdit() {
@@ -43,6 +45,7 @@ export default function AdminExamEdit() {
 
   const handleSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-exams'] });
+    queryClient.invalidateQueries({ queryKey: ['exam-sections', id] });
   };
 
   if (!id) {
