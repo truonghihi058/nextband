@@ -262,12 +262,23 @@ export default function ExamInterface() {
 
       if (submissionError) throw submissionError;
 
-      // Upsert answers (some may already exist from saved progress)
-      const answerEntries = Object.entries(answers).map(([questionId, answerText]) => ({
-        submission_id: submission.id,
-        question_id: questionId,
-        answer_text: answerText,
-      }));
+      // Collect all valid question IDs from loaded sections to filter out invalid keys
+      const validQuestionIds = new Set(
+        sections?.flatMap(s => 
+          s.question_groups?.flatMap((g: any) => 
+            (g.questions || []).map((q: any) => q.id)
+          ) || []
+        ) || []
+      );
+
+      // Only submit answers whose keys are valid question IDs (prevents FK violation)
+      const answerEntries = Object.entries(answers)
+        .filter(([questionId]) => validQuestionIds.has(questionId))
+        .map(([questionId, answerText]) => ({
+          submission_id: submission.id,
+          question_id: questionId,
+          answer_text: answerText,
+        }));
 
       if (answerEntries.length > 0) {
         // Delete existing answers and re-insert

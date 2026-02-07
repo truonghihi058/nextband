@@ -13,7 +13,10 @@ interface WritingSectionProps {
 }
 
 export function WritingSection({ section, answers, onAnswerChange, timeRemaining }: WritingSectionProps) {
-  const taskId = section.id;
+  // Use the first question's ID if available, otherwise fall back to section.id
+  // This ensures the answer key is a valid question_id for the answers table FK constraint
+  const firstQuestion = section.question_groups?.[0]?.questions?.[0];
+  const taskId = firstQuestion?.id || section.id;
   const text = answers[taskId] || '';
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
   const [lastSaved, setLastSaved] = useState<Date | null>(null);

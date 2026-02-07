@@ -72,9 +72,12 @@ export function SpeakingSection({ section, answers, onAnswerChange }: SpeakingSe
   }, [isRecording, maxRecordTime, stopRecording]);
 
   // Save audio URL when recording stops
+  // Use the first question's ID in the group as the answer key (valid FK reference)
   useEffect(() => {
     if (audioUrl && currentGroup) {
-      onAnswerChange(currentGroup.id, audioUrl);
+      const firstQuestion = currentGroup.questions?.[0];
+      const answerId = firstQuestion?.id || currentGroup.id;
+      onAnswerChange(answerId, audioUrl);
     }
   }, [audioUrl, currentGroup, onAnswerChange]);
 
