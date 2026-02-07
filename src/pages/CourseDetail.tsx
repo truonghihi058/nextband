@@ -167,8 +167,8 @@ export default function CourseDetail() {
             <p className="text-lg text-muted-foreground">{course.description}</p>
           </div>
 
-          {/* Syllabus */}
-          {course.syllabus && !(Array.isArray(course.syllabus) && course.syllabus.length === 0) && (
+          {/* Course Description */}
+          {course.description && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -177,9 +177,9 @@ export default function CourseDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
-                  {typeof course.syllabus === "string" ? course.syllabus : JSON.stringify(course.syllabus, null, 2)}
-                </pre>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                  {course.description}
+                </p>
               </CardContent>
             </Card>
           )}
