@@ -15,6 +15,7 @@ import MinimalLayout from "@/layouts/MinimalLayout";
 import Auth from "@/pages/Auth";
 import HomePage from "@/pages/HomePage";
 import MyCourses from "@/pages/MyCourses";
+import MySubmissions from "@/pages/MySubmissions";
 import CourseDetail from "@/pages/CourseDetail";
 import ExamInterface from "@/pages/ExamInterface";
 import NotFound from "@/pages/NotFound";
@@ -49,6 +50,7 @@ const App = () => (
             <Route element={<ProtectedRoute><ClientLayout /></ProtectedRoute>}>
               <Route path="/" element={<HomePage />} />
               <Route path="/my-courses" element={<MyCourses />} />
+              <Route path="/my-submissions" element={<MySubmissions />} />
               <Route path="/course/:slug" element={<CourseDetail />} />
             </Route>
 
