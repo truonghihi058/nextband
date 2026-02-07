@@ -141,15 +141,21 @@ CREATE TABLE public.highlights (
 -- =============================================
 -- FOREIGN KEYS
 -- =============================================
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id);
+ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id);
+ALTER TABLE public.courses ADD CONSTRAINT courses_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES auth.users(id);
 ALTER TABLE public.enrollments ADD CONSTRAINT enrollments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id);
+ALTER TABLE public.enrollments ADD CONSTRAINT enrollments_student_id_fkey FOREIGN KEY (student_id) REFERENCES auth.users(id);
 ALTER TABLE public.exams ADD CONSTRAINT exams_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id);
 ALTER TABLE public.exam_sections ADD CONSTRAINT exam_sections_exam_id_fkey FOREIGN KEY (exam_id) REFERENCES public.exams(id);
 ALTER TABLE public.question_groups ADD CONSTRAINT question_groups_section_id_fkey FOREIGN KEY (section_id) REFERENCES public.exam_sections(id);
 ALTER TABLE public.questions ADD CONSTRAINT questions_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.question_groups(id);
 ALTER TABLE public.exam_submissions ADD CONSTRAINT exam_submissions_exam_id_fkey FOREIGN KEY (exam_id) REFERENCES public.exams(id);
+ALTER TABLE public.exam_submissions ADD CONSTRAINT exam_submissions_student_id_profiles_fkey FOREIGN KEY (student_id) REFERENCES public.profiles(user_id);
 ALTER TABLE public.answers ADD CONSTRAINT answers_submission_id_fkey FOREIGN KEY (submission_id) REFERENCES public.exam_submissions(id);
 ALTER TABLE public.answers ADD CONSTRAINT answers_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.questions(id);
 ALTER TABLE public.highlights ADD CONSTRAINT highlights_section_id_fkey FOREIGN KEY (section_id) REFERENCES public.exam_sections(id);
+ALTER TABLE public.highlights ADD CONSTRAINT highlights_student_id_fkey FOREIGN KEY (student_id) REFERENCES auth.users(id);
 
 -- =============================================
 -- RLS (Row Level Security)
