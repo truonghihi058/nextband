@@ -1,144 +1,174 @@
 
 
-# Chuyen doi tu nhap URL sang Upload File
+# Lam lai giao dien quan tri va hoc sinh cho Grammar Section linh hoat
 
-## Hien trang
+## Van de hien tai
 
-Hien tai, he thong co 2 noi yeu cau nhap URL de tai file len:
+Giao dien hien tai qua cung nhac, khong phu hop voi cau truc de thi Grammar thuc te tai Viet Nam:
 
-1. **CourseForm** (`src/components/admin/CourseForm.tsx`): Truong "Anh thumbnail (URL)" - yeu cau dan link hinh anh
-2. **SectionEdit** (`src/pages/admin/SectionEdit.tsx`): Truong "URL Audio (Listening)" - yeu cau dan link audio
+1. **Admin (SectionEdit)**: Tao cau hoi bang Dialog, moi lan chi 1 cau, rat cham va bat tien
+2. **Question types thieu**: Database chi co `multiple_choice`, `fill_blank`, `matching`, `essay`, `speaking` - thieu `short_answer`, `true_false_not_given`, `yes_no_not_given`
+3. **Student (GrammarSection)**: Khong ho tro dang `essay` (textarea dai), khong hien thi passage trong nhom cau hoi
 
-Ca hai deu la Input text, bat nguoi dung tu tim va dan URL. Cach nay bat tien va de loi.
+## Cau truc de thi thuc te can ho tro
 
-## Giai phap
+Dua tren mau de cua ban:
 
-Tao storage buckets de luu file, tao component upload file dung chung, va thay the cac input URL bang component upload thuc su.
-
----
+| Dang bai | Loai cau hoi | Giao dien hoc sinh |
+|----------|-------------|---------------------|
+| Dich cau Viet-Anh | `short_answer` | Input text 1 dong |
+| Nhan dien S-V (viet lai cau) | `short_answer` | Input text 1 dong |
+| Doc hieu + dien tu | `fill_blank` | Input ngan (1 tu/so) |
+| Tra loi cau hoi mo | `essay` | Textarea nhieu dong |
+| Dich cau dung collocation | `short_answer` | Input text 1 dong |
+| Phat hien loi + viet lai | `short_answer` | Input text 1 dong |
+| Trac nghiem | `multiple_choice` | Radio buttons |
 
 ## Cac buoc thuc hien
 
-### Buoc 1: Tao Storage Buckets (Database Migration)
+### Buoc 1: Bo sung question_type vao database enum
 
-Tao 2 storage buckets:
-- **`course-thumbnails`**: Luu anh thumbnail khoa hoc (public, cho phep xem cong khai)
-- **`exam-assets`**: Luu audio, hinh anh cua bai thi (public, cho phep xem cong khai)
+**Migration SQL** - Them 3 gia tri moi vao enum `question_type`:
+- `short_answer` - Tra loi ngan (1-2 cau)
+- `true_false_not_given`
+- `yes_no_not_given`
 
-Tao RLS policies cho phep:
-- Admin va Teacher upload/delete file
-- Tat ca nguoi dung doc file (public bucket)
-
-### Buoc 2: Tao component FileUpload dung chung
-
-**File moi:** `src/components/admin/FileUpload.tsx`
-
-Component nay se:
-- Cho phep chon file tu may tinh (click hoac keo tha)
-- Hien thi trang thai dang upload (progress)
-- Upload file len storage bucket tuong ung
-- Tra ve URL cua file da upload
-- Hien thi preview file da upload (anh hoac audio player)
-- Co nut xoa file da upload
-- Ho tro gioi han loai file (image/*, audio/*)
-- Ho tro gioi han kich thuoc file
-
-Props cua component:
-
-| Prop | Type | Mo ta |
-|------|------|-------|
-| bucket | string | Ten storage bucket (vd: "course-thumbnails") |
-| folder | string | Thu muc con (vd: "courses/abc123") |
-| accept | string | Loai file chap nhan (vd: "image/*", "audio/*") |
-| currentUrl | string | URL file hien tai (neu da co) |
-| onUploadComplete | (url: string) => void | Callback khi upload xong |
-| onRemove | () => void | Callback khi xoa file |
-| maxSizeMB | number | Gioi han kich thuoc (mac dinh 10MB) |
-
-### Buoc 3: Cap nhat CourseForm - Upload anh thumbnail
-
-**File:** `src/components/admin/CourseForm.tsx`
-
-Thay doi:
-- Thay Input URL (`<Input placeholder="https://...">`) bang component `<FileUpload>`
-- Cau hinh: bucket = "course-thumbnails", accept = "image/*"
-- Khi upload xong, tu dong cap nhat gia tri `thumbnail_url` trong form
-- Hien thi preview anh hien tai neu da co
-- Cap nhat validation schema: bo kiem tra URL format, chi can string
-
-### Buoc 4: Cap nhat SectionEdit - Upload file audio
+### Buoc 2: Thiet ke lai giao dien Admin SectionEdit cho Grammar
 
 **File:** `src/pages/admin/SectionEdit.tsx`
 
-Thay doi:
-- Thay Input URL ("URL Audio") bang component `<FileUpload>`
-- Cau hinh: bucket = "exam-assets", accept = "audio/*", folder = section id
-- Khi upload xong, tu dong goi `updateSectionMutation` voi audio_url moi
-- Hien thi audio player nho neu da co file audio
-- Cho phep xoa file audio hien tai
+Thay doi lon: Chuyen tu Dialog-based sang **Inline Editing** va them tinh nang **Bulk Import** (nhap nhieu cau hoi cung luc).
+
+#### 2a. Inline Editing cho Question Groups
+
+Thay vi mo Dialog de tao/sua nhom, cho phep **chinh sua truc tiep tren trang**:
+- Nhom cau hoi hien thi dang card co the expand/collapse (giu Accordion hien tai)
+- Nhan vao tieu de/passage/instructions de chinh sua truc tiep (click-to-edit)
+- Khong can mo Dialog rieng nua
+
+#### 2b. Bulk Question Import
+
+Them tinh nang **"Nhap nhanh"**: Admin paste nhieu cau hoi cung luc, moi dong la 1 cau hoi.
+
+Cach hoat dong:
+- Nhan nut "Nhap nhanh" -> hien Textarea lon
+- Dan nhieu cau hoi (moi dong la 1 cau)
+- Chon loai cau hoi chung cho tat ca (vd: `short_answer`)
+- Nhan "Tao tat ca" -> he thong tu dong tao cac cau hoi rieng le
+
+Vi du admin dan:
+```
+Nhieu hoc sinh cam thay cang thang truoc ky thi. (feel stressed)
+Sinh vien can chu y khi giao vien giai thich bai. (pay attention to)
+Toi thuong danh thoi gian cho gia dinh vao cuoi tuan. (spend time with)
+```
+-> He thong tao 3 cau hoi `short_answer` tu dong.
+
+#### 2c. Cap nhat danh sach Question Types
+
+Mo rong danh sach QUESTION_TYPES trong admin:
+- Them `short_answer` (Tra loi ngan)
+- Them `true_false_not_given` (TRUE/FALSE/NOT GIVEN)
+- Them `yes_no_not_given` (YES/NO/NOT GIVEN)
+
+#### 2d. Sua lai Group Dialog
+
+- Them truong "Loai nhom" nhu 1 goi y (Translation, Reading Comprehension, Error Correction, Open Writing...) - chi la label, khong luu vao DB
+- Giu nguyen passage va instructions nhung cai thien placeholder cho phu hop Grammar
+
+### Buoc 3: Cap nhat giao dien hoc sinh GrammarSection
+
+**File:** `src/components/exam/GrammarSection.tsx`
+
+Them ho tro cac dang cau hoi moi:
+
+| question_type | Hien thi |
+|---------------|---------|
+| `short_answer` | Input text (1 dong, rong hon fill_blank) |
+| `essay` | Textarea (nhieu dong, co dem tu) |
+| `fill_blank` | Input ngan (1 tu) - giu nguyen |
+| `multiple_choice` | Radio - giu nguyen |
+| `true_false_not_given` | Dropdown - giu nguyen |
+| `yes_no_not_given` | Dropdown - giu nguyen |
+
+Them hien thi passage cua nhom (neu co) - dung cho dang doc hieu trong de Grammar.
+
+### Buoc 4: Toi uu trai nghiem hoc sinh
+
+**File:** `src/components/exam/GrammarSection.tsx`
+
+- Hien thi tieu de nhom noi bat hon (co so thu tu phan, vd "PHAN 1", "PHAN 2")
+- Hien thi huong dan nhom (instructions) trong Card rieng voi style noi bat
+- Hien thi passage cua nhom (neu co) trong Card xam, truoc cac cau hoi
+- Voi `essay` type: hien thi Textarea co dem so tu o goc
+- Voi `short_answer` type: hien thi Input voi placeholder "Nhap cau tra loi..."
 
 ---
 
 ## Chi tiet ky thuat
 
-### Storage Bucket SQL Migration
+### Database Migration
 
 ```text
--- Tao bucket course-thumbnails (public)
-INSERT INTO storage.buckets (id, name, public) VALUES ('course-thumbnails', 'course-thumbnails', true);
-
--- Tao bucket exam-assets (public)
-INSERT INTO storage.buckets (id, name, public) VALUES ('exam-assets', 'exam-assets', true);
-
--- RLS policies cho phep admin/teacher upload
--- RLS policies cho phep public read
+ALTER TYPE question_type ADD VALUE IF NOT EXISTS 'short_answer';
+ALTER TYPE question_type ADD VALUE IF NOT EXISTS 'true_false_not_given';
+ALTER TYPE question_type ADD VALUE IF NOT EXISTS 'yes_no_not_given';
 ```
 
-### Luong Upload File
+### Bulk Import - Logic xu ly
 
 ```text
-Nguoi dung chon file
+Admin dan text vao Textarea
        |
        v
-Validate (loai file, kich thuoc)
+Tach theo dong (split by newline)
        |
        v
-Hien thi progress bar
+Loc bo dong trong
        |
        v
-Upload len Supabase Storage
-  supabase.storage.from(bucket).upload(path, file)
+Voi moi dong: tao 1 question {
+  question_text: noi dung dong,
+  question_type: loai da chon,
+  order_index: so thu tu,
+  group_id: nhom hien tai,
+  points: 1
+}
        |
        v
-Lay public URL
-  supabase.storage.from(bucket).getPublicUrl(path)
+Batch insert vao DB
        |
        v
-Goi onUploadComplete(url)
-       |
-       v
-Hien thi preview (anh hoac audio)
+Refresh danh sach cau hoi
 ```
 
-### FileUpload Component UI
+### GrammarSection - Cau truc hien thi moi
 
-Khi chua co file:
-- Vung keo tha voi icon Upload, text "Keo tha file vao day hoac nhan de chon"
-- Hien thi loai file chap nhan va gioi han kich thuoc
+```text
+Section Title
+Section Instructions (Card xam)
 
-Khi dang upload:
-- Progress bar voi phan tram
+--- NHOM 1 ---
+Group Title (in dam, co icon phan)
+Group Instructions (Card xam nho)
+Group Passage (Card co nen, neu co)
 
-Khi da co file:
-- Preview anh (neu la image) hoac audio player nho (neu la audio)
-- Nut "Xoa" de go file va upload file moi
+  Cau 1: [question_text]
+         [Input / Textarea / Radio / Dropdown tuy question_type]
+  
+  Cau 2: [question_text]
+         [Input / Textarea / Radio / Dropdown tuy question_type]
+
+--- NHOM 2 ---
+Group Title
+...
+```
 
 ### Cac file can chinh sua
 
 | File | Thay doi |
 |------|----------|
-| Migration SQL | Tao 2 storage buckets + RLS policies |
-| `src/components/admin/FileUpload.tsx` | **TAO MOI** - Component upload file dung chung |
-| `src/components/admin/CourseForm.tsx` | Thay Input URL thumbnail bang FileUpload |
-| `src/pages/admin/SectionEdit.tsx` | Thay Input URL audio bang FileUpload |
+| Migration SQL | Them `short_answer`, `true_false_not_given`, `yes_no_not_given` vao enum |
+| `src/pages/admin/SectionEdit.tsx` | Them Bulk Import, cap nhat QUESTION_TYPES, cai thien UX |
+| `src/components/exam/GrammarSection.tsx` | Ho tro `essay`, `short_answer`, hien thi passage trong nhom |
 
