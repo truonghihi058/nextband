@@ -36,7 +36,7 @@ export default function AdminCheckAttempt() {
         .select(`
           *,
           exams (id, title),
-          profiles:student_id (id, email, full_name, avatar_url)
+          profiles!exam_submissions_student_id_profiles_fkey (id, email, full_name, avatar_url)
         `)
         .not('submitted_at', 'is', null)
         .order(sortField, { ascending: sortOrder === 'asc' });
