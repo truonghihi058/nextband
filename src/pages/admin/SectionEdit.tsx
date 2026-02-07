@@ -38,6 +38,7 @@ import {
   Mic,
   FileText,
 } from 'lucide-react';
+import FileUpload from '@/components/admin/FileUpload';
 import {
   Accordion,
   AccordionContent,
@@ -377,11 +378,15 @@ export default function AdminSectionEdit() {
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>URL Audio (Listening)</Label>
-              <Input
-                placeholder="https://..."
-                defaultValue={section.audio_url || ''}
-                onBlur={(e) => updateSectionMutation.mutate({ audio_url: e.target.value })}
+              <Label>File Audio (Listening)</Label>
+              <FileUpload
+                bucket="exam-assets"
+                folder={`sections/${id}`}
+                accept="audio/*"
+                currentUrl={section.audio_url || undefined}
+                onUploadComplete={(url) => updateSectionMutation.mutate({ audio_url: url })}
+                onRemove={() => updateSectionMutation.mutate({ audio_url: '' })}
+                maxSizeMB={20}
               />
             </div>
             <div className="space-y-2">
