@@ -23,18 +23,20 @@ const levelLabels: Record<string, string> = {
   ielts_9: "IELTS 9.0",
 };
 
-const sectionIcons = {
+const sectionIcons: Record<string, any> = {
   listening: Headphones,
   reading: BookOpen,
   writing: PenTool,
   speaking: Mic,
+  general: FileText,
 };
 
-const sectionColors = {
+const sectionColors: Record<string, string> = {
   listening: "bg-listening text-white",
   reading: "bg-reading text-white",
   writing: "bg-writing text-white",
   speaking: "bg-speaking text-white",
+  general: "bg-primary text-primary-foreground",
 };
 
 export default function CourseDetail() {
@@ -46,11 +48,11 @@ export default function CourseDetail() {
   const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ["course", slug],
     queryFn: async () => {
-      const { data, error } = await supabase.from("courses").select("*").eq("id", slug).single();
-
+      const { data, error } = await supabase.from("courses").select("*").eq("id", slug!).maybeSingle();
       if (error) throw error;
       return data;
     },
+    enabled: !!slug,
   });
 
   const { data: exams, isLoading: examsLoading } = useQuery({
@@ -69,7 +71,7 @@ export default function CourseDetail() {
           )
         `,
         )
-        .eq("course_id", slug)
+        .eq("course_id", slug!)
         .eq("is_published", true)
         .eq("is_active", true)
         .order("week", { ascending: true });
@@ -87,7 +89,7 @@ export default function CourseDetail() {
       const { data } = await supabase
         .from("enrollments")
         .select("*")
-        .eq("course_id", slug)
+        .eq("course_id", slug!)
         .eq("student_id", user.id)
         .maybeSingle();
       return data;
@@ -117,7 +119,6 @@ export default function CourseDetail() {
         variant: "destructive",
       });
     } else {
-      // Invalidate enrollment query immediately to update UI
       await queryClient.invalidateQueries({ queryKey: ["enrollment", slug, user.id] });
       toast({
         title: "Đăng ký thành công",
@@ -177,7 +178,7 @@ export default function CourseDetail() {
               </CardHeader>
               <CardContent>
                 <pre className="whitespace-pre-wrap text-sm text-muted-foreground">
-                  {typeof course.syllabus === "string" ? course.syllabus : JSON.stringify("")}
+                  {typeof course.syllabus === "string" ? course.syllabus : JSON.stringify(course.syllabus, null, 2)}
                 </pre>
               </CardContent>
             </Card>
@@ -185,41 +186,41 @@ export default function CourseDetail() {
         </div>
 
         {/* Enrollment Card */}
-        {/*<div>*/}
-        {/*  <Card className="sticky top-20">*/}
-        {/*    <CardHeader>*/}
-        {/*      {course.thumbnail_url && (*/}
-        {/*        <img*/}
-        {/*          src={course.thumbnail_url}*/}
-        {/*          alt={course.title}*/}
-        {/*          className="w-full h-48 object-cover rounded-lg mb-4"*/}
-        {/*        />*/}
-        {/*      )}*/}
-        {/*      <CardTitle className="text-2xl">*/}
-        {/*        {course.price ? `${course.price.toLocaleString()} VND` : 'Miễn phí'}*/}
-        {/*      </CardTitle>*/}
-        {/*      <CardDescription>*/}
-        {/*        <div className="flex items-center gap-2 text-muted-foreground">*/}
-        {/*          <GraduationCap className="h-4 w-4" />*/}
-        {/*          <span>{levelLabels[course.level]}</span>*/}
-        {/*        </div>*/}
-        {/*      </CardDescription>*/}
-        {/*    </CardHeader>*/}
-        {/*    /!*<CardContent>*!/*/}
-        {/*    /!*  {enrollment ? (*!/*/}
-        {/*    /!*    <Button className="w-full" size="lg">*!/*/}
-        {/*    /!*      <Play className="mr-2 h-4 w-4" />*!/*/}
-        {/*    /!*      Tiếp tục học*!/*/}
-        {/*    /!*    </Button>*!/*/}
-        {/*    /!*  ) : (*!/*/}
-        {/*    /!*    <Button className="w-full" size="lg" onClick={handleEnroll}>*!/*/}
-        {/*    /!*      <BookOpen className="mr-2 h-4 w-4" />*!/*/}
-        {/*    /!*      Đăng ký ngay*!/*/}
-        {/*    /!*    </Button>*!/*/}
-        {/*    /!*  )}*!/*/}
-        {/*    /!*</CardContent>*!/*/}
-        {/*  </Card>*/}
-        {/*</div>*/}
+        <div>
+          <Card className="sticky top-20">
+            <CardHeader>
+              {course.thumbnail_url && (
+                <img
+                  src={course.thumbnail_url}
+                  alt={course.title}
+                  className="w-full h-48 object-cover rounded-lg mb-4"
+                />
+              )}
+              <CardTitle className="text-2xl">
+                {course.price ? `${course.price.toLocaleString()} VND` : 'Miễn phí'}
+              </CardTitle>
+              <CardDescription>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <GraduationCap className="h-4 w-4" />
+                  <span>{levelLabels[course.level] || course.level}</span>
+                </div>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {enrollment ? (
+                <Button className="w-full" size="lg" disabled>
+                  <Play className="mr-2 h-4 w-4" />
+                  Đã đăng ký
+                </Button>
+              ) : (
+                <Button className="w-full" size="lg" onClick={handleEnroll}>
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Đăng ký ngay
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Exams Section */}
@@ -233,50 +234,55 @@ export default function CourseDetail() {
             ))}
           </div>
         ) : exams && exams.length > 0 ? (
-          <div></div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {exams.map((exam) => (
+              <Card key={exam.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{exam.title}</CardTitle>
+                    {exam.week && (
+                      <Badge variant="outline">Tuần {exam.week}</Badge>
+                    )}
+                  </div>
+                  {exam.description && (
+                    <CardDescription>{exam.description}</CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {exam.exam_sections?.map((section: any) => {
+                      const Icon = sectionIcons[section.section_type] || FileText;
+                      const colorCls = sectionColors[section.section_type] || sectionColors.general;
+                      return (
+                        <Badge
+                          key={section.id}
+                          className={colorCls}
+                        >
+                          <Icon className="mr-1 h-3 w-3" />
+                          {section.section_type === 'general' ? 'Grammar' : section.section_type}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Clock className="mr-1 h-4 w-4" />
+                      {exam.duration_minutes || 60} phút
+                    </div>
+                    {enrollment && (
+                      <Button size="sm" asChild>
+                        <Link to={`/exam/${exam.id}`}>
+                          <Play className="mr-1 h-4 w-4" />
+                          Làm bài
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         ) : (
-          // <div className="grid gap-4 md:grid-cols-2">
-          //   {exams.map((exam) => (
-          //     <Card key={exam.id} className="hover:shadow-md transition-shadow">
-          //       <CardHeader>
-          //         <CardTitle className="text-lg">{exam.title}</CardTitle>
-          //         {exam.description && (
-          //           <CardDescription>{exam.description}</CardDescription>
-          //         )}
-          //       </CardHeader>
-          //       <CardContent>
-          //         <div className="flex flex-wrap gap-2 mb-4">
-          //           {exam.exam_sections?.map((section: any) => {
-          //             const Icon = sectionIcons[section.section_type as keyof typeof sectionIcons];
-          //             return (
-          //               <Badge
-          //                 key={section.id}
-          //                 className={sectionColors[section.section_type as keyof typeof sectionColors]}
-          //               >
-          //                 <Icon className="mr-1 h-3 w-3" />
-          //                 {section.section_type}
-          //               </Badge>
-          //             );
-          //           })}
-          //         </div>
-          //         <div className="flex items-center justify-between">
-          //           <div className="flex items-center text-sm text-muted-foreground">
-          //             <Clock className="mr-1 h-4 w-4" />
-          //             {exam.duration_minutes || 60} phút
-          //           </div>
-          //           {enrollment && (
-          //             <Button size="sm" asChild>
-          //               <Link to={`/exam/${exam.id}`}>
-          //                 <Play className="mr-1 h-4 w-4" />
-          //                 Làm bài
-          //               </Link>
-          //             </Button>
-          //           )}
-          //         </div>
-          //       </CardContent>
-          //     </Card>
-          //   ))}
-          // </div>
           <Card className="text-center py-8">
             <CardContent>
               <FileText className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
