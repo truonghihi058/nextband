@@ -168,7 +168,7 @@ export default function CourseDetail() {
           </div>
 
           {/* Syllabus */}
-          {course.syllabus && (
+          {course.syllabus && !(Array.isArray(course.syllabus) && course.syllabus.length === 0) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
