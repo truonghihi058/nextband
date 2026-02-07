@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,17 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save, ArrowLeft } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Save, ArrowLeft, AlertTriangle } from "lucide-react";
 
 // Exam section types
 const EXAM_SECTION_TYPES = ["listening", "reading", "writing", "speaking"] as const;
@@ -58,11 +68,15 @@ interface ExamFormProps {
 
 export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: ExamFormProps) {
   const navigate = useNavigate();
-
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(mode !== "create");
+  const [showTypeChangeDialog, setShowTypeChangeDialog] = useState(false);
+  const [pendingExamType, setPendingExamType] = useState<string | null>(null);
+  const originalExamType = useRef<string>("ielts");
   const isReadOnly = mode === "view";
+
   const { data: courses } = useQuery({
     queryKey: ["admin-courses-select"],
     queryFn: async () => {
@@ -97,11 +111,13 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
 
       if (error) throw error;
       if (data) {
+        const examType = (data as any).exam_type || "ielts";
+        originalExamType.current = examType;
         form.reset({
           title: data.title,
           description: data.description || "",
           course_id: data.course_id,
-          exam_type: (data as any).exam_type || "ielts",
+          exam_type: examType,
           week: data.week || 1,
           duration_minutes: data.duration_minutes || 60,
           is_published: data.is_published || false,
@@ -119,17 +135,71 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
     }
   };
 
-  const createDefaultSections = async (examId: string, examType: string) => {
+  const handleExamTypeChange = (newType: string, fieldOnChange: (value: string) => void) => {
+    if (mode === "edit" && newType !== originalExamType.current) {
+      setPendingExamType(newType);
+      setShowTypeChangeDialog(true);
+    } else {
+      fieldOnChange(newType);
+    }
+  };
+
+  const confirmTypeChange = () => {
+    if (pendingExamType) {
+      form.setValue("exam_type", pendingExamType as "ielts" | "grammar");
+    }
+    setShowTypeChangeDialog(false);
+    setPendingExamType(null);
+  };
+
+  const cancelTypeChange = () => {
+    setShowTypeChangeDialog(false);
+    setPendingExamType(null);
+  };
+
+  const createDefaultSections = async (targetExamId: string, examType: string) => {
     const sectionTypes = examType === "grammar" ? ["general"] : EXAM_SECTION_TYPES;
 
     const sectionsToCreate = sectionTypes.map((type, index) => ({
-      exam_id: examId,
+      exam_id: targetExamId,
       section_type: type,
       title: type.charAt(0).toUpperCase() + type.slice(1),
       order_index: index,
     }));
 
     await supabase.from("exam_sections").insert(sectionsToCreate as any);
+  };
+
+  const recreateSections = async (targetExamId: string, newExamType: string) => {
+    // First get all sections to find question_groups
+    const { data: sections } = await supabase
+      .from("exam_sections")
+      .select("id")
+      .eq("exam_id", targetExamId);
+
+    if (sections && sections.length > 0) {
+      const sectionIds = sections.map((s) => s.id);
+
+      // Get all question_groups for these sections
+      const { data: groups } = await supabase
+        .from("question_groups")
+        .select("id")
+        .in("section_id", sectionIds);
+
+      if (groups && groups.length > 0) {
+        const groupIds = groups.map((g) => g.id);
+        // Delete questions first
+        await supabase.from("questions").delete().in("group_id", groupIds);
+        // Delete question_groups
+        await supabase.from("question_groups").delete().in("section_id", sectionIds);
+      }
+
+      // Delete sections
+      await supabase.from("exam_sections").delete().eq("exam_id", targetExamId);
+    }
+
+    // Create new sections
+    await createDefaultSections(targetExamId, newExamType);
   };
 
   const onSubmit = async (values: ExamFormData) => {
@@ -157,7 +227,6 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
 
         if (error) throw error;
 
-        // Auto-create sections based on exam type
         await createDefaultSections(newExam.id, values.exam_type);
 
         const sectionCount = values.exam_type === "grammar" ? 1 : 4;
@@ -169,7 +238,23 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
           .update(examData as any)
           .eq("id", examId!);
         if (error) throw error;
-        toast({ title: "Thành công", description: "Bài thi đã được cập nhật!" });
+
+        // If exam_type changed, recreate sections
+        const typeChanged = values.exam_type !== originalExamType.current;
+        if (typeChanged) {
+          await recreateSections(examId!, values.exam_type);
+          originalExamType.current = values.exam_type;
+          const sectionCount = values.exam_type === "grammar" ? 1 : 4;
+          toast({
+            title: "Thành công",
+            description: `Đã đổi loại đề thi và tạo lại ${sectionCount} section mới!`,
+          });
+        } else {
+          toast({ title: "Thành công", description: "Bài thi đã được cập nhật!" });
+        }
+
+        // Invalidate sections query so ExamEdit refreshes
+        queryClient.invalidateQueries({ queryKey: ["exam-sections", examId] });
         onSuccess?.();
       }
     } catch (error: any) {
@@ -192,181 +277,213 @@ export default function ExamForm({ mode, examId, defaultCourseId, onSuccess }: E
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Thông tin bài thi</CardTitle>
-            <CardDescription>
-              {mode === "create"
-                ? "Tạo bài thi mới (sẽ tự động tạo 4 sections)"
-                : mode === "edit"
-                  ? "Chỉnh sửa thông tin"
-                  : "Xem chi tiết"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tiêu đề *</FormLabel>
-                  <FormControl>
-                    <Input {...field} disabled={isReadOnly} placeholder="Nhập tiêu đề bài thi" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mô tả</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} disabled={isReadOnly} placeholder="Mô tả về bài thi" rows={3} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid gap-4 md:grid-cols-2">
+    <>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Thông tin bài thi</CardTitle>
+              <CardDescription>
+                {mode === "create"
+                  ? "Tạo bài thi mới (sẽ tự động tạo sections tương ứng)"
+                  : mode === "edit"
+                    ? "Chỉnh sửa thông tin"
+                    : "Xem chi tiết"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <FormField
                 control={form.control}
-                name="course_id"
+                name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Khóa học</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""} disabled={isReadOnly}>
+                    <FormLabel>Tiêu đề *</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled={isReadOnly} placeholder="Nhập tiêu đề bài thi" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mô tả</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} disabled={isReadOnly} placeholder="Mô tả về bài thi" rows={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="course_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Khóa học</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""} disabled={isReadOnly}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn khóa học (tuỳ chọn)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {courses?.map((course) => (
+                            <SelectItem key={course.id} value={course.id}>
+                              {course.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="exam_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Loại đề thi</FormLabel>
+                      <Select
+                        onValueChange={(value) => handleExamTypeChange(value, field.onChange)}
+                        value={field.value || ""}
+                        disabled={isReadOnly}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn loại đề thi" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {EXAM_TYPES.map((type: string, index) => (
+                            <SelectItem key={index} value={type}>
+                              {type === "ielts" ? "IELTS" : "Grammar"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {mode === "edit" && (
+                        <FormDescription>
+                          Đổi loại đề thi sẽ xóa tất cả sections và câu hỏi hiện tại
+                        </FormDescription>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="week"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tuần</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn khóa học (tuỳ chọn)" />
-                        </SelectTrigger>
+                        <Input type="number" {...field} disabled={isReadOnly} min={1} />
                       </FormControl>
-                      <SelectContent>
-                        {courses?.map((course) => (
-                          <SelectItem key={course.id} value={course.id}>
-                            {course.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="exam_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Loại đề thi</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || ""}
-                      disabled={isReadOnly || mode == "edit"}
-                    >
+                      <FormDescription>Dùng để sắp xếp bài thi trong khóa học</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="duration_minutes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Thời gian làm bài (phút)</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn khóa học (tuỳ chọn)" />
-                        </SelectTrigger>
+                        <Input type="number" {...field} disabled={isReadOnly} min={1} />
                       </FormControl>
-                      <SelectContent>
-                        {EXAM_TYPES.map((type: string, index) => (
-                          <SelectItem key={index} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-              <FormField
-                control={form.control}
-                name="week"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tuần</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} disabled={isReadOnly} min={1} />
-                    </FormControl>
-                    <FormDescription>Dùng để sắp xếp bài thi trong khóa học</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="duration_minutes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Thời gian làm bài (phút)</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} disabled={isReadOnly} min={1} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="is_published"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel>Xuất bản</FormLabel>
+                        <FormDescription>Bài thi sẽ hiển thị cho học viên</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isReadOnly} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel>Kích hoạt</FormLabel>
+                        <FormDescription>Cho phép học viên làm bài</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isReadOnly} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {!isReadOnly && (
+            <div className="flex justify-end gap-4">
+              <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Quay lại
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Save className="mr-2 h-4 w-4" />
+                {mode === "create" ? "Tạo bài thi" : "Lưu thay đổi"}
+              </Button>
             </div>
+          )}
+        </form>
+      </Form>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="is_published"
-                render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel>Xuất bản</FormLabel>
-                      <FormDescription>Bài thi sẽ hiển thị cho học viên</FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isReadOnly} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="is_active"
-                render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel>Kích hoạt</FormLabel>
-                      <FormDescription>Cho phép học viên làm bài</FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isReadOnly} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {!isReadOnly && (
-          <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => navigate(-1)}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Quay lại
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <Save className="mr-2 h-4 w-4" />
-              {mode === "create" ? "Tạo bài thi" : "Lưu thay đổi"}
-            </Button>
-          </div>
-        )}
-      </form>
-    </Form>
+      {/* Confirmation dialog for exam type change */}
+      <AlertDialog open={showTypeChangeDialog} onOpenChange={setShowTypeChangeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Xác nhận đổi loại đề thi
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Đổi loại đề thi sẽ <strong>xóa tất cả sections và câu hỏi hiện tại</strong> của bài thi này
+              và tạo lại sections mới phù hợp với loại đề thi{" "}
+              <strong>{pendingExamType === "ielts" ? "IELTS (4 sections)" : "Grammar (1 section)"}</strong>.
+              <br /><br />
+              Hành động này không thể hoàn tác. Bạn có chắc chắn?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelTypeChange}>Hủy bỏ</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmTypeChange} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Xác nhận đổi
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
