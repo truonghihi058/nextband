@@ -431,24 +431,26 @@ export default function AdminSectionEdit() {
           <CardTitle className="text-lg">Cài đặt Section</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>File Audio (Listening)</Label>
-              <FileUpload
-                bucket="exam-assets"
-                folder={`sections/${id}`}
-                accept="audio/*"
-                currentUrl={section.audio_url || undefined}
-                onUploadComplete={(url) => updateSectionMutation.mutate({ audio_url: url })}
-                onRemove={() => updateSectionMutation.mutate({ audio_url: '' })}
-                maxSizeMB={20}
-              />
+          {section.section_type === 'listening' && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>File Audio (Listening)</Label>
+                <FileUpload
+                  bucket="exam-assets"
+                  folder={`sections/${id}`}
+                  accept="audio/*"
+                  currentUrl={section.audio_url || undefined}
+                  onUploadComplete={(url) => updateSectionMutation.mutate({ audio_url: url })}
+                  onRemove={() => updateSectionMutation.mutate({ audio_url: '' })}
+                  maxSizeMB={20}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Thời gian (phút)</Label>
+                <Input type="number" defaultValue={section.duration_minutes || ''} disabled />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Thời gian (phút)</Label>
-              <Input type="number" defaultValue={section.duration_minutes || ''} disabled />
-            </div>
-          </div>
+          )}
           <div className="space-y-2">
             <Label>Hướng dẫn chung</Label>
             <Textarea
