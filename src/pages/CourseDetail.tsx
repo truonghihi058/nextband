@@ -1,12 +1,28 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { coursesApi, examsApi, enrollmentsApi } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, BookOpen, Clock, GraduationCap, Headphones, FileText, Mic, PenTool, Play } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  Clock,
+  GraduationCap,
+  Headphones,
+  FileText,
+  Mic,
+  PenTool,
+  Play,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const levelLabels: Record<string, string> = {
@@ -41,64 +57,37 @@ const sectionColors: Record<string, string> = {
 
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ["course", slug],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("courses").select("*").eq("id", slug!).maybeSingle();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => coursesApi.getById(slug!),
     enabled: !!slug,
   });
 
-  const { data: exams, isLoading: examsLoading } = useQuery({
+  const { data: examsData, isLoading: examsLoading } = useQuery({
     queryKey: ["course-exams", slug],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("exams")
-        .select(
-          `
-          *,
-          exam_sections (
-            id,
-            section_type,
-            title,
-            duration_minutes
-          )
-        `,
-        )
-        .eq("course_id", slug!)
-        .eq("is_published", true)
-        .eq("is_active", true)
-        .order("week", { ascending: true });
-
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => examsApi.list({ courseId: slug }),
     enabled: !!slug,
   });
 
-  const { data: enrollment } = useQuery({
-    queryKey: ["enrollment", slug, user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase
-        .from("enrollments")
-        .select("*")
-        .eq("course_id", slug!)
-        .eq("student_id", user.id)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user && !!slug,
+  const { data: enrollmentsData } = useQuery({
+    queryKey: ["enrollments"],
+    queryFn: () => enrollmentsApi.list(),
+    enabled: isAuthenticated,
   });
+
+  const exams = examsData?.data || [];
+
+  // Check if user is enrolled in this course
+  const enrollment = enrollmentsData?.data?.find(
+    (e: any) => e.courseId === slug || e.course?.id === slug,
+  );
 
   const handleEnroll = async () => {
-    if (!user) {
+    if (!isAuthenticated) {
       toast({
         title: "Vui lòng đăng nhập",
         description: "Bạn cần đăng nhập để đăng ký khóa học",
@@ -107,22 +96,18 @@ export default function CourseDetail() {
       return;
     }
 
-    const { error } = await supabase.from("enrollments").insert({
-      course_id: slug!,
-      student_id: user.id,
-    });
-
-    if (error) {
-      toast({
-        title: "Đăng ký thất bại",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      await queryClient.invalidateQueries({ queryKey: ["enrollment", slug, user.id] });
+    try {
+      await enrollmentsApi.enroll(slug!);
+      await queryClient.invalidateQueries({ queryKey: ["enrollments"] });
       toast({
         title: "Đăng ký thành công",
         description: "Bạn đã tham gia khóa học này!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Đăng ký thất bại",
+        description: error.response?.data?.error || error.message,
+        variant: "destructive",
       });
     }
   };
@@ -162,9 +147,15 @@ export default function CourseDetail() {
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <div>
-            <Badge className="mb-4">{levelLabels[course.level] || course.level}</Badge>
-            <h1 className="text-3xl font-bold text-foreground mb-4">{course.title}</h1>
-            <p className="text-lg text-muted-foreground">{course.description}</p>
+            <Badge className="mb-4">
+              {levelLabels[course.level] || course.level}
+            </Badge>
+            <h1 className="text-3xl font-bold text-foreground mb-4">
+              {course.title}
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              {course.description}
+            </p>
           </div>
 
           {/* Course Description */}
@@ -189,15 +180,17 @@ export default function CourseDetail() {
         <div>
           <Card className="sticky top-20">
             <CardHeader>
-              {course.thumbnail_url && (
+              {course.thumbnailUrl && (
                 <img
-                  src={course.thumbnail_url}
+                  src={course.thumbnailUrl}
                   alt={course.title}
                   className="w-full h-48 object-cover rounded-lg mb-4"
                 />
               )}
               <CardTitle className="text-2xl">
-                {course.price ? `${course.price.toLocaleString()} VND` : 'Miễn phí'}
+                {course.price
+                  ? `${course.price.toLocaleString()} VND`
+                  : "Miễn phí"}
               </CardTitle>
               <CardDescription>
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -235,52 +228,59 @@ export default function CourseDetail() {
           </div>
         ) : exams && exams.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2">
-            {exams.map((exam) => (
-              <Card key={exam.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{exam.title}</CardTitle>
-                    {exam.week && (
-                      <Badge variant="outline">Tuần {exam.week}</Badge>
-                    )}
-                  </div>
-                  {exam.description && (
-                    <CardDescription>{exam.description}</CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {exam.exam_sections?.map((section: any) => {
-                      const Icon = sectionIcons[section.section_type] || FileText;
-                      const colorCls = sectionColors[section.section_type] || sectionColors.general;
-                      return (
-                        <Badge
-                          key={section.id}
-                          className={colorCls}
-                        >
-                          <Icon className="mr-1 h-3 w-3" />
-                          {section.section_type === 'general' ? 'Grammar' : section.section_type}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Clock className="mr-1 h-4 w-4" />
-                      {exam.duration_minutes || 60} phút
+            {exams
+              .filter((e: any) => e.isPublished && e.isActive)
+              .map((exam: any) => (
+                <Card
+                  key={exam.id}
+                  className="hover:shadow-md transition-shadow"
+                >
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{exam.title}</CardTitle>
+                      {exam.week && (
+                        <Badge variant="outline">Tuần {exam.week}</Badge>
+                      )}
                     </div>
-                    {enrollment && (
-                      <Button size="sm" asChild>
-                        <Link to={`/exam/${exam.id}`}>
-                          <Play className="mr-1 h-4 w-4" />
-                          Làm bài
-                        </Link>
-                      </Button>
+                    {exam.description && (
+                      <CardDescription>{exam.description}</CardDescription>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {exam.sections?.map((section: any) => {
+                        const Icon =
+                          sectionIcons[section.sectionType] || FileText;
+                        const colorCls =
+                          sectionColors[section.sectionType] ||
+                          sectionColors.general;
+                        return (
+                          <Badge key={section.id} className={colorCls}>
+                            <Icon className="mr-1 h-3 w-3" />
+                            {section.sectionType === "general"
+                              ? "Grammar"
+                              : section.sectionType}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Clock className="mr-1 h-4 w-4" />
+                        {exam.durationMinutes || 60} phút
+                      </div>
+                      {enrollment && (
+                        <Button size="sm" asChild>
+                          <Link to={`/exam/${exam.id}`}>
+                            <Play className="mr-1 h-4 w-4" />
+                            Làm bài
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
           </div>
         ) : (
           <Card className="text-center py-8">

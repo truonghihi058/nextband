@@ -1,34 +1,22 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { CourseCard } from '@/components/courses/CourseCard';
-import { Skeleton } from '@/components/ui/skeleton';
-import { BookOpen, GraduationCap } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { useQuery } from "@tanstack/react-query";
+import { enrollmentsApi } from "@/lib/api";
+import { CourseCard } from "@/components/courses/CourseCard";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BookOpen, GraduationCap } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export default function MyCourses() {
-  const { user } = useAuth();
+  const { isAuthenticated } = useAuth();
 
-  const { data: enrollments, isLoading } = useQuery({
-    queryKey: ['my-enrollments', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      
-      const { data, error } = await supabase
-        .from('enrollments')
-        .select(`
-          *,
-          courses (*)
-        `)
-        .eq('student_id', user.id)
-        .order('enrolled_at', { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
+  const { data, isLoading } = useQuery({
+    queryKey: ["my-enrollments"],
+    queryFn: () => enrollmentsApi.list(),
+    enabled: isAuthenticated,
   });
+
+  const enrollments = data?.data || [];
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -53,11 +41,11 @@ export default function MyCourses() {
         </div>
       ) : enrollments && enrollments.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {enrollments.map((enrollment) => (
-            <CourseCard 
-              key={enrollment.id} 
-              course={enrollment.courses as any}
-              progress={enrollment.progress_percent || 0}
+          {enrollments.map((enrollment: any) => (
+            <CourseCard
+              key={enrollment.id}
+              course={enrollment.course}
+              progress={enrollment.progressPercent || 0}
               enrolled
             />
           ))}

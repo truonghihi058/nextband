@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -7,8 +7,6 @@ import { Upload, X, FileAudio, ImageIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FileUploadProps {
-  bucket: string;
-  folder?: string;
   accept: string;
   currentUrl?: string | null;
   onUploadComplete: (url: string) => void;
@@ -19,8 +17,6 @@ interface FileUploadProps {
 }
 
 export default function FileUpload({
-  bucket,
-  folder = "",
   accept,
   currentUrl,
   onUploadComplete,
@@ -44,15 +40,34 @@ export default function FileUpload({
       ? "Audio (MP3, WAV, OGG)"
       : "File";
 
+  const getFullUrl = (url: string) => {
+    // If URL starts with /uploads, prepend API base URL
+    if (url.startsWith("/uploads")) {
+      const apiUrl =
+        import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
+      const baseUrl = apiUrl.replace("/api/v1", "");
+      return `${baseUrl}${url}`;
+    }
+    return url;
+  };
+
   const handleFileSelect = useCallback(
     async (file: File) => {
       // Validate file type
       if (isImage && !file.type.startsWith("image/")) {
-        toast({ title: "Lỗi", description: "Vui lòng chọn file ảnh", variant: "destructive" });
+        toast({
+          title: "Lỗi",
+          description: "Vui lòng chọn file ảnh",
+          variant: "destructive",
+        });
         return;
       }
       if (isAudio && !file.type.startsWith("audio/")) {
-        toast({ title: "Lỗi", description: "Vui lòng chọn file audio", variant: "destructive" });
+        toast({
+          title: "Lỗi",
+          description: "Vui lòng chọn file audio",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -71,36 +86,28 @@ export default function FileUpload({
       setProgress(10);
 
       try {
-        // Generate unique file path
-        const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
-        const timestamp = Date.now();
-        const randomStr = Math.random().toString(36).substring(2, 8);
-        const filePath = folder
-          ? `${folder}/${timestamp}-${randomStr}.${ext}`
-          : `${timestamp}-${randomStr}.${ext}`;
-
         setProgress(30);
 
-        const { error: uploadError } = await supabase.storage
-          .from(bucket)
-          .upload(filePath, file, {
-            cacheControl: "3600",
-            upsert: false,
-          });
-
-        if (uploadError) throw uploadError;
-
-        setProgress(80);
-
-        const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+        // Upload to backend API
+        let result;
+        if (isImage) {
+          result = await uploadsApi.uploadImage(file);
+        } else if (isAudio) {
+          result = await uploadsApi.uploadAudio(file);
+        } else {
+          result = await uploadsApi.uploadImage(file); // default to image
+        }
 
         setProgress(100);
-        onUploadComplete(urlData.publicUrl);
+        onUploadComplete(result.url);
         toast({ title: "Thành công", description: "Upload file thành công!" });
       } catch (error: any) {
         toast({
           title: "Lỗi upload",
-          description: error.message || "Không thể upload file",
+          description:
+            error.response?.data?.error ||
+            error.message ||
+            "Không thể upload file",
           variant: "destructive",
         });
       } finally {
@@ -110,7 +117,7 @@ export default function FileUpload({
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     },
-    [bucket, folder, accept, maxSizeMB, onUploadComplete, toast, isImage, isAudio],
+    [accept, maxSizeMB, onUploadComplete, toast, isImage, isAudio],
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -133,7 +140,14 @@ export default function FileUpload({
 
   const handleDragLeave = () => setDragOver(false);
 
-  const handleRemove = () => {
+  const handleRemove = async () => {
+    if (currentUrl) {
+      try {
+        await uploadsApi.deleteFile(currentUrl);
+      } catch (error) {
+        // Ignore delete errors, file might not exist
+      }
+    }
     onRemove?.();
   };
 
@@ -155,6 +169,7 @@ export default function FileUpload({
 
   // Has file - show preview
   if (currentUrl) {
+    const fullUrl = getFullUrl(currentUrl);
     return (
       <div className="space-y-2">
         {label && <p className="text-sm font-medium">{label}</p>}
@@ -162,7 +177,7 @@ export default function FileUpload({
           <div className="flex items-center gap-3">
             {isImage ? (
               <img
-                src={currentUrl}
+                src={fullUrl}
                 alt="Preview"
                 className="h-20 w-20 rounded-md object-cover border"
                 onError={(e) => {
@@ -177,7 +192,7 @@ export default function FileUpload({
                     {currentUrl.split("/").pop()}
                   </span>
                 </div>
-                <audio controls className="w-full h-8" src={currentUrl}>
+                <audio controls className="w-full h-8" src={fullUrl}>
                   <track kind="captions" />
                 </audio>
               </div>
@@ -239,7 +254,9 @@ export default function FileUpload({
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onKeyDown={(e) => e.key === "Enter" && !disabled && fileInputRef.current?.click()}
+        onKeyDown={(e) =>
+          e.key === "Enter" && !disabled && fileInputRef.current?.click()
+        }
       >
         {isImage ? (
           <ImageIcon className="h-8 w-8 text-muted-foreground" />
@@ -247,7 +264,9 @@ export default function FileUpload({
           <Upload className="h-8 w-8 text-muted-foreground" />
         )}
         <div className="text-center">
-          <p className="text-sm font-medium">Kéo thả file vào đây hoặc nhấn để chọn</p>
+          <p className="text-sm font-medium">
+            Kéo thả file vào đây hoặc nhấn để chọn
+          </p>
           <p className="text-xs text-muted-foreground mt-1">
             {acceptLabel} · Tối đa {maxSizeMB}MB
           </p>

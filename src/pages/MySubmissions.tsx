@@ -1,14 +1,28 @@
-import { useState, useCallback, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Link } from 'react-router-dom';
-import { ClipboardList, Clock, CheckCircle2, AlertCircle, Eye, Search, X } from 'lucide-react';
+import { useState, useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { submissionsApi } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Link } from "react-router-dom";
+import {
+  ClipboardList,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Eye,
+  Search,
+  X,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -16,112 +30,91 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { DataTablePagination } from '@/components/admin/DataTablePagination';
-import { useServerPagination } from '@/hooks/useServerPagination';
-import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
+} from "@/components/ui/table";
+import { DataTablePagination } from "@/components/admin/DataTablePagination";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ElementType }> = {
-  in_progress: { label: 'Đang làm', variant: 'secondary', icon: Clock },
-  submitted: { label: 'Đã nộp', variant: 'outline', icon: AlertCircle },
-  graded: { label: 'Đã chấm', variant: 'default', icon: CheckCircle2 },
+const statusConfig: Record<
+  string,
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+    icon: React.ElementType;
+  }
+> = {
+  in_progress: { label: "Đang làm", variant: "secondary", icon: Clock },
+  submitted: { label: "Đã nộp", variant: "outline", icon: AlertCircle },
+  graded: { label: "Đã chấm", variant: "default", icon: CheckCircle2 },
 };
 
 const STATUS_OPTIONS = [
-  { value: 'all', label: 'Tất cả trạng thái' },
-  { value: 'in_progress', label: 'Đang làm' },
-  { value: 'submitted', label: 'Đã nộp' },
-  { value: 'graded', label: 'Đã chấm' },
+  { value: "all", label: "Tất cả trạng thái" },
+  { value: "in_progress", label: "Đang làm" },
+  { value: "submitted", label: "Đã nộp" },
+  { value: "graded", label: "Đã chấm" },
 ];
 
 export default function MySubmissions() {
-  const { user } = useAuth();
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const { page, pageSize, sortField, sortOrder, setPage, setPageSize, toggleSort, resetPage, getRange } =
-    useServerPagination<'created_at'>('created_at', 10);
+  const { isAuthenticated } = useAuth();
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Debounce search
-  const debounceTimer = useMemo(() => ({ id: null as ReturnType<typeof setTimeout> | null }), []);
-  const handleSearch = useCallback((value: string) => {
-    setSearch(value);
-    if (debounceTimer.id) clearTimeout(debounceTimer.id);
-    debounceTimer.id = setTimeout(() => {
-      setDebouncedSearch(value);
-      resetPage();
-    }, 400);
-  }, [debounceTimer, resetPage]);
+  const debounceTimer = useMemo(
+    () => ({ id: null as ReturnType<typeof setTimeout> | null }),
+    [],
+  );
+  const handleSearch = useCallback(
+    (value: string) => {
+      setSearch(value);
+      if (debounceTimer.id) clearTimeout(debounceTimer.id);
+      debounceTimer.id = setTimeout(() => {
+        setDebouncedSearch(value);
+        setPage(1);
+      }, 400);
+    },
+    [debounceTimer],
+  );
 
   const handleStatusChange = useCallback((value: string) => {
     setStatusFilter(value);
-    resetPage();
-  }, [resetPage]);
+    setPage(1);
+  }, []);
 
-  // Fetch with server-side pagination
   const { data, isLoading } = useQuery({
-    queryKey: ['my-submissions', user?.id, page, pageSize, sortField, sortOrder, debouncedSearch, statusFilter],
-    queryFn: async () => {
-      if (!user) return { items: [], count: 0 };
-
-      const { from, to } = getRange();
-
-      let query = supabase
-        .from('exam_submissions')
-        .select(`
-          *,
-          exams (
-            id,
-            title,
-            exam_type,
-            duration_minutes,
-            courses (title)
-          )
-        `, { count: 'exact' })
-        .eq('student_id', user.id);
-
-      // Status filter
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter as 'in_progress' | 'submitted' | 'graded');
-      }
-
-      // Sort & paginate
-      query = query
-        .order(sortField, { ascending: sortOrder === 'asc' })
-        .range(from, to);
-
-      const { data: items, error, count } = await query;
-      if (error) throw error;
-
-      // Client-side search filter on exam title (since it's a joined field)
-      let filtered = items || [];
-      if (debouncedSearch.trim()) {
-        const term = debouncedSearch.toLowerCase();
-        filtered = filtered.filter((s) => {
-          const exam = s.exams as any;
-          return (
-            exam?.title?.toLowerCase().includes(term) ||
-            exam?.courses?.title?.toLowerCase().includes(term)
-          );
-        });
-      }
-
-      return { items: filtered, count: count || 0 };
-    },
-    enabled: !!user,
+    queryKey: ["my-submissions", page, pageSize, debouncedSearch, statusFilter],
+    queryFn: () =>
+      submissionsApi.list({
+        page,
+        limit: pageSize,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+      }),
+    enabled: isAuthenticated,
   });
 
-  const submissions = data?.items || [];
-  const totalItems = data?.count || 0;
-  const totalPages = Math.ceil(totalItems / pageSize);
+  const submissions = data?.data || [];
+  const totalItems = data?.meta?.total || 0;
+  const totalPages = data?.meta?.totalPages || Math.ceil(totalItems / pageSize);
+
+  // Client-side search filter
+  const filteredSubmissions = debouncedSearch
+    ? submissions.filter((s: any) => {
+        const term = debouncedSearch.toLowerCase();
+        return (
+          s.exam?.title?.toLowerCase().includes(term) ||
+          s.exam?.course?.title?.toLowerCase().includes(term)
+        );
+      })
+    : submissions;
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">
-          Bài Đã Làm
-        </h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Bài Đã Làm</h1>
         <p className="text-muted-foreground">
           Xem lại lịch sử và kết quả các bài thi bạn đã thực hiện
         </p>
@@ -139,7 +132,7 @@ export default function MySubmissions() {
           />
           {search && (
             <button
-              onClick={() => handleSearch('')}
+              onClick={() => handleSearch("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />
@@ -166,7 +159,7 @@ export default function MySubmissions() {
             <Skeleton key={i} className="h-16 w-full rounded-lg" />
           ))}
         </div>
-      ) : submissions.length > 0 ? (
+      ) : filteredSubmissions.length > 0 ? (
         <div className="space-y-2">
           <div className="border rounded-xl overflow-hidden">
             <Table>
@@ -176,28 +169,23 @@ export default function MySubmissions() {
                   <TableHead>Khóa học</TableHead>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead className="text-center">Điểm</TableHead>
-                  <TableHead
-                    className="cursor-pointer select-none hover:text-foreground"
-                    onClick={() => toggleSort('created_at')}
-                  >
-                    Ngày làm {sortField === 'created_at' && (sortOrder === 'asc' ? '↑' : '↓')}
-                  </TableHead>
+                  <TableHead>Ngày làm</TableHead>
                   <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {submissions.map((submission) => {
-                  const status = statusConfig[submission.status || 'in_progress'];
+                {filteredSubmissions.map((submission: any) => {
+                  const status =
+                    statusConfig[submission.status || "in_progress"];
                   const StatusIcon = status.icon;
-                  const exam = submission.exams as any;
 
                   return (
                     <TableRow key={submission.id}>
                       <TableCell className="font-medium">
-                        {exam?.title || 'Không rõ'}
+                        {submission.exam?.title || "Không rõ"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {exam?.courses?.title || '—'}
+                        {submission.exam?.course?.title || "—"}
                       </TableCell>
                       <TableCell>
                         <Badge variant={status.variant} className="gap-1">
@@ -206,24 +194,32 @@ export default function MySubmissions() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
-                        {submission.status === 'graded' && submission.total_score != null
-                          ? <span className="font-semibold text-primary">{submission.total_score}</span>
-                          : <span className="text-muted-foreground">—</span>
-                        }
+                        {submission.status === "graded" &&
+                        submission.totalScore != null ? (
+                          <span className="font-semibold text-primary">
+                            {submission.totalScore}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {submission.started_at
-                          ? format(new Date(submission.started_at), 'dd/MM/yyyy HH:mm', { locale: vi })
-                          : '—'}
+                        {submission.startedAt
+                          ? format(
+                              new Date(submission.startedAt),
+                              "dd/MM/yyyy HH:mm",
+                              { locale: vi },
+                            )
+                          : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        {submission.status === 'in_progress' ? (
+                        {submission.status === "in_progress" ? (
                           <Button size="sm" asChild>
-                            <Link to={`/exam/${submission.exam_id}`}>
+                            <Link to={`/exam/${submission.examId}`}>
                               Tiếp tục
                             </Link>
                           </Button>
-                        ) : submission.status === 'graded' ? (
+                        ) : submission.status === "graded" ? (
                           <Button size="sm" variant="outline" asChild>
                             <Link to={`/submissions/${submission.id}`}>
                               <Eye className="mr-1 h-3.5 w-3.5" />
@@ -231,7 +227,9 @@ export default function MySubmissions() {
                             </Link>
                           </Button>
                         ) : (
-                          <span className="text-xs text-muted-foreground">Chờ chấm</span>
+                          <span className="text-xs text-muted-foreground">
+                            Chờ chấm
+                          </span>
                         )}
                       </TableCell>
                     </TableRow>
@@ -254,16 +252,16 @@ export default function MySubmissions() {
         <div className="text-center py-16 border rounded-2xl bg-muted/30">
           <ClipboardList className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
           <h3 className="text-lg font-medium text-foreground mb-2">
-            {debouncedSearch || statusFilter !== 'all'
-              ? 'Không tìm thấy bài thi nào phù hợp'
-              : 'Bạn chưa làm bài thi nào'}
+            {debouncedSearch || statusFilter !== "all"
+              ? "Không tìm thấy bài thi nào phù hợp"
+              : "Bạn chưa làm bài thi nào"}
           </h3>
           <p className="text-muted-foreground mb-6">
-            {debouncedSearch || statusFilter !== 'all'
-              ? 'Hãy thử thay đổi bộ lọc hoặc từ khóa tìm kiếm'
-              : 'Hãy vào khóa học và bắt đầu làm bài thi đầu tiên của bạn'}
+            {debouncedSearch || statusFilter !== "all"
+              ? "Hãy thử thay đổi bộ lọc hoặc từ khóa tìm kiếm"
+              : "Hãy vào khóa học và bắt đầu làm bài thi đầu tiên của bạn"}
           </p>
-          {!debouncedSearch && statusFilter === 'all' && (
+          {!debouncedSearch && statusFilter === "all" && (
             <Button asChild>
               <Link to="/">Khám phá khóa học</Link>
             </Button>

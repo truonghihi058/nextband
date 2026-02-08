@@ -1,112 +1,111 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, Trash2, Search, User, Loader2 } from 'lucide-react';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { enrollmentsApi, usersApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Plus, Trash2, Search, User, Loader2 } from "lucide-react";
 
 interface CourseStudentsListProps {
   courseId: string;
 }
 
-export default function CourseStudentsList({ courseId }: CourseStudentsListProps) {
+export default function CourseStudentsList({
+  courseId,
+}: CourseStudentsListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch enrolled students
-  const { data: enrollments, isLoading } = useQuery({
-    queryKey: ['course-enrollments', courseId],
-    queryFn: async () => {
-      // First get enrollments
-      const { data: enrollments, error: enrollError } = await supabase
-        .from('enrollments')
-        .select('id, enrolled_at, progress_percent, student_id')
-        .eq('course_id', courseId);
-      
-      if (enrollError) throw enrollError;
-      if (!enrollments || enrollments.length === 0) return [];
-
-      // Get student_ids and fetch their profiles
-      const studentIds = enrollments.map(e => e.student_id);
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, user_id, email, full_name, avatar_url')
-        .in('user_id', studentIds);
-      
-      if (profileError) throw profileError;
-
-      // Combine data
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-      return enrollments.map(enrollment => ({
-        ...enrollment,
-        profiles: profileMap.get(enrollment.student_id) || null
-      }));
-    },
+  const { data: enrollmentsData, isLoading } = useQuery({
+    queryKey: ["course-enrollments", courseId],
+    queryFn: () => enrollmentsApi.listByCourse(courseId),
     enabled: !!courseId,
   });
 
+  const enrollments = enrollmentsData?.data || [];
+
   // Fetch available users (not enrolled)
-  const { data: availableUsers, isLoading: usersLoading } = useQuery({
-    queryKey: ['available-users', courseId, searchTerm],
-    queryFn: async () => {
-      const enrolledIds = enrollments?.map(e => e.student_id) || [];
-      
-      let query = supabase
-        .from('profiles')
-        .select('id, user_id, email, full_name, avatar_url')
-        .order('full_name');
-      
-      if (searchTerm) {
-        query = query.or(`email.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`);
-      }
-      
-      const { data, error } = await query.limit(20);
-      if (error) throw error;
-      
-      // Filter out already enrolled users
-      return (data || []).filter(u => !enrolledIds.includes(u.user_id));
-    },
+  const { data: usersData, isLoading: usersLoading } = useQuery({
+    queryKey: ["available-users", courseId, searchTerm],
+    queryFn: () => usersApi.list({ search: searchTerm, limit: 20 }),
     enabled: open,
   });
 
+  const enrolledIds = enrollments.map((e: any) => e.studentId);
+  const availableUsers = (usersData?.data || []).filter(
+    (u: any) => !enrolledIds.includes(u.id),
+  );
+
   // Add student mutation
   const addMutation = useMutation({
-    mutationFn: async (studentId: string) => {
-      const { error } = await supabase.from('enrollments').insert({
-        course_id: courseId,
-        student_id: studentId,
-      });
-      if (error) throw error;
-    },
+    mutationFn: (studentId: string) =>
+      enrollmentsApi.enrollUser(courseId, studentId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['course-enrollments', courseId] });
-      queryClient.invalidateQueries({ queryKey: ['available-users', courseId] });
-      toast({ title: 'Thành công', description: 'Đã thêm học viên vào khóa học' });
+      queryClient.invalidateQueries({
+        queryKey: ["course-enrollments", courseId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["available-users", courseId],
+      });
+      toast({
+        title: "Thành công",
+        description: "Đã thêm học viên vào khóa học",
+      });
     },
     onError: (error: any) => {
-      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' });
+      toast({
+        title: "Lỗi",
+        description: error.response?.data?.error || error.message,
+        variant: "destructive",
+      });
     },
   });
 
   // Remove student mutation
   const removeMutation = useMutation({
-    mutationFn: async (enrollmentId: string) => {
-      const { error } = await supabase.from('enrollments').delete().eq('id', enrollmentId);
-      if (error) throw error;
-    },
+    mutationFn: (enrollmentId: string) => enrollmentsApi.delete(enrollmentId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['course-enrollments', courseId] });
-      toast({ title: 'Thành công', description: 'Đã xóa học viên khỏi khóa học' });
+      queryClient.invalidateQueries({
+        queryKey: ["course-enrollments", courseId],
+      });
+      toast({
+        title: "Thành công",
+        description: "Đã xóa học viên khỏi khóa học",
+      });
     },
     onError: (error: any) => {
-      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' });
+      toast({
+        title: "Lỗi",
+        description: error.response?.data?.error || error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -127,7 +126,9 @@ export default function CourseStudentsList({ courseId }: CourseStudentsListProps
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Thêm học viên</DialogTitle>
-              <DialogDescription>Chọn học viên để thêm vào khóa học</DialogDescription>
+              <DialogDescription>
+                Chọn học viên để thêm vào khóa học
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="relative">
@@ -145,24 +146,30 @@ export default function CourseStudentsList({ courseId }: CourseStudentsListProps
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
                 ) : availableUsers && availableUsers.length > 0 ? (
-                  availableUsers.map((user) => (
+                  availableUsers.map((user: any) => (
                     <div
                       key={user.id}
                       className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50"
                     >
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.avatar_url || undefined} />
-                          <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                          <AvatarImage src={user.avatarUrl || undefined} />
+                          <AvatarFallback>
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-sm">{user.full_name || 'Chưa đặt tên'}</p>
-                          <p className="text-xs text-muted-foreground">{user.email}</p>
+                          <p className="font-medium text-sm">
+                            {user.fullName || "Chưa đặt tên"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {user.email}
+                          </p>
                         </div>
                       </div>
                       <Button
                         size="sm"
-                        onClick={() => addMutation.mutate(user.user_id)}
+                        onClick={() => addMutation.mutate(user.id)}
                         disabled={addMutation.isPending}
                       >
                         Thêm
@@ -171,7 +178,9 @@ export default function CourseStudentsList({ courseId }: CourseStudentsListProps
                   ))
                 ) : (
                   <p className="text-center text-muted-foreground py-4">
-                    {searchTerm ? 'Không tìm thấy học viên' : 'Nhập tên hoặc email để tìm kiếm'}
+                    {searchTerm
+                      ? "Không tìm thấy học viên"
+                      : "Nhập tên hoặc email để tìm kiếm"}
                   </p>
                 )}
               </div>
@@ -199,19 +208,25 @@ export default function CourseStudentsList({ courseId }: CourseStudentsListProps
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={enrollment.profiles?.avatar_url || undefined} />
-                        <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                        <AvatarImage
+                          src={enrollment.student?.avatarUrl || undefined}
+                        />
+                        <AvatarFallback>
+                          <User className="h-4 w-4" />
+                        </AvatarFallback>
                       </Avatar>
                       <span className="font-medium">
-                        {enrollment.profiles?.full_name || 'Chưa đặt tên'}
+                        {enrollment.student?.fullName || "Chưa đặt tên"}
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>{enrollment.profiles?.email}</TableCell>
+                  <TableCell>{enrollment.student?.email}</TableCell>
                   <TableCell>
-                    {new Date(enrollment.enrolled_at).toLocaleDateString('vi-VN')}
+                    {new Date(enrollment.enrolledAt).toLocaleDateString(
+                      "vi-VN",
+                    )}
                   </TableCell>
-                  <TableCell>{enrollment.progress_percent || 0}%</TableCell>
+                  <TableCell>{enrollment.progressPercent || 0}%</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"

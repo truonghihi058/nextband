@@ -1,12 +1,19 @@
-import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Edit, ArrowUpDown } from 'lucide-react';
-import { useState } from 'react';
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { examsApi } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Plus, Edit, ArrowUpDown } from "lucide-react";
+import { useState } from "react";
 
 interface CourseExamsListProps {
   courseId: string;
@@ -14,51 +21,64 @@ interface CourseExamsListProps {
 
 interface Exam {
   id: string;
-  course_id: string;
+  courseId: string;
   title: string;
   description: string | null;
   week: number;
-  duration_minutes: number;
-  is_published: boolean;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  durationMinutes: number;
+  isPublished: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-type SortField = 'week' | 'title' | 'created_at';
-type SortOrder = 'asc' | 'desc';
+type SortField = "week" | "title" | "createdAt";
+type SortOrder = "asc" | "desc";
 
 export default function CourseExamsList({ courseId }: CourseExamsListProps) {
-  const [sortField, setSortField] = useState<SortField>('week');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [sortField, setSortField] = useState<SortField>("week");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
 
-  const { data: exams, isLoading } = useQuery({
-    queryKey: ['course-exams-admin', courseId, sortField, sortOrder],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('exams')
-        .select('*')
-        .eq('course_id', courseId)
-        .order(sortField, { ascending: sortOrder === 'asc' });
-      
-      if (error) throw error;
-      return (data || []) as Exam[];
-    },
+  const { data, isLoading } = useQuery({
+    queryKey: ["course-exams-admin", courseId, sortField, sortOrder],
+    queryFn: () => examsApi.list({ courseId }),
     enabled: !!courseId,
+  });
+
+  const exams = (data?.data || []) as Exam[];
+
+  // Client-side sorting
+  const sortedExams = [...exams].sort((a, b) => {
+    let comparison = 0;
+    if (sortField === "week") {
+      comparison = (a.week || 0) - (b.week || 0);
+    } else if (sortField === "title") {
+      comparison = a.title.localeCompare(b.title);
+    } else if (sortField === "createdAt") {
+      comparison =
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
+    return sortOrder === "asc" ? comparison : -comparison;
   });
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortOrder('asc');
+      setSortOrder("asc");
     }
   };
 
-  const SortHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-    <TableHead 
-      className="cursor-pointer hover:bg-muted/50" 
+  const SortHeader = ({
+    field,
+    children,
+  }: {
+    field: SortField;
+    children: React.ReactNode;
+  }) => (
+    <TableHead
+      className="cursor-pointer hover:bg-muted/50"
       onClick={() => toggleSort(field)}
     >
       <div className="flex items-center gap-1">
@@ -82,7 +102,7 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
       <CardContent>
         {isLoading ? (
           <p className="text-muted-foreground">Đang tải...</p>
-        ) : exams && exams.length > 0 ? (
+        ) : sortedExams && sortedExams.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
@@ -94,18 +114,20 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {exams.map((exam) => (
+              {sortedExams.map((exam) => (
                 <TableRow key={exam.id}>
-                  <TableCell className="font-medium">Tuần {exam.week || 1}</TableCell>
+                  <TableCell className="font-medium">
+                    Tuần {exam.week || 1}
+                  </TableCell>
                   <TableCell>{exam.title}</TableCell>
                   <TableCell>
-                    <Badge variant={exam.is_published ? 'default' : 'secondary'}>
-                      {exam.is_published ? 'Đã xuất bản' : 'Nháp'}
+                    <Badge variant={exam.isPublished ? "default" : "secondary"}>
+                      {exam.isPublished ? "Đã xuất bản" : "Nháp"}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={exam.is_active ? 'default' : 'outline'}>
-                      {exam.is_active ? 'Hoạt động' : 'Tắt'}
+                    <Badge variant={exam.isActive ? "default" : "outline"}>
+                      {exam.isActive ? "Hoạt động" : "Tắt"}
                     </Badge>
                   </TableCell>
                   <TableCell>

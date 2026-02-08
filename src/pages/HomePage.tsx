@@ -1,37 +1,32 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { CourseCard } from '@/components/courses/CourseCard';
-import { CourseFilters } from '@/components/courses/CourseFilters';
-import { Skeleton } from '@/components/ui/skeleton';
-import { BookOpen } from 'lucide-react';
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { coursesApi } from "@/lib/api";
+import { CourseCard } from "@/components/courses/CourseCard";
+import { CourseFilters } from "@/components/courses/CourseFilters";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BookOpen } from "lucide-react";
 
 export default function HomePage() {
-  const [levelFilter, setLevelFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [levelFilter, setLevelFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: courses, isLoading } = useQuery({
-    queryKey: ['courses', levelFilter, searchQuery],
-    queryFn: async () => {
-      let query = supabase
-        .from('courses')
-        .select('*')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false });
-
-      if (levelFilter !== 'all') {
-        query = query.eq('level', levelFilter as any);
-      }
-
-      if (searchQuery) {
-        query = query.ilike('title', `%${searchQuery}%`);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
+  const { data, isLoading } = useQuery({
+    queryKey: ["courses", levelFilter, searchQuery],
+    queryFn: () =>
+      coursesApi.list({
+        search: searchQuery || undefined,
+        limit: 100,
+      }),
   });
+
+  // Filter by level client-side since API might not have this filter
+  const courses = (data?.data || []).filter((course: any) => {
+    if (levelFilter === "all") return true;
+    return course.level === levelFilter;
+  });
+
+  // Only show published courses
+  const publishedCourses = courses.filter((course: any) => course.isPublished);
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -42,7 +37,7 @@ export default function HomePage() {
             Khám phá khóa học IELTS
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl">
-            Nâng cao kỹ năng tiếng Anh của bạn với các khóa học được thiết kế 
+            Nâng cao kỹ năng tiếng Anh của bạn với các khóa học được thiết kế
             bởi đội ngũ giáo viên giàu kinh nghiệm.
           </p>
         </div>
@@ -70,9 +65,9 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-      ) : courses && courses.length > 0 ? (
+      ) : publishedCourses && publishedCourses.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {courses.map((course) => (
+          {publishedCourses.map((course: any) => (
             <CourseCard key={course.id} course={course} />
           ))}
         </div>
