@@ -1,15 +1,15 @@
-import { useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Users, 
-  FileText, 
+import { useLocation } from "react-router-dom";
+import {
+  LayoutDashboard,
+  BookOpen,
+  Users,
+  FileText,
   Settings,
   GraduationCap,
   ChevronLeft,
-  ClipboardCheck
-} from 'lucide-react';
-import { NavLink } from '@/components/NavLink';
+  ClipboardCheck,
+} from "lucide-react";
+import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
   SidebarContent,
@@ -22,54 +22,59 @@ import {
   SidebarHeader,
   SidebarFooter,
   useSidebar,
-} from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const navigationItems = [
   {
-    title: 'Dashboard',
-    url: '/admin',
+    title: "Dashboard",
+    url: "/admin",
     icon: LayoutDashboard,
   },
   {
-    title: 'Khóa học',
-    url: '/admin/courses',
+    title: "Khóa học",
+    url: "/admin/courses",
     icon: BookOpen,
   },
   {
-    title: 'Bài thi',
-    url: '/admin/exams',
+    title: "Bài thi",
+    url: "/admin/exams",
     icon: FileText,
   },
   {
-    title: 'Chấm bài',
-    url: '/admin/check-attempt',
+    title: "Chấm bài",
+    url: "/admin/check-attempt",
     icon: ClipboardCheck,
   },
   {
-    title: 'Người dùng',
-    url: '/admin/users',
+    title: "Người dùng",
+    url: "/admin/users",
     icon: Users,
   },
 ];
 
 const settingsItems = [
   {
-    title: 'Cài đặt',
-    url: '/admin/settings',
+    title: "Cài đặt",
+    url: "/admin/settings",
     icon: Settings,
+  },
+  {
+    title: "Logs",
+    url: "/admin/logs",
+    icon: FileText,
   },
 ];
 
 export function AdminSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
-  const collapsed = state === 'collapsed';
+  const collapsed = state === "collapsed";
 
   const isActive = (path: string) => {
-    if (path === '/admin') {
-      return location.pathname === '/admin';
+    if (path === "/admin") {
+      return location.pathname === "/admin";
     }
     return location.pathname.startsWith(path);
   };
@@ -104,7 +109,7 @@ export function AdminSidebar() {
                   >
                     <NavLink
                       to={item.url}
-                      end={item.url === '/admin'}
+                      end={item.url === "/admin"}
                       className="flex items-center gap-3"
                       activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
                     >
@@ -149,7 +154,7 @@ export function AdminSidebar() {
         <Button variant="outline" className="w-full justify-start" asChild>
           <Link to="/">
             <ChevronLeft className="mr-2 h-4 w-4" />
-            {!collapsed && 'Về trang chủ'}
+            {!collapsed && "Về trang chủ"}
           </Link>
         </Button>
       </SidebarFooter>

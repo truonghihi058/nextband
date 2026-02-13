@@ -45,6 +45,7 @@ import {
   Zap,
 } from "lucide-react";
 import FileUpload from "@/components/admin/FileUpload";
+import DeleteConfirmDialog from "@/components/admin/DeleteConfirmDialog";
 import {
   Accordion,
   AccordionContent,
@@ -115,6 +116,16 @@ export default function AdminSectionEdit() {
   );
   const [bulkImportText, setBulkImportText] = useState("");
   const [bulkImportType, setBulkImportType] = useState("short_answer");
+
+  // Delete states
+  const [deleteGroup, setDeleteGroup] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [deleteQuestion, setDeleteQuestion] = useState<{
+    id: string;
+    text: string;
+  } | null>(null);
 
   // Form states
   const [groupForm, setGroupForm] = useState({
@@ -196,6 +207,7 @@ export default function AdminSectionEdit() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
       toast({ title: "Đã xóa", description: "Nhóm câu hỏi đã được xóa" });
+      setDeleteGroup(null);
     },
   });
 
@@ -253,6 +265,7 @@ export default function AdminSectionEdit() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
       toast({ title: "Đã xóa", description: "Câu hỏi đã được xóa" });
+      setDeleteQuestion(null);
     },
   });
 
@@ -535,8 +548,14 @@ export default function AdminSectionEdit() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          fontSize="sm"
                           className="text-destructive hover:text-destructive"
-                          onClick={() => deleteGroupMutation.mutate(group.id)}
+                          onClick={() =>
+                            setDeleteGroup({
+                              id: group.id,
+                              title: group.title || "Nhóm này",
+                            })
+                          }
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -610,7 +629,10 @@ export default function AdminSectionEdit() {
                               size="sm"
                               className="text-destructive hover:text-destructive"
                               onClick={() =>
-                                deleteQuestionMutation.mutate(q.id)
+                                setDeleteQuestion({
+                                  id: q.id,
+                                  text: q.questionText,
+                                })
                               }
                             >
                               <Trash2 className="h-4 w-4" />
@@ -794,6 +816,30 @@ export default function AdminSectionEdit() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Group Confirmation */}
+      <DeleteConfirmDialog
+        open={!!deleteGroup}
+        onOpenChange={(open) => !open && setDeleteGroup(null)}
+        onConfirm={() =>
+          deleteGroup && deleteGroupMutation.mutate(deleteGroup.id)
+        }
+        loading={deleteGroupMutation.isPending}
+        title="Xóa nhóm câu hỏi?"
+        description={`Bạn có chắc chắn muốn xóa nhóm "${deleteGroup?.title}"? Tất cả câu hỏi trong nhóm sẽ bị xóa vĩnh viễn.`}
+      />
+
+      {/* Delete Question Confirmation */}
+      <DeleteConfirmDialog
+        open={!!deleteQuestion}
+        onOpenChange={(open) => !open && setDeleteQuestion(null)}
+        onConfirm={() =>
+          deleteQuestion && deleteQuestionMutation.mutate(deleteQuestion.id)
+        }
+        loading={deleteQuestionMutation.isPending}
+        title="Xóa câu hỏi?"
+        description="Bạn có chắc chắn muốn xóa câu hỏi này không? Hành động này không thể hoàn tác."
+      />
 
       {/* Question Dialog */}
       <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>

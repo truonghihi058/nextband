@@ -33,6 +33,7 @@ import AdminSectionEdit from "@/pages/admin/SectionEdit";
 import AdminUsers from "@/pages/admin/Users";
 import AdminCheckAttempt from "@/pages/admin/CheckAttempt";
 import AdminSubmissionGrade from "@/pages/admin/SubmissionGrade";
+import AdminLogViewer from "@/pages/admin/LogViewer";
 
 const queryClient = new QueryClient();
 
@@ -48,7 +49,13 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
 
             {/* Client Routes */}
-            <Route element={<ProtectedRoute><ClientLayout /></ProtectedRoute>}>
+            <Route
+              element={
+                <ProtectedRoute>
+                  <ClientLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route path="/" element={<HomePage />} />
               <Route path="/my-courses" element={<MyCourses />} />
               <Route path="/my-submissions" element={<MySubmissions />} />
@@ -57,23 +64,48 @@ const App = () => (
             </Route>
 
             {/* Exam Interface - Minimal Layout */}
-            <Route element={<ProtectedRoute><MinimalLayout /></ProtectedRoute>}>
+            <Route
+              element={
+                <ProtectedRoute>
+                  <MinimalLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route path="/exam/:examId" element={<ExamInterface />} />
             </Route>
 
             {/* Admin Routes */}
-            <Route element={<ProtectedRoute requiredRoles={['admin']}><AdminLayout /></ProtectedRoute>}>
+            <Route
+              element={
+                <ProtectedRoute requiredRoles={["admin"]}>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/courses" element={<AdminCourses />} />
-              <Route path="/admin/courses/create" element={<AdminCourseCreate />} />
+              <Route
+                path="/admin/courses/create"
+                element={<AdminCourseCreate />}
+              />
               <Route path="/admin/courses/:id" element={<AdminCourseEdit />} />
               <Route path="/admin/exams" element={<AdminExams />} />
               <Route path="/admin/exams/create" element={<AdminExamCreate />} />
               <Route path="/admin/exams/:id" element={<AdminExamEdit />} />
-              <Route path="/admin/sections/:id" element={<AdminSectionEdit />} />
+              <Route
+                path="/admin/sections/:id"
+                element={<AdminSectionEdit />}
+              />
               <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/check-attempt" element={<AdminCheckAttempt />} />
-              <Route path="/admin/submissions/:id" element={<AdminSubmissionGrade />} />
+              <Route
+                path="/admin/check-attempt"
+                element={<AdminCheckAttempt />}
+              />
+              <Route
+                path="/admin/submissions/:id"
+                element={<AdminSubmissionGrade />}
+              />
+              <Route path="/admin/logs" element={<AdminLogViewer />} />
             </Route>
 
             {/* Catch-all */}

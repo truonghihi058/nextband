@@ -472,4 +472,21 @@ export const statsApi = {
   },
 };
 
+// =============================================
+// LOGS API
+// =============================================
+export const logsApi = {
+  getLogs: async () => {
+    const { data } = await api.get("/admin/log-viewer");
+    return data;
+  },
+
+  getLastLogs: async (lines: number = 100) => {
+    const { data } = await api.get("/admin/log-viewer/last", {
+      params: { lines },
+    });
+    return data;
+  },
+};
+
 export default api;
