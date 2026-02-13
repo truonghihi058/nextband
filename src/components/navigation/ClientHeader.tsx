@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 
 export function ClientHeader() {
-  const { profile, signOut, isAdmin } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -27,13 +27,19 @@ export function ClientHeader() {
         <div className="flex items-center gap-4">
           <SidebarTrigger className="-ml-1" />
           <div className="hidden md:block">
-            <h2 className="text-lg font-semibold">Xin chào, {profile?.full_name || "Học viên"}!</h2>
+            <h2 className="text-lg font-semibold">
+              Xin chào, {user?.fullName || "Học viên"}!
+            </h2>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           {isAdmin && (
-            <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/admin")}
+            >
               Quản trị
             </Button>
           )}
@@ -42,9 +48,9 @@ export function ClientHeader() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src={profile?.avatar_url || undefined} />
+                  <AvatarImage src={user?.avatarUrl || undefined} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    {profile?.full_name?.charAt(0) || "U"}
+                    {user?.fullName?.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -52,12 +58,17 @@ export function ClientHeader() {
             <DropdownMenuContent align="end" className="w-56">
               <div className="flex items-center justify-start gap-2 p-2">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{profile?.full_name || "Người dùng"}</p>
-                  <p className="text-xs text-muted-foreground">{profile?.email}</p>
+                  <p className="text-sm font-medium">
+                    {user?.fullName || "Người dùng"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+              <DropdownMenuItem
+                onClick={handleSignOut}
+                className="text-destructive"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 Đăng xuất
               </DropdownMenuItem>
