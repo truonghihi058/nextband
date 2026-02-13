@@ -13,10 +13,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, ArrowUpDown, Search } from "lucide-react";
+import { Plus, Edit, Trash2, ArrowUpDown, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
+import DeleteConfirmDialog from "@/components/admin/DeleteConfirmDialog";
 
 type SortField = "title" | "createdAt" | "week";
 
@@ -29,6 +30,7 @@ export default function AdminExams() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [deleteExam, setDeleteExam] = useState<{ id: string; title: string } | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -62,6 +64,15 @@ export default function AdminExams() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
       toast({ title: "Đã cập nhật trạng thái" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => examsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
+      toast({ title: "Đã xóa", description: "Bài thi đã được xóa" });
+      setDeleteExam(null);
     },
   });
 
@@ -129,7 +140,7 @@ export default function AdminExams() {
               <SortHeader field="week">Tuần</SortHeader>
               <TableHead>Xuất bản</TableHead>
               <TableHead>Kích hoạt</TableHead>
-              <TableHead className="w-[100px]">Hành động</TableHead>
+              <TableHead className="w-[140px]">Hành động</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -170,11 +181,21 @@ export default function AdminExams() {
                       }
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="space-x-1">
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/exams/${exam.id}`}>
                         <Edit className="h-4 w-4" />
                       </Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() =>
+                        setDeleteExam({ id: exam.id, title: exam.title })
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -194,6 +215,15 @@ export default function AdminExams() {
           />
         )}
       </div>
+
+      <DeleteConfirmDialog
+        open={!!deleteExam}
+        onOpenChange={(open) => !open && setDeleteExam(null)}
+        onConfirm={() => deleteExam && deleteMutation.mutate(deleteExam.id)}
+        loading={deleteMutation.isPending}
+        title="Xóa bài thi?"
+        description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Hành động này không thể hoàn tác.`}
+      />
     </div>
   );
 }

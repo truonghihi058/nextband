@@ -13,10 +13,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit, ArrowUpDown } from "lucide-react";
+import { Plus, Search, Edit, Trash2, ArrowUpDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
+import DeleteConfirmDialog from "@/components/admin/DeleteConfirmDialog";
 
 type SortField = "title" | "createdAt" | "level";
 
@@ -29,6 +30,7 @@ export default function AdminCourses() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [deleteCourse, setDeleteCourse] = useState<{ id: string; title: string } | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -65,6 +67,15 @@ export default function AdminCourses() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
       toast({ title: "Đã cập nhật trạng thái" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => coursesApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+      toast({ title: "Đã xóa", description: "Khóa học đã được xóa" });
+      setDeleteCourse(null);
     },
   });
 
@@ -131,7 +142,7 @@ export default function AdminCourses() {
               <SortHeader field="level">Cấp độ</SortHeader>
               <TableHead>Xuất bản</TableHead>
               <TableHead>Kích hoạt</TableHead>
-              <TableHead className="w-[100px]">Hành động</TableHead>
+              <TableHead className="w-[140px]">Hành động</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -173,11 +184,21 @@ export default function AdminCourses() {
                       }
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="space-x-1">
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/courses/${course.id}`}>
                         <Edit className="h-4 w-4" />
                       </Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() =>
+                        setDeleteCourse({ id: course.id, title: course.title })
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -197,6 +218,15 @@ export default function AdminCourses() {
           />
         )}
       </div>
+
+      <DeleteConfirmDialog
+        open={!!deleteCourse}
+        onOpenChange={(open) => !open && setDeleteCourse(null)}
+        onConfirm={() => deleteCourse && deleteMutation.mutate(deleteCourse.id)}
+        loading={deleteMutation.isPending}
+        title="Xóa khóa học?"
+        description={`Bạn có chắc chắn muốn xóa khóa học "${deleteCourse?.title}"? Hành động này không thể hoàn tác.`}
+      />
     </div>
   );
 }
