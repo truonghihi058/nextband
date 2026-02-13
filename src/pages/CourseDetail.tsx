@@ -82,7 +82,10 @@ export default function CourseDetail() {
   const exams = examsData?.data || [];
 
   // Check if user is enrolled in this course
-  const enrollment = enrollmentsData?.data?.find(
+  const enrollmentList = Array.isArray(enrollmentsData)
+    ? enrollmentsData
+    : enrollmentsData?.data || [];
+  const enrollment = enrollmentList.find(
     (e: any) => e.courseId === slug || e.course?.id === slug,
   );
 
