@@ -155,21 +155,28 @@ export default function ExamInterface() {
     );
   }, [currentSection]);
 
-  const handlePrevSection = () => {
-    if (currentSectionIndex > 0) {
-      setActiveSection(
-        availableSections[currentSectionIndex - 1].sectionType as SectionType,
-      );
-      setCurrentQuestionId(undefined);
+  const currentQuestionIndex = useMemo(() => {
+    if (!currentQuestionId || currentSectionQuestions.length === 0) return -1;
+    return currentSectionQuestions.findIndex((q: any) => q.id === currentQuestionId);
+  }, [currentQuestionId, currentSectionQuestions]);
+
+  useEffect(() => {
+    if (currentSection && currentSectionQuestions.length > 0 && !currentQuestionId) {
+      setCurrentQuestionId(currentSectionQuestions[0].id);
+    }
+  }, [currentSection, currentSectionQuestions, currentQuestionId]);
+
+  const handlePrevQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      const prevQuestion = currentSectionQuestions[currentQuestionIndex - 1];
+      handleQuestionClick(prevQuestion.id);
     }
   };
 
-  const handleNextSection = () => {
-    if (currentSectionIndex < availableSections.length - 1) {
-      setActiveSection(
-        availableSections[currentSectionIndex + 1].sectionType as SectionType,
-      );
-      setCurrentQuestionId(undefined);
+  const handleNextQuestion = () => {
+    if (currentQuestionIndex < currentSectionQuestions.length - 1) {
+      const nextQuestion = currentSectionQuestions[currentQuestionIndex + 1];
+      handleQuestionClick(nextQuestion.id);
     }
   };
 
@@ -441,11 +448,11 @@ export default function ExamInterface() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handlePrevSection}
-                disabled={currentSectionIndex === 0}
+                onClick={handlePrevQuestion}
+                disabled={currentQuestionIndex <= 0}
               >
                 <ChevronLeft className="mr-1 h-4 w-4" />
-                Phần trước
+                Câu trước
               </Button>
 
               <div className="flex-1 flex justify-center overflow-x-auto py-2">
@@ -462,10 +469,10 @@ export default function ExamInterface() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleNextSection}
-                disabled={currentSectionIndex === availableSections.length - 1}
+                onClick={handleNextQuestion}
+                disabled={currentQuestionIndex >= currentSectionQuestions.length - 1}
               >
-                Phần sau
+                Câu sau
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             </div>

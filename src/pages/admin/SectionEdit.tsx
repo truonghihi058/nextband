@@ -516,6 +516,7 @@ export default function AdminSectionEdit() {
         </CardHeader>
         <CardContent>
           {questionGroups && questionGroups.length > 0 ? (
+            <div className="max-w-4xl mx-auto space-y-4">
             <Accordion type="multiple" className="space-y-4">
               {questionGroups.map((group: QuestionGroup, gIndex: number) => (
                 <AccordionItem
@@ -742,6 +743,7 @@ export default function AdminSectionEdit() {
                 </AccordionItem>
               ))}
             </Accordion>
+          </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               Chưa có nhóm câu hỏi nào. Nhấn "Thêm nhóm" để bắt đầu.
