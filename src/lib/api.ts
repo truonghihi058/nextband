@@ -5,7 +5,7 @@ import axios, {
   AxiosError,
 } from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
+const API_URL = "https://api.nextband.site/api/v1";
 
 // Create axios instance
 const api: AxiosInstance = axios.create({

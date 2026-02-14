@@ -234,156 +234,166 @@ export function ReadingSection({
                 </p>
               )}
 
-              {group.questions?.map((question: any, qIndex: number) => {
-                const isCurrent = question.id === currentQuestionId;
+              {group.questions
+                ?.sort(
+                  (a: any, b: any) =>
+                    (b.order_index || 0) - (a.order_index || 0),
+                )
+                .map((question: any, qIndex: number) => {
+                  const isCurrent = question.id === currentQuestionId;
 
-                return (
-                  <Card
-                    key={question.id}
-                    ref={(el) => {
-                      if (el && questionRefs) {
-                        questionRefs.current.set(question.id, el);
-                      }
-                    }}
-                    className={cn(
-                      "transition-all hover:shadow-md",
-                      isCurrent && "ring-2 ring-primary shadow-lg",
-                    )}
-                    onClick={() => onQuestionFocus?.(question.id)}
-                  >
-                    <CardContent className="p-4">
-                      <p className="font-medium mb-3">
-                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[hsl(var(--reading))] text-white text-sm font-bold mr-2">
-                          {question.order_index || qIndex + 1}
-                        </span>
-                        {/* Only show question text here if it's NOT a fill_blank with placeholders (which renders its own text) */}
-                        {!(
-                          question.question_type === "fill_blank" &&
-                          (question.question_text.includes("_____") ||
-                            question.question_text.includes("[BLANK]"))
-                        ) && question.question_text}
-                      </p>
+                  return (
+                    <Card
+                      key={question.id}
+                      ref={(el) => {
+                        if (el && questionRefs) {
+                          questionRefs.current.set(question.id, el);
+                        }
+                      }}
+                      className={cn(
+                        "transition-all hover:shadow-md",
+                        isCurrent && "ring-2 ring-primary shadow-lg",
+                      )}
+                      onClick={() => onQuestionFocus?.(question.id)}
+                    >
+                      <CardContent className="p-4">
+                        <p className="font-medium mb-3">
+                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[hsl(var(--reading))] text-white text-sm font-bold mr-2">
+                            {question.order_index || qIndex + 1}
+                          </span>
+                          {/* Only show question text here if it's NOT a fill_blank with placeholders (which renders its own text) */}
+                          {!(
+                            question.question_type === "fill_blank" &&
+                            (question.question_text.includes("_____") ||
+                              question.question_text.includes("[BLANK]"))
+                          ) && question.question_text}
+                        </p>
 
-                      {question.question_type === "multiple_choice" &&
-                        question.options && (
-                          <RadioGroup
-                            value={answers[question.id] || ""}
-                            onValueChange={(value) =>
-                              onAnswerChange(question.id, value)
-                            }
-                            className="space-y-2 ml-9"
-                          >
-                            {(question.options as string[]).map(
-                              (option: string, i: number) => (
-                                <div
-                                  key={i}
-                                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                                >
-                                  <RadioGroupItem
-                                    value={option}
-                                    id={`${question.id}-${i}`}
-                                  />
-                                  <Label
-                                    htmlFor={`${question.id}-${i}`}
-                                    className="flex-1 cursor-pointer"
+                        {question.question_type === "multiple_choice" &&
+                          question.options && (
+                            <RadioGroup
+                              value={answers[question.id] || ""}
+                              onValueChange={(value) =>
+                                onAnswerChange(question.id, value)
+                              }
+                              className="space-y-2 ml-9"
+                            >
+                              {(question.options as string[]).map(
+                                (option: string, i: number) => (
+                                  <div
+                                    key={i}
+                                    className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
                                   >
-                                    {option}
-                                  </Label>
-                                </div>
-                              ),
+                                    <RadioGroupItem
+                                      value={option}
+                                      id={`${question.id}-${i}`}
+                                    />
+                                    <Label
+                                      htmlFor={`${question.id}-${i}`}
+                                      className="flex-1 cursor-pointer"
+                                    >
+                                      {option}
+                                    </Label>
+                                  </div>
+                                ),
+                              )}
+                            </RadioGroup>
+                          )}
+
+                        {(question.question_type === "fill_blank" ||
+                          question.question_type === "short_answer") && (
+                          <div className="ml-9">
+                            {question.question_type === "fill_blank" &&
+                            (question.question_text.includes("_____") ||
+                              question.question_text.includes("[BLANK]")) ? (
+                              <div className="text-base leading-relaxed">
+                                {/* Inline rendering for fill_blank with placeholders */}
+                                {(() => {
+                                  const text = question.question_text;
+                                  const parts =
+                                    text.split(/(_____|\[BLANK\])/g);
+                                  return (
+                                    <div className="flex flex-wrap items-baseline gap-2">
+                                      {parts.map(
+                                        (part: string, index: number) => {
+                                          if (
+                                            part === "_____" ||
+                                            part === "[BLANK]"
+                                          ) {
+                                            return (
+                                              <Input
+                                                key={index}
+                                                placeholder="Answer..."
+                                                value={
+                                                  answers[question.id] || ""
+                                                }
+                                                onChange={(e) =>
+                                                  onAnswerChange(
+                                                    question.id,
+                                                    e.target.value,
+                                                  )
+                                                }
+                                                className="w-40 inline-flex h-8 mx-1"
+                                              />
+                                            );
+                                          }
+                                          return (
+                                            <span key={index}>{part}</span>
+                                          );
+                                        },
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            ) : (
+                              /* Standard rendering for short_answer or fill_blank without placeholders */
+                              <div>
+                                <Input
+                                  placeholder="Nhập câu trả lời..."
+                                  value={answers[question.id] || ""}
+                                  onChange={(e) =>
+                                    onAnswerChange(question.id, e.target.value)
+                                  }
+                                  className="max-w-md"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1 italic">
+                                  ONE WORD ONLY
+                                </p>
+                              </div>
                             )}
-                          </RadioGroup>
+                          </div>
                         )}
 
-                      {(question.question_type === "fill_blank" ||
-                        question.question_type === "short_answer") && (
-                        <div className="ml-9">
-                          {question.question_type === "fill_blank" &&
-                          (question.question_text.includes("_____") ||
-                            question.question_text.includes("[BLANK]")) ? (
-                            <div className="text-base leading-relaxed">
-                              {/* Inline rendering for fill_blank with placeholders */}
-                              {(() => {
-                                const text = question.question_text;
-                                const parts = text.split(/(_____|\[BLANK\])/g);
-                                return (
-                                  <div className="flex flex-wrap items-baseline gap-2">
-                                    {parts.map(
-                                      (part: string, index: number) => {
-                                        if (
-                                          part === "_____" ||
-                                          part === "[BLANK]"
-                                        ) {
-                                          return (
-                                            <Input
-                                              key={index}
-                                              placeholder="Answer..."
-                                              value={answers[question.id] || ""}
-                                              onChange={(e) =>
-                                                onAnswerChange(
-                                                  question.id,
-                                                  e.target.value,
-                                                )
-                                              }
-                                              className="w-40 inline-flex h-8 mx-1"
-                                            />
-                                          );
-                                        }
-                                        return <span key={index}>{part}</span>;
-                                      },
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          ) : (
-                            /* Standard rendering for short_answer or fill_blank without placeholders */
-                            <div>
-                              <Input
-                                placeholder="Nhập câu trả lời..."
-                                value={answers[question.id] || ""}
-                                onChange={(e) =>
-                                  onAnswerChange(question.id, e.target.value)
-                                }
-                                className="max-w-md"
-                              />
-                              <p className="text-xs text-muted-foreground mt-1 italic">
-                                ONE WORD ONLY
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                        {question.question_type === "true_false_not_given" && (
+                          <div className="ml-9">
+                            <DropdownSelect
+                              value={answers[question.id] || ""}
+                              onChange={(value) =>
+                                onAnswerChange(question.id, value)
+                              }
+                              options={["TRUE", "FALSE", "NOT GIVEN"]}
+                              placeholder="Chọn đáp án"
+                            />
+                          </div>
+                        )}
 
-                      {question.question_type === "true_false_not_given" && (
-                        <div className="ml-9">
-                          <DropdownSelect
-                            value={answers[question.id] || ""}
-                            onChange={(value) =>
-                              onAnswerChange(question.id, value)
-                            }
-                            options={["TRUE", "FALSE", "NOT GIVEN"]}
-                            placeholder="Chọn đáp án"
-                          />
-                        </div>
-                      )}
-
-                      {question.question_type === "yes_no_not_given" && (
-                        <div className="ml-9">
-                          <DropdownSelect
-                            value={answers[question.id] || ""}
-                            onChange={(value) =>
-                              onAnswerChange(question.id, value)
-                            }
-                            options={["YES", "NO", "NOT GIVEN"]}
-                            placeholder="Chọn đáp án"
-                          />
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                        {question.question_type === "yes_no_not_given" && (
+                          <div className="ml-9">
+                            <DropdownSelect
+                              value={answers[question.id] || ""}
+                              onChange={(value) =>
+                                onAnswerChange(question.id, value)
+                              }
+                              options={["YES", "NO", "NOT GIVEN"]}
+                              placeholder="Chọn đáp án"
+                            />
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
             </div>
           ))}
         </div>
