@@ -130,8 +130,8 @@ export default function ExamInterface() {
 
   const availableSections = useMemo(
     () =>
-      sections?.filter(
-        (s: any) => s.questionGroups && s.questionGroups.length > 0,
+      sections?.filter((s: any) =>
+        s.questionGroups?.some((g: any) => g.questions?.length > 0),
       ) || [],
     [sections],
   );
@@ -157,11 +157,17 @@ export default function ExamInterface() {
 
   const currentQuestionIndex = useMemo(() => {
     if (!currentQuestionId || currentSectionQuestions.length === 0) return -1;
-    return currentSectionQuestions.findIndex((q: any) => q.id === currentQuestionId);
+    return currentSectionQuestions.findIndex(
+      (q: any) => q.id === currentQuestionId,
+    );
   }, [currentQuestionId, currentSectionQuestions]);
 
   useEffect(() => {
-    if (currentSection && currentSectionQuestions.length > 0 && !currentQuestionId) {
+    if (
+      currentSection &&
+      currentSectionQuestions.length > 0 &&
+      !currentQuestionId
+    ) {
       setCurrentQuestionId(currentSectionQuestions[0].id);
     }
   }, [currentSection, currentSectionQuestions, currentQuestionId]);
@@ -470,7 +476,9 @@ export default function ExamInterface() {
                 variant="outline"
                 size="sm"
                 onClick={handleNextQuestion}
-                disabled={currentQuestionIndex >= currentSectionQuestions.length - 1}
+                disabled={
+                  currentQuestionIndex >= currentSectionQuestions.length - 1
+                }
               >
                 Câu sau
                 <ChevronRight className="ml-1 h-4 w-4" />

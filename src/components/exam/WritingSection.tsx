@@ -1,9 +1,16 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { PenTool, ZoomIn, ZoomOut, RotateCcw, Save } from 'lucide-react';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import {
+  PenTool,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Save,
+  ExternalLink,
+} from "lucide-react";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 interface WritingSectionProps {
   section: any;
@@ -12,12 +19,17 @@ interface WritingSectionProps {
   timeRemaining?: number;
 }
 
-export function WritingSection({ section, answers, onAnswerChange, timeRemaining }: WritingSectionProps) {
+export function WritingSection({
+  section,
+  answers,
+  onAnswerChange,
+  timeRemaining,
+}: WritingSectionProps) {
   // Use the first question's ID if available, otherwise fall back to section.id
   // This ensures the answer key is a valid question_id for the answers table FK constraint
   const firstQuestion = section.question_groups?.[0]?.questions?.[0];
   const taskId = firstQuestion?.id || section.id;
-  const text = answers[taskId] || '';
+  const text = answers[taskId] || "";
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [imageZoom, setImageZoom] = useState(1);
@@ -40,14 +52,15 @@ export function WritingSection({ section, answers, onAnswerChange, timeRemaining
     };
   }, [text]);
 
-  const handleZoomIn = () => setImageZoom(prev => Math.min(prev + 0.25, 3));
-  const handleZoomOut = () => setImageZoom(prev => Math.max(prev - 0.25, 0.5));
+  const handleZoomIn = () => setImageZoom((prev) => Math.min(prev + 0.25, 3));
+  const handleZoomOut = () =>
+    setImageZoom((prev) => Math.max(prev - 0.25, 0.5));
   const handleZoomReset = () => setImageZoom(1);
 
   const getMinWords = () => {
     // Task 1: 150 words, Task 2: 250 words
-    const title = section.title?.toLowerCase() || '';
-    if (title.includes('task 1') || title.includes('part 1')) return 150;
+    const title = section.title?.toLowerCase() || "";
+    if (title.includes("task 1") || title.includes("part 1")) return 150;
     return 250;
   };
 
@@ -87,13 +100,28 @@ export function WritingSection({ section, answers, onAnswerChange, timeRemaining
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">Hình ảnh</CardTitle>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomOut}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handleZoomOut}
+                  >
                     <ZoomOut className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomReset}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handleZoomReset}
+                  >
                     <RotateCcw className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomIn}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handleZoomIn}
+                  >
                     <ZoomIn className="h-4 w-4" />
                   </Button>
                 </div>
@@ -105,13 +133,20 @@ export function WritingSection({ section, answers, onAnswerChange, timeRemaining
                       <img
                         src={section.image_url}
                         alt="Task image"
-                        style={{ transform: `scale(${imageZoom})`, transformOrigin: 'top left' }}
+                        style={{
+                          transform: `scale(${imageZoom})`,
+                          transformOrigin: "top left",
+                        }}
                         className="transition-transform"
                       />
                     </div>
                   </DialogTrigger>
                   <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
-                    <img src={section.image_url} alt="Task image" className="w-full" />
+                    <img
+                      src={section.image_url}
+                      alt="Task image"
+                      className="w-full"
+                    />
                   </DialogContent>
                 </Dialog>
               </CardContent>
@@ -126,13 +161,27 @@ export function WritingSection({ section, answers, onAnswerChange, timeRemaining
           <Card className="flex-1 flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-3 border-b">
               <CardTitle className="text-base">Bài viết của bạn</CardTitle>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 {lastSaved && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Save className="h-3 w-3" />
-                    Đã lưu {lastSaved.toLocaleTimeString('vi-VN')}
+                    Đã lưu {lastSaved.toLocaleTimeString("vi-VN")}
                   </span>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    window.open(
+                      "https://docs.google.com/document/create",
+                      "_blank",
+                    )
+                  }
+                  className="gap-1.5"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Mở Google Docs
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col p-0">
@@ -147,15 +196,19 @@ export function WritingSection({ section, answers, onAnswerChange, timeRemaining
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Số từ:</span>
-                  <span className={`font-semibold ${wordCount >= minWords ? 'text-[hsl(var(--success))]' : 'text-foreground'}`}>
+                  <span
+                    className={`font-semibold ${wordCount >= minWords ? "text-[hsl(var(--success))]" : "text-foreground"}`}
+                  >
                     {wordCount}
                   </span>
-                  <span className="text-sm text-muted-foreground">/ {minWords} tối thiểu</span>
+                  <span className="text-sm text-muted-foreground">
+                    / {minWords} tối thiểu
+                  </span>
                 </div>
               </div>
               <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all ${wordCount >= minWords ? 'bg-[hsl(var(--success))]' : 'bg-primary'}`}
+                  className={`h-full transition-all ${wordCount >= minWords ? "bg-[hsl(var(--success))]" : "bg-primary"}`}
                   style={{ width: `${wordProgress}%` }}
                 />
               </div>

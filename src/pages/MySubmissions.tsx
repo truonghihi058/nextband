@@ -219,17 +219,15 @@ export default function MySubmissions() {
                               Tiếp tục
                             </Link>
                           </Button>
-                        ) : submission.status === "graded" ? (
+                        ) : (
                           <Button size="sm" variant="outline" asChild>
                             <Link to={`/submissions/${submission.id}`}>
                               <Eye className="mr-1 h-3.5 w-3.5" />
-                              Xem kết quả
+                              {submission.status === "graded"
+                                ? "Xem kết quả"
+                                : "Xem chi tiết"}
                             </Link>
                           </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            Chờ chấm
-                          </span>
                         )}
                       </TableCell>
                     </TableRow>

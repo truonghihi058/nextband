@@ -426,7 +426,17 @@ export default function AdminSectionEdit() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              if (section.exam?.id) {
+                navigate(`/admin/exams/${section.exam.id}?tab=sections`);
+              } else {
+                navigate(-1);
+              }
+            }}
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -439,7 +449,7 @@ export default function AdminSectionEdit() {
                 <span className="text-sm text-muted-foreground">
                   /{" "}
                   <Link
-                    to={`/admin/exams/${section.exam.id}`}
+                    to={`/admin/exams/${section.exam.id}?tab=sections`}
                     className="hover:underline"
                   >
                     {section.exam.title}
@@ -511,239 +521,249 @@ export default function AdminSectionEdit() {
           </div>
           <Button onClick={() => handleOpenGroupDialog()}>
             <Plus className="mr-2 h-4 w-4" />
-            Thêm nhóm
+            {section.sectionType === "speaking" ? "Thêm phần thi" : "Thêm nhóm"}
           </Button>
         </CardHeader>
         <CardContent>
           {questionGroups && questionGroups.length > 0 ? (
             <div className="max-w-4xl mx-auto space-y-4">
-            <Accordion type="multiple" className="space-y-4">
-              {questionGroups.map((group: QuestionGroup, gIndex: number) => (
-                <AccordionItem
-                  key={group.id}
-                  value={group.id}
-                  className="border rounded-lg px-4"
-                >
-                  <AccordionTrigger className="hover:no-underline">
-                    <div className="flex items-center gap-3 flex-1">
-                      <GripVertical className="h-4 w-4 text-muted-foreground" />
-                      <div className="flex-1 text-left">
-                        <div className="font-medium">
-                          {group.title || `Nhóm ${gIndex + 1}`}
+              <Accordion type="multiple" className="space-y-4">
+                {questionGroups.map((group: QuestionGroup, gIndex: number) => (
+                  <AccordionItem
+                    key={group.id}
+                    value={group.id}
+                    className="border rounded-lg px-4"
+                  >
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3 flex-1">
+                        <GripVertical className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">
+                            {section.sectionType === "speaking"
+                              ? group.title || `Phần ${gIndex + 1}`
+                              : group.title || `Nhóm ${gIndex + 1}`}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {group.questions?.length || 0} câu hỏi
+                          </div>
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {group.questions?.length || 0} câu hỏi
-                        </div>
-                      </div>
-                      <div
-                        className="flex items-center gap-2"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenGroupDialog(group)}
-                        >
-                          Sửa
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          fontSize="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() =>
-                            setDeleteGroup({
-                              id: group.id,
-                              title: group.title || "Nhóm này",
-                            })
-                          }
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-4">
-                    {group.passage && (
-                      <div className="mb-4 p-4 bg-muted/50 rounded-lg">
-                        <div className="text-sm font-medium mb-2">
-                          Đoạn văn:
-                        </div>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                          {group.passage}
-                        </p>
-                      </div>
-                    )}
-
-                    {group.instructions && (
-                      <div className="mb-4 p-3 bg-accent/30 rounded-lg border border-accent">
-                        <div className="text-sm font-medium mb-1">
-                          Hướng dẫn:
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {group.instructions}
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="space-y-3">
-                      {group.questions?.map((q: Question, qIndex: number) => (
                         <div
-                          key={q.id}
-                          className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors"
+                          className="flex items-center gap-2"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
-                            {qIndex + 1}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium line-clamp-2">
-                              {q.questionText}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline" className="text-xs">
-                                {QUESTION_TYPES.find(
-                                  (t) => t.value === q.questionType,
-                                )?.label || q.questionType}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">
-                                {q.points} điểm
-                              </span>
-                              {q.correctAnswer && (
-                                <span className="text-xs text-primary">
-                                  ✓ Có đáp án
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                handleOpenQuestionDialog(group.id, q)
-                              }
-                            >
-                              Sửa
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() =>
-                                setDeleteQuestion({
-                                  id: q.id,
-                                  text: q.questionText,
-                                })
-                              }
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenGroupDialog(group)}
+                          >
+                            Sửa
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            fontSize="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() =>
+                              setDeleteGroup({
+                                id: group.id,
+                                title: group.title || "Nhóm này",
+                              })
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                      ))}
-
-                      {/* Action buttons */}
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => handleOpenQuestionDialog(group.id)}
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Thêm câu hỏi
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => {
-                            setBulkImportGroupId(group.id);
-                            setBulkImportText("");
-                            setBulkImportType("short_answer");
-                          }}
-                        >
-                          <Zap className="mr-2 h-4 w-4" />
-                          Nhập nhanh
-                        </Button>
                       </div>
-
-                      {/* Bulk import inline panel */}
-                      {bulkImportGroupId === group.id && (
-                        <Card className="border-2 border-primary/30 bg-primary/5">
-                          <CardContent className="p-4 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-semibold text-sm flex items-center gap-2">
-                                <Zap className="h-4 w-4 text-primary" />
-                                Nhập nhanh câu hỏi
-                              </h4>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setBulkImportGroupId(null)}
-                              >
-                                ✕
-                              </Button>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              Mỗi dòng = 1 câu hỏi. Dòng trống sẽ được bỏ qua.
-                            </p>
-                            <Textarea
-                              placeholder={`Ví dụ:\nNhiều học sinh cảm thấy căng thẳng trước kỳ thi. (feel stressed)\nSinh viên cần chú ý khi giáo viên giải thích bài. (pay attention to)\nTôi thường dành thời gian cho gia đình vào cuối tuần. (spend time with)`}
-                              value={bulkImportText}
-                              onChange={(e) =>
-                                setBulkImportText(e.target.value)
-                              }
-                              rows={8}
-                              className="font-mono text-sm"
-                            />
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-2 flex-1">
-                                <Label className="text-xs whitespace-nowrap">
-                                  Loại câu hỏi:
-                                </Label>
-                                <Select
-                                  value={bulkImportType}
-                                  onValueChange={setBulkImportType}
-                                >
-                                  <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {QUESTION_TYPES.map((t) => (
-                                      <SelectItem key={t.value} value={t.value}>
-                                        {t.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <Badge variant="secondary" className="text-xs">
-                                {bulkImportLineCount} câu hỏi
-                              </Badge>
-                              <Button
-                                size="sm"
-                                onClick={handleBulkImport}
-                                disabled={
-                                  bulkImportLineCount === 0 ||
-                                  bulkImportMutation.isPending
-                                }
-                              >
-                                {bulkImportMutation.isPending ? (
-                                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                ) : (
-                                  <Zap className="mr-1 h-3 w-3" />
-                                )}
-                                Tạo {bulkImportLineCount} câu
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      {group.passage && (
+                        <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+                          <div className="text-sm font-medium mb-2">
+                            Đoạn văn:
+                          </div>
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                            {group.passage}
+                          </p>
+                        </div>
                       )}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
+
+                      {group.instructions && (
+                        <div className="mb-4 p-3 bg-accent/30 rounded-lg border border-accent">
+                          <div className="text-sm font-medium mb-1">
+                            Hướng dẫn:
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {group.instructions}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="space-y-3">
+                        {group.questions
+                          ?.sort(
+                            (a: Question, b: Question) =>
+                              (b.order_index || 0) - (a.order_index || 0),
+                          )
+                          .map((q: Question, qIndex: number) => (
+                            <div
+                              key={q.id}
+                              className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors"
+                            >
+                              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
+                                {qIndex + 1}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium line-clamp-2">
+                                  {q.questionText}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge variant="outline" className="text-xs">
+                                    {QUESTION_TYPES.find(
+                                      (t) => t.value === q.questionType,
+                                    )?.label || q.questionType}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    {q.points} điểm
+                                  </span>
+                                  {q.correctAnswer && (
+                                    <span className="text-xs text-primary">
+                                      ✓ Có đáp án
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleOpenQuestionDialog(group.id, q)
+                                  }
+                                >
+                                  Sửa
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() =>
+                                    setDeleteQuestion({
+                                      id: q.id,
+                                      text: q.questionText,
+                                    })
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+
+                        {/* Action buttons */}
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => handleOpenQuestionDialog(group.id)}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Thêm câu hỏi
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => {
+                              setBulkImportGroupId(group.id);
+                              setBulkImportText("");
+                              setBulkImportType("short_answer");
+                            }}
+                          >
+                            <Zap className="mr-2 h-4 w-4" />
+                            Nhập nhanh
+                          </Button>
+                        </div>
+
+                        {/* Bulk import inline panel */}
+                        {bulkImportGroupId === group.id && (
+                          <Card className="border-2 border-primary/30 bg-primary/5">
+                            <CardContent className="p-4 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-semibold text-sm flex items-center gap-2">
+                                  <Zap className="h-4 w-4 text-primary" />
+                                  Nhập nhanh câu hỏi
+                                </h4>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setBulkImportGroupId(null)}
+                                >
+                                  ✕
+                                </Button>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Mỗi dòng = 1 câu hỏi. Dòng trống sẽ được bỏ qua.
+                              </p>
+                              <Textarea
+                                placeholder={`Ví dụ:\nNhiều học sinh cảm thấy căng thẳng trước kỳ thi. (feel stressed)\nSinh viên cần chú ý khi giáo viên giải thích bài. (pay attention to)\nTôi thường dành thời gian cho gia đình vào cuối tuần. (spend time with)`}
+                                value={bulkImportText}
+                                onChange={(e) =>
+                                  setBulkImportText(e.target.value)
+                                }
+                                rows={8}
+                                className="font-mono text-sm"
+                              />
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2 flex-1">
+                                  <Label className="text-xs whitespace-nowrap">
+                                    Loại câu hỏi:
+                                  </Label>
+                                  <Select
+                                    value={bulkImportType}
+                                    onValueChange={setBulkImportType}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {QUESTION_TYPES.map((t) => (
+                                        <SelectItem
+                                          key={t.value}
+                                          value={t.value}
+                                        >
+                                          {t.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <Badge variant="secondary" className="text-xs">
+                                  {bulkImportLineCount} câu hỏi
+                                </Badge>
+                                <Button
+                                  size="sm"
+                                  onClick={handleBulkImport}
+                                  disabled={
+                                    bulkImportLineCount === 0 ||
+                                    bulkImportMutation.isPending
+                                  }
+                                >
+                                  {bulkImportMutation.isPending ? (
+                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Zap className="mr-1 h-3 w-3" />
+                                  )}
+                                  Tạo {bulkImportLineCount} câu
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               Chưa có nhóm câu hỏi nào. Nhấn "Thêm nhóm" để bắt đầu.
@@ -766,9 +786,17 @@ export default function AdminSectionEdit() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Tiêu đề nhóm</Label>
+              <Label>
+                {section.sectionType === "speaking"
+                  ? "Tên phần thi (Part)"
+                  : "Tiêu đề nhóm"}
+              </Label>
               <Input
-                placeholder="VD: Dịch câu sang tiếng Anh, Nhận diện Subject-Verb, Đọc hiểu..."
+                placeholder={
+                  section.sectionType === "speaking"
+                    ? "VD: Part 1 - Introduction"
+                    : "VD: Dịch câu sang tiếng Anh, Nhận diện Subject-Verb, Đọc hiểu..."
+                }
                 value={groupForm.title}
                 onChange={(e) =>
                   setGroupForm((f) => ({ ...f, title: e.target.value }))
@@ -786,17 +814,19 @@ export default function AdminSectionEdit() {
                 rows={3}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Đoạn văn (Passage) — nếu có</Label>
-              <Textarea
-                placeholder="Nhập đoạn văn đọc hiểu (nếu nhóm này cần bài đọc kèm theo)..."
-                value={groupForm.passage}
-                onChange={(e) =>
-                  setGroupForm((f) => ({ ...f, passage: e.target.value }))
-                }
-                rows={6}
-              />
-            </div>
+            {section.sectionType !== "speaking" && (
+              <div className="space-y-2">
+                <Label>Đoạn văn (Passage) — nếu có</Label>
+                <Textarea
+                  placeholder="Nhập đoạn văn đọc hiểu (nếu nhóm này cần bài đọc kèm theo)..."
+                  value={groupForm.passage}
+                  onChange={(e) =>
+                    setGroupForm((f) => ({ ...f, passage: e.target.value }))
+                  }
+                  rows={6}
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setGroupDialogOpen(false)}>

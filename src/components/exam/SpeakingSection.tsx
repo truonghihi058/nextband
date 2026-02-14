@@ -1,11 +1,21 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Mic, MicOff, Play, Square, Pause, ChevronRight, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { useAudioRecorder } from '@/hooks/useAudioRecorder';
-import { AudioWaveform } from './AudioWaveform';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import {
+  Mic,
+  MicOff,
+  Play,
+  Square,
+  Pause,
+  ChevronRight,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
+import { useAudioRecorder } from "@/hooks/useAudioRecorder";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { AudioWaveform } from "./AudioWaveform";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SpeakingSectionProps {
   section: any;
@@ -13,15 +23,19 @@ interface SpeakingSectionProps {
   onAnswerChange: (questionId: string, answer: string) => void;
 }
 
-type SpeakingPhase = 'preparation' | 'recording' | 'review';
+type SpeakingPhase = "preparation" | "recording" | "review";
 
-export function SpeakingSection({ section, answers, onAnswerChange }: SpeakingSectionProps) {
+export function SpeakingSection({
+  section,
+  answers,
+  onAnswerChange,
+}: SpeakingSectionProps) {
   const [currentPart, setCurrentPart] = useState(0);
-  const [phase, setPhase] = useState<SpeakingPhase>('preparation');
+  const [phase, setPhase] = useState<SpeakingPhase>("preparation");
   const [prepTime, setPrepTime] = useState(60); // 1 minute preparation
   const [recordTime, setRecordTime] = useState(0);
   const [maxRecordTime, setMaxRecordTime] = useState(120); // 2 minutes max
-  
+
   const {
     isRecording,
     audioUrl,
@@ -35,17 +49,21 @@ export function SpeakingSection({ section, answers, onAnswerChange }: SpeakingSe
     requestPermission,
   } = useAudioRecorder();
 
+  const { transcript, startListening, stopListening, resetTranscript } =
+    useSpeechRecognition();
+
   const questionGroups = section.question_groups || [];
   const currentGroup = questionGroups[currentPart];
-  const isPart2 = currentGroup?.title?.toLowerCase().includes('part 2') || currentPart === 1;
+  const isPart2 =
+    currentGroup?.title?.toLowerCase().includes("part 2") || currentPart === 1;
 
   // Preparation timer for Part 2
   useEffect(() => {
-    if (phase === 'preparation' && isPart2 && prepTime > 0) {
+    if (phase === "preparation" && isPart2 && prepTime > 0) {
       const timer = setInterval(() => {
-        setPrepTime(prev => {
+        setPrepTime((prev) => {
           if (prev <= 1) {
-            setPhase('recording');
+            setPhase("recording");
             return 60;
           }
           return prev - 1;
@@ -59,7 +77,7 @@ export function SpeakingSection({ section, answers, onAnswerChange }: SpeakingSe
   useEffect(() => {
     if (isRecording) {
       const timer = setInterval(() => {
-        setRecordTime(prev => {
+        setRecordTime((prev) => {
           if (prev >= maxRecordTime - 1) {
             stopRecording();
             return prev;
@@ -82,32 +100,37 @@ export function SpeakingSection({ section, answers, onAnswerChange }: SpeakingSe
   }, [audioUrl, currentGroup, onAnswerChange]);
 
   const handleStartRecording = async () => {
-    if (permissionStatus !== 'granted') {
+    if (permissionStatus !== "granted") {
       const granted = await requestPermission();
       if (!granted) return;
     }
     setRecordTime(0);
+    resetTranscript();
     await startRecording();
+    startListening();
   };
 
   const handleStopRecording = () => {
     stopRecording();
-    setPhase('review');
+    stopListening();
+    setPhase("review");
   };
 
   const handleNextPart = () => {
     if (currentPart < questionGroups.length - 1) {
-      setCurrentPart(prev => prev + 1);
-      setPhase('preparation');
+      setCurrentPart((prev) => prev + 1);
+      setPhase("preparation");
       setPrepTime(60);
       setRecordTime(0);
       resetRecording();
+      resetTranscript();
     }
   };
 
   const handleRetry = () => {
     resetRecording();
-    setPhase(isPart2 ? 'preparation' : 'recording');
+    resetTranscript();
+    setPhase(isPart2 ? "preparation" : "recording");
     setPrepTime(60);
     setRecordTime(0);
   };
@@ -115,16 +138,17 @@ export function SpeakingSection({ section, answers, onAnswerChange }: SpeakingSe
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  if (permissionStatus === 'denied') {
+  if (permissionStatus === "denied") {
     return (
       <div className="h-full flex items-center justify-center p-6">
         <Alert variant="destructive" className="max-w-md">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Quyền truy cập microphone bị từ chối. Vui lòng cho phép truy cập microphone trong cài đặt trình duyệt để tiếp tục phần Speaking.
+            Quyền truy cập microphone bị từ chối. Vui lòng cho phép truy cập
+            microphone trong cài đặt trình duyệt để tiếp tục phần Speaking.
           </AlertDescription>
         </Alert>
       </div>
@@ -140,7 +164,7 @@ export function SpeakingSection({ section, answers, onAnswerChange }: SpeakingSe
             <Mic className="h-5 w-5" />
             <h2 className="text-xl font-semibold">{section.title}</h2>
           </div>
-          
+
           {/* Part Navigation */}
           <div className="flex items-center gap-2">
             {questionGroups.map((_: any, index: number) => (
@@ -148,20 +172,24 @@ export function SpeakingSection({ section, answers, onAnswerChange }: SpeakingSe
                 key={index}
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                   index === currentPart
-                    ? 'bg-[hsl(var(--speaking))] text-white'
+                    ? "bg-[hsl(var(--speaking))] text-white"
                     : index < currentPart
-                    ? 'bg-[hsl(var(--success))] text-white'
-                    : 'bg-muted text-muted-foreground'
+                      ? "bg-[hsl(var(--success))] text-white"
+                      : "bg-muted text-muted-foreground"
                 }`}
               >
-                {index < currentPart ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+                {index < currentPart ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  index + 1
+                )}
               </div>
             ))}
           </div>
         </div>
 
         {/* Permission Request */}
-        {permissionStatus === 'prompt' && (
+        {permissionStatus === "prompt" && (
           <Alert>
             <Mic className="h-4 w-4" />
             <AlertDescription className="flex items-center justify-between">
@@ -190,7 +218,7 @@ export function SpeakingSection({ section, answers, onAnswerChange }: SpeakingSe
                     </p>
                   </div>
                 ))}
-                
+
                 {currentGroup.instructions && (
                   <p className="text-sm text-muted-foreground border-t pt-4">
                     {currentGroup.instructions}
@@ -203,7 +231,7 @@ export function SpeakingSection({ section, answers, onAnswerChange }: SpeakingSe
             <Card>
               <CardContent className="p-6">
                 {/* Preparation Phase (Part 2) */}
-                {phase === 'preparation' && isPart2 && (
+                {phase === "preparation" && isPart2 && (
                   <div className="text-center space-y-4">
                     <div className="text-6xl font-bold text-[hsl(var(--speaking))]">
                       {formatTime(prepTime)}
@@ -211,59 +239,101 @@ export function SpeakingSection({ section, answers, onAnswerChange }: SpeakingSe
                     <p className="text-muted-foreground">
                       Thời gian chuẩn bị - Hãy đọc kỹ câu hỏi
                     </p>
-                    <Progress value={((60 - prepTime) / 60) * 100} className="h-2" />
+                    <Progress
+                      value={((60 - prepTime) / 60) * 100}
+                      className="h-2"
+                    />
                   </div>
                 )}
 
                 {/* Recording Phase */}
-                {(phase === 'recording' || (phase === 'preparation' && !isPart2)) && permissionStatus === 'granted' && (
-                  <div className="flex flex-col items-center gap-6">
-                    <AudioWaveform data={analyserData} isRecording={isRecording} className="w-full" />
-                    
-                    <div className="text-center">
-                      <div className="text-4xl font-bold mb-2">
-                        {formatTime(recordTime)}
+                {(phase === "recording" ||
+                  (phase === "preparation" && !isPart2)) &&
+                  permissionStatus === "granted" && (
+                    <div className="flex flex-col items-center gap-6">
+                      <AudioWaveform
+                        data={analyserData}
+                        isRecording={isRecording}
+                        className="w-full"
+                      />
+
+                      {/* Transcript Display */}
+                      <div className="w-full bg-muted/30 p-4 rounded-lg border border-dashed text-sm text-muted-foreground min-h-[80px] max-h-[150px] overflow-y-auto">
+                        {transcript ? (
+                          <p className="whitespace-pre-wrap text-foreground">
+                            {transcript}
+                          </p>
+                        ) : (
+                          <p className="italic opacity-70 text-center">
+                            {isRecording
+                              ? "Đang lắng nghe..."
+                              : "Bấm 'Bắt đầu ghi' và nói..."}
+                          </p>
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Thời gian tối đa: {formatTime(maxRecordTime)}
-                      </p>
-                    </div>
 
-                    <Progress value={(recordTime / maxRecordTime) * 100} className="h-2 w-full" />
+                      {/* Transcript Display */}
+                      <div className="w-full bg-muted/30 p-4 rounded-lg border border-dashed text-sm text-muted-foreground min-h-[80px] max-h-[150px] overflow-y-auto">
+                        {transcript ? (
+                          <p className="whitespace-pre-wrap text-foreground">
+                            {transcript}
+                          </p>
+                        ) : (
+                          <p className="italic opacity-70 text-center">
+                            {isRecording
+                              ? "Đang lắng nghe..."
+                              : "Bấm 'Bắt đầu ghi' và nói..."}
+                          </p>
+                        )}
+                      </div>
 
-                    <div className="flex items-center gap-4">
-                      {!isRecording ? (
-                        <Button
-                          size="lg"
-                          className="bg-[hsl(var(--speaking))] hover:bg-[hsl(var(--speaking))]/90"
-                          onClick={handleStartRecording}
-                        >
-                          <Mic className="mr-2 h-5 w-5" />
-                          Bắt đầu ghi
-                        </Button>
-                      ) : (
-                        <Button
-                          size="lg"
-                          variant="destructive"
-                          onClick={handleStopRecording}
-                        >
-                          <Square className="mr-2 h-5 w-5" />
-                          Dừng ghi
-                        </Button>
+                      <div className="text-center">
+                        <div className="text-4xl font-bold mb-2">
+                          {formatTime(recordTime)}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Thời gian tối đa: {formatTime(maxRecordTime)}
+                        </p>
+                      </div>
+
+                      <Progress
+                        value={(recordTime / maxRecordTime) * 100}
+                        className="h-2 w-full"
+                      />
+
+                      <div className="flex items-center gap-4">
+                        {!isRecording ? (
+                          <Button
+                            size="lg"
+                            className="bg-[hsl(var(--speaking))] hover:bg-[hsl(var(--speaking))]/90"
+                            onClick={handleStartRecording}
+                          >
+                            <Mic className="mr-2 h-5 w-5" />
+                            Bắt đầu ghi
+                          </Button>
+                        ) : (
+                          <Button
+                            size="lg"
+                            variant="destructive"
+                            onClick={handleStopRecording}
+                          >
+                            <Square className="mr-2 h-5 w-5" />
+                            Dừng ghi
+                          </Button>
+                        )}
+                      </div>
+
+                      {isRecording && (
+                        <div className="flex items-center gap-2 text-destructive animate-pulse">
+                          <div className="w-3 h-3 rounded-full bg-destructive" />
+                          <span>Đang ghi âm...</span>
+                        </div>
                       )}
                     </div>
-
-                    {isRecording && (
-                      <div className="flex items-center gap-2 text-destructive animate-pulse">
-                        <div className="w-3 h-3 rounded-full bg-destructive" />
-                        <span>Đang ghi âm...</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
 
                 {/* Review Phase */}
-                {phase === 'review' && audioUrl && (
+                {phase === "review" && audioUrl && (
                   <div className="space-y-6">
                     <div className="flex items-center justify-center gap-2 text-[hsl(var(--success))]">
                       <CheckCircle2 className="h-5 w-5" />

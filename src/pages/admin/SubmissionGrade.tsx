@@ -172,6 +172,7 @@ export default function SubmissionGrade() {
   }
 
   let questionCounter = 0;
+  const canGrade = submission.status !== "in_progress";
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -219,7 +220,7 @@ export default function SubmissionGrade() {
                 variant="outline"
                 size="sm"
                 onClick={() => saveMutation.mutate({ finalize: false })}
-                disabled={saveMutation.isPending}
+                disabled={saveMutation.isPending || !canGrade}
               >
                 {saveMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -231,7 +232,7 @@ export default function SubmissionGrade() {
               <Button
                 size="sm"
                 onClick={() => saveMutation.mutate({ finalize: true })}
-                disabled={saveMutation.isPending}
+                disabled={saveMutation.isPending || !canGrade}
               >
                 {saveMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -314,6 +315,7 @@ export default function SubmissionGrade() {
                               fb,
                             )
                           }
+                          readOnly={!canGrade}
                         />
                       );
                     })}
@@ -327,13 +329,13 @@ export default function SubmissionGrade() {
         <Button
           variant="outline"
           onClick={() => saveMutation.mutate({ finalize: false })}
-          disabled={saveMutation.isPending}
+          disabled={saveMutation.isPending || !canGrade}
         >
           <Save className="h-4 w-4 mr-1" /> Lưu nháp
         </Button>
         <Button
           onClick={() => saveMutation.mutate({ finalize: true })}
-          disabled={saveMutation.isPending}
+          disabled={saveMutation.isPending || !canGrade}
         >
           <CheckCheck className="h-4 w-4 mr-1" /> Hoàn tất chấm
         </Button>

@@ -1,4 +1,9 @@
-import { useParams, useNavigate, Link } from "react-router-dom";
+import {
+  useParams,
+  useNavigate,
+  Link,
+  useSearchParams,
+} from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { examsApi } from "@/lib/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,7 +47,14 @@ const sectionColors = {
 export default function AdminExamEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+
+  const activeTab = searchParams.get("tab") || "info";
+
+  const handleTabChange = (value: string) => {
+    setSearchParams({ tab: value }, { replace: true });
+  };
 
   const { data: examData, isLoading: examLoading } = useQuery({
     queryKey: ["exam", id],
@@ -51,6 +63,14 @@ export default function AdminExamEdit() {
   });
 
   const sections = examData?.sections || [];
+
+  const handleBack = () => {
+    if (examData?.courseId) {
+      navigate(`/admin/courses/${examData.courseId}?tab=exams`);
+    } else {
+      navigate("/admin/exams");
+    }
+  };
 
   const handleSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
@@ -64,17 +84,17 @@ export default function AdminExamEdit() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate("/admin/exams")}
-        >
+        <Button variant="ghost" size="icon" onClick={handleBack}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl font-bold">Chỉnh sửa bài thi</h1>
       </div>
 
-      <Tabs defaultValue="info" className="space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="space-y-6"
+      >
         <TabsList>
           <TabsTrigger value="info" className="gap-2">
             <Settings className="h-4 w-4" />

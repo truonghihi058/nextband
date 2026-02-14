@@ -1,14 +1,20 @@
-import { useState, useEffect, useRef, useCallback, MutableRefObject } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { BookOpen, Highlighter, X } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useTextHighlight, Highlight } from '@/hooks/useTextHighlight';
-import { cn } from '@/lib/utils';
-import { DropdownSelect } from './DropdownSelect';
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  MutableRefObject,
+} from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { BookOpen, Highlighter, X } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTextHighlight, Highlight } from "@/hooks/useTextHighlight";
+import { cn } from "@/lib/utils";
+import { DropdownSelect } from "./DropdownSelect";
 
 interface ReadingSectionProps {
   section: any;
@@ -19,22 +25,28 @@ interface ReadingSectionProps {
   onQuestionFocus?: (questionId: string) => void;
 }
 
-export function ReadingSection({ 
-  section, 
-  answers, 
+export function ReadingSection({
+  section,
+  answers,
   onAnswerChange,
   questionRefs,
   currentQuestionId,
   onQuestionFocus,
 }: ReadingSectionProps) {
   const passageRef = useRef<HTMLDivElement>(null);
-  const [selectedText, setSelectedText] = useState<{ text: string; startIndex: number; endIndex: number } | null>(null);
+  const [selectedText, setSelectedText] = useState<{
+    text: string;
+    startIndex: number;
+    endIndex: number;
+  } | null>(null);
   const [showHighlightMenu, setShowHighlightMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-  const { highlights, addHighlight, removeHighlight, loadHighlights } = useTextHighlight(section.id);
+  const { highlights, addHighlight, removeHighlight, loadHighlights } =
+    useTextHighlight(section.id);
 
   // Get passage text from first question group or section
-  const passageText = section.question_groups?.[0]?.passage || section.passage_text || '';
+  const passageText =
+    section.question_groups?.[0]?.passage || section.passage_text || "";
 
   useEffect(() => {
     if (section.id) {
@@ -56,11 +68,11 @@ export function ReadingSection({
     }
 
     const startIndex = passageText.indexOf(text);
-    
+
     if (startIndex >= 0) {
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
-      
+
       setSelectedText({
         text,
         startIndex,
@@ -74,7 +86,7 @@ export function ReadingSection({
     }
   }, [passageText]);
 
-  const handleHighlight = async (color: 'yellow' | 'green') => {
+  const handleHighlight = async (color: "yellow" | "green") => {
     if (selectedText) {
       await addHighlight(selectedText.startIndex, selectedText.endIndex, color);
       setShowHighlightMenu(false);
@@ -88,7 +100,9 @@ export function ReadingSection({
     if (!text) return null;
     if (highlights.length === 0) return text;
 
-    const sortedHighlights = [...highlights].sort((a, b) => a.startIndex - b.startIndex);
+    const sortedHighlights = [...highlights].sort(
+      (a, b) => a.startIndex - b.startIndex,
+    );
     const result: React.ReactNode[] = [];
     let lastIndex = 0;
 
@@ -96,22 +110,23 @@ export function ReadingSection({
       if (highlight.startIndex > lastIndex) {
         result.push(text.slice(lastIndex, highlight.startIndex));
       }
-      
-      const highlightBg = highlight.color === 'yellow' 
-        ? 'bg-yellow-200 dark:bg-yellow-900/50' 
-        : 'bg-green-200 dark:bg-green-900/50';
-      
+
+      const highlightBg =
+        highlight.color === "yellow"
+          ? "bg-yellow-200 dark:bg-yellow-900/50"
+          : "bg-green-200 dark:bg-green-900/50";
+
       result.push(
-        <mark 
-          key={highlight.id} 
+        <mark
+          key={highlight.id}
           className={`${highlightBg} px-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity`}
           onClick={() => removeHighlight(highlight.id)}
           title="Click để xóa highlight"
         >
           {text.slice(highlight.startIndex, highlight.endIndex)}
-        </mark>
+        </mark>,
       );
-      
+
       lastIndex = highlight.endIndex;
     });
 
@@ -123,13 +138,14 @@ export function ReadingSection({
   };
 
   // Flatten all questions from all groups
-  const allQuestions = section.question_groups?.flatMap((group: any, gIdx: number) => 
-    (group.questions || []).map((q: any) => ({
-      ...q,
-      groupTitle: group.title,
-      groupInstructions: group.instructions,
-    }))
-  ) || [];
+  const allQuestions =
+    section.question_groups?.flatMap((group: any, gIdx: number) =>
+      (group.questions || []).map((q: any) => ({
+        ...q,
+        groupTitle: group.title,
+        groupInstructions: group.instructions,
+      })),
+    ) || [];
 
   return (
     <div className="h-full grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x relative">
@@ -140,14 +156,14 @@ export function ReadingSection({
           style={{
             left: menuPosition.x,
             top: menuPosition.y,
-            transform: 'translate(-50%, -100%)',
+            transform: "translate(-50%, -100%)",
           }}
         >
           <Button
             size="sm"
             variant="ghost"
             className="h-8 w-8 p-0 bg-yellow-200 hover:bg-yellow-300"
-            onClick={() => handleHighlight('yellow')}
+            onClick={() => handleHighlight("yellow")}
           >
             <Highlighter className="h-4 w-4" />
           </Button>
@@ -155,7 +171,7 @@ export function ReadingSection({
             size="sm"
             variant="ghost"
             className="h-8 w-8 p-0 bg-green-200 hover:bg-green-300"
-            onClick={() => handleHighlight('green')}
+            onClick={() => handleHighlight("green")}
           >
             <Highlighter className="h-4 w-4" />
           </Button>
@@ -172,11 +188,7 @@ export function ReadingSection({
 
       {/* Left - Passage */}
       <ScrollArea className="h-[calc(100vh-200px)]">
-        <div 
-          ref={passageRef}
-          className="p-6"
-          onMouseUp={handleTextSelection}
-        >
+        <div ref={passageRef} className="p-6" onMouseUp={handleTextSelection}>
           <div className="flex items-center justify-between gap-2 mb-4">
             <div className="flex items-center gap-2 text-[hsl(var(--reading))]">
               <BookOpen className="h-5 w-5" />
@@ -187,7 +199,7 @@ export function ReadingSection({
               <span>Chọn văn bản để highlight</span>
             </div>
           </div>
-          
+
           {passageText && (
             <div className="prose prose-sm max-w-none">
               <p className="whitespace-pre-wrap leading-relaxed text-foreground select-text">
@@ -212,17 +224,21 @@ export function ReadingSection({
           {section.question_groups?.map((group: any, gIdx: number) => (
             <div key={group.id} className="space-y-4">
               {group.title && (
-                <h3 className="font-semibold text-lg text-foreground">{group.title}</h3>
+                <h3 className="font-semibold text-lg text-foreground">
+                  {group.title}
+                </h3>
               )}
               {group.instructions && (
-                <p className="text-sm text-muted-foreground">{group.instructions}</p>
+                <p className="text-sm text-muted-foreground">
+                  {group.instructions}
+                </p>
               )}
 
               {group.questions?.map((question: any, qIndex: number) => {
                 const isCurrent = question.id === currentQuestionId;
-                
+
                 return (
-                  <Card 
+                  <Card
                     key={question.id}
                     ref={(el) => {
                       if (el && questionRefs) {
@@ -230,8 +246,8 @@ export function ReadingSection({
                       }
                     }}
                     className={cn(
-                      'transition-all hover:shadow-md',
-                      isCurrent && 'ring-2 ring-primary shadow-lg'
+                      "transition-all hover:shadow-md",
+                      isCurrent && "ring-2 ring-primary shadow-lg",
                     )}
                     onClick={() => onQuestionFocus?.(question.id)}
                   >
@@ -240,55 +256,126 @@ export function ReadingSection({
                         <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[hsl(var(--reading))] text-white text-sm font-bold mr-2">
                           {question.order_index || qIndex + 1}
                         </span>
-                        {question.question_text}
+                        {/* Only show question text here if it's NOT a fill_blank with placeholders (which renders its own text) */}
+                        {!(
+                          question.question_type === "fill_blank" &&
+                          (question.question_text.includes("_____") ||
+                            question.question_text.includes("[BLANK]"))
+                        ) && question.question_text}
                       </p>
 
-                      {question.question_type === 'multiple_choice' && question.options && (
-                        <RadioGroup
-                          value={answers[question.id] || ''}
-                          onValueChange={(value) => onAnswerChange(question.id, value)}
-                          className="space-y-2 ml-9"
-                        >
-                          {(question.options as string[]).map((option: string, i: number) => (
-                            <div key={i} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                              <RadioGroupItem value={option} id={`${question.id}-${i}`} />
-                              <Label htmlFor={`${question.id}-${i}`} className="flex-1 cursor-pointer">
-                                {option}
-                              </Label>
-                            </div>
-                          ))}
-                        </RadioGroup>
-                      )}
+                      {question.question_type === "multiple_choice" &&
+                        question.options && (
+                          <RadioGroup
+                            value={answers[question.id] || ""}
+                            onValueChange={(value) =>
+                              onAnswerChange(question.id, value)
+                            }
+                            className="space-y-2 ml-9"
+                          >
+                            {(question.options as string[]).map(
+                              (option: string, i: number) => (
+                                <div
+                                  key={i}
+                                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                                >
+                                  <RadioGroupItem
+                                    value={option}
+                                    id={`${question.id}-${i}`}
+                                  />
+                                  <Label
+                                    htmlFor={`${question.id}-${i}`}
+                                    className="flex-1 cursor-pointer"
+                                  >
+                                    {option}
+                                  </Label>
+                                </div>
+                              ),
+                            )}
+                          </RadioGroup>
+                        )}
 
-                      {(question.question_type === 'fill_blank' || question.question_type === 'short_answer') && (
+                      {(question.question_type === "fill_blank" ||
+                        question.question_type === "short_answer") && (
                         <div className="ml-9">
-                          <Input
-                            placeholder="Nhập câu trả lời..."
-                            value={answers[question.id] || ''}
-                            onChange={(e) => onAnswerChange(question.id, e.target.value)}
-                            className="max-w-md"
-                          />
-                          <p className="text-xs text-muted-foreground mt-1 italic">ONE WORD ONLY</p>
+                          {question.question_type === "fill_blank" &&
+                          (question.question_text.includes("_____") ||
+                            question.question_text.includes("[BLANK]")) ? (
+                            <div className="text-base leading-relaxed">
+                              {/* Inline rendering for fill_blank with placeholders */}
+                              {(() => {
+                                const text = question.question_text;
+                                const parts = text.split(/(_____|\[BLANK\])/g);
+                                return (
+                                  <div className="flex flex-wrap items-baseline gap-2">
+                                    {parts.map(
+                                      (part: string, index: number) => {
+                                        if (
+                                          part === "_____" ||
+                                          part === "[BLANK]"
+                                        ) {
+                                          return (
+                                            <Input
+                                              key={index}
+                                              placeholder="Answer..."
+                                              value={answers[question.id] || ""}
+                                              onChange={(e) =>
+                                                onAnswerChange(
+                                                  question.id,
+                                                  e.target.value,
+                                                )
+                                              }
+                                              className="w-40 inline-flex h-8 mx-1"
+                                            />
+                                          );
+                                        }
+                                        return <span key={index}>{part}</span>;
+                                      },
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          ) : (
+                            /* Standard rendering for short_answer or fill_blank without placeholders */
+                            <div>
+                              <Input
+                                placeholder="Nhập câu trả lời..."
+                                value={answers[question.id] || ""}
+                                onChange={(e) =>
+                                  onAnswerChange(question.id, e.target.value)
+                                }
+                                className="max-w-md"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1 italic">
+                                ONE WORD ONLY
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
 
-                      {question.question_type === 'true_false_not_given' && (
+                      {question.question_type === "true_false_not_given" && (
                         <div className="ml-9">
                           <DropdownSelect
-                            value={answers[question.id] || ''}
-                            onChange={(value) => onAnswerChange(question.id, value)}
-                            options={['TRUE', 'FALSE', 'NOT GIVEN']}
+                            value={answers[question.id] || ""}
+                            onChange={(value) =>
+                              onAnswerChange(question.id, value)
+                            }
+                            options={["TRUE", "FALSE", "NOT GIVEN"]}
                             placeholder="Chọn đáp án"
                           />
                         </div>
                       )}
 
-                      {question.question_type === 'yes_no_not_given' && (
+                      {question.question_type === "yes_no_not_given" && (
                         <div className="ml-9">
                           <DropdownSelect
-                            value={answers[question.id] || ''}
-                            onChange={(value) => onAnswerChange(question.id, value)}
-                            options={['YES', 'NO', 'NOT GIVEN']}
+                            value={answers[question.id] || ""}
+                            onChange={(value) =>
+                              onAnswerChange(question.id, value)
+                            }
+                            options={["YES", "NO", "NOT GIVEN"]}
                             placeholder="Chọn đáp án"
                           />
                         </div>

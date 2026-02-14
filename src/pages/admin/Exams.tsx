@@ -30,7 +30,10 @@ export default function AdminExams() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [deleteExam, setDeleteExam] = useState<{ id: string; title: string } | null>(null);
+  const [deleteExam, setDeleteExam] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);  
 
   // Debounce search
   useEffect(() => {
@@ -191,6 +194,12 @@ export default function AdminExams() {
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive"
+                      disabled={(exam as any)._count?.submissions > 0}
+                      title={
+                        (exam as any)._count?.submissions > 0
+                          ? `Không thể xóa — đã có ${(exam as any)._count.submissions} bài nộp`
+                          : "Xóa bài thi"
+                      }
                       onClick={() =>
                         setDeleteExam({ id: exam.id, title: exam.title })
                       }
