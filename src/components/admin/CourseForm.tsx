@@ -171,7 +171,10 @@ export default function CourseForm({
     } catch (error: any) {
       toast({
         title: "Lỗi",
-        description: error.response?.data?.message || error.message,
+        description:
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          error.message,
         variant: "destructive",
       });
     } finally {
@@ -297,8 +300,6 @@ export default function CourseForm({
                   <FormLabel>Ảnh thumbnail</FormLabel>
                   <FormControl>
                     <FileUpload
-                      bucket="course-thumbnails"
-                      folder={courseId || "new"}
                       accept="image/*"
                       currentUrl={field.value || undefined}
                       onUploadComplete={(url) => field.onChange(url)}
