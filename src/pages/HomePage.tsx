@@ -15,18 +15,14 @@ export default function HomePage() {
     queryFn: () =>
       coursesApi.list({
         search: searchQuery || undefined,
-        limit: 100,
+        level: levelFilter !== "all" ? levelFilter : undefined,
+        limit: 12,
+        sortBy: "createdAt",
+        sortOrder: "desc",
       }),
   });
 
-  // Filter by level client-side since API might not have this filter
-  const courses = (data?.data || []).filter((course: any) => {
-    if (levelFilter === "all") return true;
-    return course.level === levelFilter;
-  });
-
-  // Only show published courses
-  const publishedCourses = courses.filter((course: any) => course.isPublished);
+  const courses = data?.data || [];
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -65,9 +61,9 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-      ) : publishedCourses && publishedCourses.length > 0 ? (
+      ) : courses && courses.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {publishedCourses.map((course: any) => (
+          {courses.map((course: any) => (
             <CourseCard key={course.id} course={course} />
           ))}
         </div>

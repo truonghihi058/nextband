@@ -1,14 +1,14 @@
-import { useState, MutableRefObject } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Headphones } from 'lucide-react';
-import { StickyAudioPlayer } from './StickyAudioPlayer';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
-import { DropdownSelect } from './DropdownSelect';
+import { useState, MutableRefObject } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Headphones } from "lucide-react";
+import { StickyAudioPlayer } from "./StickyAudioPlayer";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { DropdownSelect } from "./DropdownSelect";
 
 interface ListeningSectionProps {
   section: any;
@@ -20,17 +20,29 @@ interface ListeningSectionProps {
   onQuestionFocus?: (questionId: string) => void;
 }
 
-export function ListeningSection({ 
-  section, 
-  answers, 
-  onAnswerChange, 
+export function ListeningSection({
+  section,
+  answers,
+  onAnswerChange,
   strictMode = false,
   questionRefs,
   currentQuestionId,
   onQuestionFocus,
 }: ListeningSectionProps) {
   const [currentPart, setCurrentPart] = useState(0);
-  const questionGroups = section.question_groups || [];
+  const rawGroups = section.question_groups || section.questionGroups || [];
+
+  // Normalize question fields from camelCase to snake_case
+  const questionGroups = rawGroups.map((g: any) => ({
+    ...g,
+    questions: (g.questions || []).map((q: any) => ({
+      ...q,
+      question_text: q.question_text || q.questionText || "",
+      question_type: q.question_type || q.questionType || "short_answer",
+      order_index: q.order_index ?? q.orderIndex ?? 0,
+      correct_answer: q.correct_answer || q.correctAnswer || null,
+    })),
+  }));
 
   // Get current part questions
   const currentGroup = questionGroups[currentPart];
@@ -40,7 +52,10 @@ export function ListeningSection({
     <div className="h-full flex flex-col">
       {/* Sticky Audio Player */}
       {section.audio_url && (
-        <StickyAudioPlayer audioUrl={section.audio_url} strictMode={strictMode} />
+        <StickyAudioPlayer
+          audioUrl={section.audio_url}
+          strictMode={strictMode}
+        />
       )}
 
       {/* Part Navigation */}
@@ -49,7 +64,7 @@ export function ListeningSection({
           {questionGroups.map((group: any, index: number) => (
             <Button
               key={group.id}
-              variant={currentPart === index ? 'default' : 'outline'}
+              variant={currentPart === index ? "default" : "outline"}
               size="sm"
               onClick={() => setCurrentPart(index)}
               className="text-xs"
@@ -77,10 +92,12 @@ export function ListeningSection({
         )}
 
         {/* Right Panel - Questions */}
-        <ScrollArea className={cn(
-          "h-[calc(100vh-280px)]",
-          !currentGroup?.passage && "lg:col-span-2"
-        )}>
+        <ScrollArea
+          className={cn(
+            "h-[calc(100vh-280px)]",
+            !currentGroup?.passage && "lg:col-span-2",
+          )}
+        >
           <div className="p-6">
             <div className="max-w-3xl mx-auto space-y-6">
               <div className="flex items-center gap-2 text-[hsl(var(--listening))] mb-6">
@@ -106,9 +123,9 @@ export function ListeningSection({
 
                   {currentQuestions.map((question: any, qIndex: number) => {
                     const isCurrent = question.id === currentQuestionId;
-                    
+
                     return (
-                      <Card 
+                      <Card
                         key={question.id}
                         ref={(el) => {
                           if (el && questionRefs) {
@@ -116,8 +133,8 @@ export function ListeningSection({
                           }
                         }}
                         className={cn(
-                          'transition-all',
-                          isCurrent && 'ring-2 ring-primary shadow-lg'
+                          "transition-all",
+                          isCurrent && "ring-2 ring-primary shadow-lg",
                         )}
                         onClick={() => onQuestionFocus?.(question.id)}
                       >
@@ -129,41 +146,62 @@ export function ListeningSection({
                             {question.question_text}
                           </p>
 
-                          {question.question_type === 'multiple_choice' && question.options && (
-                            <RadioGroup
-                              value={answers[question.id] || ''}
-                              onValueChange={(value) => onAnswerChange(question.id, value)}
-                              className="space-y-2 ml-9"
-                            >
-                              {(question.options as string[]).map((option: string, i: number) => (
-                                <div key={i} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                                  <RadioGroupItem value={option} id={`${question.id}-${i}`} />
-                                  <Label htmlFor={`${question.id}-${i}`} className="flex-1 cursor-pointer">
-                                    {option}
-                                  </Label>
-                                </div>
-                              ))}
-                            </RadioGroup>
-                          )}
+                          {question.question_type === "multiple_choice" &&
+                            question.options && (
+                              <RadioGroup
+                                value={answers[question.id] || ""}
+                                onValueChange={(value) =>
+                                  onAnswerChange(question.id, value)
+                                }
+                                className="space-y-2 ml-9"
+                              >
+                                {(question.options as string[]).map(
+                                  (option: string, i: number) => (
+                                    <div
+                                      key={i}
+                                      className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                                    >
+                                      <RadioGroupItem
+                                        value={option}
+                                        id={`${question.id}-${i}`}
+                                      />
+                                      <Label
+                                        htmlFor={`${question.id}-${i}`}
+                                        className="flex-1 cursor-pointer"
+                                      >
+                                        {option}
+                                      </Label>
+                                    </div>
+                                  ),
+                                )}
+                              </RadioGroup>
+                            )}
 
-                          {question.question_type === 'fill_blank' && (
+                          {question.question_type === "fill_blank" && (
                             <div className="ml-9">
                               <Input
                                 placeholder="Nhập câu trả lời..."
-                                value={answers[question.id] || ''}
-                                onChange={(e) => onAnswerChange(question.id, e.target.value)}
+                                value={answers[question.id] || ""}
+                                onChange={(e) =>
+                                  onAnswerChange(question.id, e.target.value)
+                                }
                                 className="max-w-md"
                               />
-                              <p className="text-xs text-muted-foreground mt-1 italic">ONE WORD ONLY</p>
+                              <p className="text-xs text-muted-foreground mt-1 italic">
+                                ONE WORD ONLY
+                              </p>
                             </div>
                           )}
 
-                          {question.question_type === 'true_false_not_given' && (
+                          {question.question_type ===
+                            "true_false_not_given" && (
                             <div className="ml-9">
                               <DropdownSelect
-                                value={answers[question.id] || ''}
-                                onChange={(value) => onAnswerChange(question.id, value)}
-                                options={['TRUE', 'FALSE', 'NOT GIVEN']}
+                                value={answers[question.id] || ""}
+                                onChange={(value) =>
+                                  onAnswerChange(question.id, value)
+                                }
+                                options={["TRUE", "FALSE", "NOT GIVEN"]}
                                 placeholder="Chọn đáp án"
                               />
                             </div>

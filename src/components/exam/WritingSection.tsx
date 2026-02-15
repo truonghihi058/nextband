@@ -27,7 +27,8 @@ export function WritingSection({
 }: WritingSectionProps) {
   // Use the first question's ID if available, otherwise fall back to section.id
   // This ensures the answer key is a valid question_id for the answers table FK constraint
-  const firstQuestion = section.question_groups?.[0]?.questions?.[0];
+  const firstQuestion = (section.question_groups || section.questionGroups)?.[0]
+    ?.questions?.[0];
   const taskId = firstQuestion?.id || section.id;
   const text = answers[taskId] || "";
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;

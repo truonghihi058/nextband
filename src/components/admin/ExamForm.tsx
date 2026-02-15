@@ -57,10 +57,12 @@ const EXAM_TYPES = ["ielts", "grammar"] as const;
 const examSchema = z.object({
   title: z.string().min(1, "Tiêu đề không được để trống"),
   description: z.string().optional(),
-  courseId: z.string({
-    required_error: "Vui lòng chọn khóa học",
-    invalid_type_error: "Vui lòng chọn khóa học",
-  }),
+  courseId: z
+    .string({
+      required_error: "Vui lòng chọn khóa học",
+      invalid_type_error: "Vui lòng chọn khóa học",
+    })
+    .min(1, "Vui lòng chọn khóa học"),
   examType: z.enum(EXAM_TYPES, {
     required_error: "Vui lòng chọn loại bài thi",
     invalid_type_error: "Vui lòng chọn loại bài thi",

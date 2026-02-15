@@ -44,9 +44,24 @@ export function ReadingSection({
   const { highlights, addHighlight, removeHighlight, loadHighlights } =
     useTextHighlight(section.id);
 
+  // Normalize question groups and their fields from camelCase to snake_case
+  const questionGroups = (
+    section.question_groups ||
+    section.questionGroups ||
+    []
+  ).map((g: any) => ({
+    ...g,
+    questions: (g.questions || []).map((q: any) => ({
+      ...q,
+      question_text: q.question_text || q.questionText || "",
+      question_type: q.question_type || q.questionType || "short_answer",
+      order_index: q.order_index ?? q.orderIndex ?? 0,
+      correct_answer: q.correct_answer || q.correctAnswer || null,
+    })),
+  }));
+
   // Get passage text from first question group or section
-  const passageText =
-    section.question_groups?.[0]?.passage || section.passage_text || "";
+  const passageText = questionGroups[0]?.passage || section.passage_text || "";
 
   useEffect(() => {
     if (section.id) {
@@ -139,7 +154,7 @@ export function ReadingSection({
 
   // Flatten all questions from all groups
   const allQuestions =
-    section.question_groups?.flatMap((group: any, gIdx: number) =>
+    questionGroups?.flatMap((group: any, gIdx: number) =>
       (group.questions || []).map((q: any) => ({
         ...q,
         groupTitle: group.title,
@@ -221,7 +236,7 @@ export function ReadingSection({
             </Card>
           )}
 
-          {section.question_groups?.map((group: any, gIdx: number) => (
+          {questionGroups?.map((group: any, gIdx: number) => (
             <div key={group.id} className="space-y-4">
               {group.title && (
                 <h3 className="font-semibold text-lg text-foreground">

@@ -5,11 +5,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Check, X, Flag, AlertCircle, Send } from 'lucide-react';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Check, X, Flag, AlertCircle, Send } from "lucide-react";
 
 interface Question {
   id: string;
@@ -20,8 +20,13 @@ interface Question {
 interface Section {
   id: string;
   section_type: string;
+  sectionType?: string;
   title: string;
   question_groups?: {
+    id: string;
+    questions?: Question[];
+  }[];
+  questionGroups?: {
     id: string;
     questions?: Question[];
   }[];
@@ -49,11 +54,12 @@ export function ExamReviewDialog({
   isSubmitting,
 }: ExamReviewDialogProps) {
   const getAllQuestions = () => {
-    const result: { section: Section; question: Question; index: number }[] = [];
+    const result: { section: Section; question: Question; index: number }[] =
+      [];
     let globalIndex = 0;
 
     sections.forEach((section) => {
-      section.question_groups?.forEach((group) => {
+      (section.question_groups || section.questionGroups)?.forEach((group) => {
         group.questions?.forEach((q) => {
           result.push({ section, question: q, index: globalIndex++ });
         });
@@ -64,8 +70,12 @@ export function ExamReviewDialog({
   };
 
   const allQuestions = getAllQuestions();
-  const answeredCount = allQuestions.filter((q) => !!answers[q.question.id]?.trim()).length;
-  const flaggedCount = allQuestions.filter((q) => flaggedQuestions.has(q.question.id)).length;
+  const answeredCount = allQuestions.filter(
+    (q) => !!answers[q.question.id]?.trim(),
+  ).length;
+  const flaggedCount = allQuestions.filter((q) =>
+    flaggedQuestions.has(q.question.id),
+  ).length;
   const unansweredCount = allQuestions.length - answeredCount;
 
   return (
@@ -84,15 +94,21 @@ export function ExamReviewDialog({
         {/* Summary Stats */}
         <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
           <div className="text-center">
-            <div className="text-2xl font-bold text-[hsl(var(--success))]">{answeredCount}</div>
+            <div className="text-2xl font-bold text-[hsl(var(--success))]">
+              {answeredCount}
+            </div>
             <div className="text-sm text-muted-foreground">Đã trả lời</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-muted-foreground">{unansweredCount}</div>
+            <div className="text-2xl font-bold text-muted-foreground">
+              {unansweredCount}
+            </div>
             <div className="text-sm text-muted-foreground">Chưa trả lời</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-destructive">{flaggedCount}</div>
+            <div className="text-2xl font-bold text-destructive">
+              {flaggedCount}
+            </div>
             <div className="text-sm text-muted-foreground">Đã đánh dấu</div>
           </div>
         </div>
@@ -101,7 +117,10 @@ export function ExamReviewDialog({
         <ScrollArea className="max-h-[40vh]">
           <div className="space-y-4">
             {sections.map((section) => {
-              const sectionQuestions = section.question_groups?.flatMap((g) => g.questions || []) || [];
+              const sectionQuestions =
+                (section.question_groups || section.questionGroups)?.flatMap(
+                  (g) => g.questions || [],
+                ) || [];
               if (sectionQuestions.length === 0) return null;
 
               return (
@@ -118,15 +137,18 @@ export function ExamReviewDialog({
                         <button
                           key={q.id}
                           onClick={() => {
-                            onGoToQuestion(section.section_type, q.id);
+                            onGoToQuestion(
+                              section.section_type || section.sectionType,
+                              q.id,
+                            );
                             onOpenChange(false);
                           }}
                           className={`
                             w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium
                             border-2 transition-all hover:scale-110
-                            ${isAnswered && !isFlagged ? 'bg-[hsl(var(--success))] border-[hsl(var(--success))] text-white' : ''}
-                            ${isFlagged ? 'bg-destructive border-destructive text-white' : ''}
-                            ${!isAnswered && !isFlagged ? 'bg-background border-muted-foreground/30' : ''}
+                            ${isAnswered && !isFlagged ? "bg-[hsl(var(--success))] border-[hsl(var(--success))] text-white" : ""}
+                            ${isFlagged ? "bg-destructive border-destructive text-white" : ""}
+                            ${!isAnswered && !isFlagged ? "bg-background border-muted-foreground/30" : ""}
                           `}
                         >
                           {isFlagged ? (
@@ -158,7 +180,8 @@ export function ExamReviewDialog({
               )}
               {flaggedCount > 0 && (
                 <p className="text-amber-800 dark:text-amber-200">
-                  Bạn còn <strong>{flaggedCount}</strong> câu đã đánh dấu để xem lại.
+                  Bạn còn <strong>{flaggedCount}</strong> câu đã đánh dấu để xem
+                  lại.
                 </p>
               )}
             </div>

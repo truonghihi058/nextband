@@ -101,6 +101,7 @@ export const coursesApi = {
     page?: number;
     limit?: number;
     search?: string;
+    level?: string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
   }) => {

@@ -74,7 +74,7 @@ export default function CourseDetail() {
   });
 
   const { data: enrollmentsData } = useQuery({
-    queryKey: ["enrollments"],
+    queryKey: ["my-enrollments"],
     queryFn: () => enrollmentsApi.list(),
     enabled: isAuthenticated,
   });
@@ -82,9 +82,7 @@ export default function CourseDetail() {
   const exams = examsData?.data || [];
 
   // Check if user is enrolled in this course
-  const enrollmentList = Array.isArray(enrollmentsData)
-    ? enrollmentsData
-    : enrollmentsData?.data || [];
+  const enrollmentList = enrollmentsData?.data || [];
   const enrollment = enrollmentList.find(
     (e: any) => e.courseId === slug || e.course?.id === slug,
   );
@@ -101,7 +99,7 @@ export default function CourseDetail() {
 
     try {
       await enrollmentsApi.enroll(slug!);
-      await queryClient.invalidateQueries({ queryKey: ["enrollments"] });
+      await queryClient.invalidateQueries({ queryKey: ["my-enrollments"] });
       toast({
         title: "Đăng ký thành công",
         description: "Bạn đã tham gia khóa học này!",

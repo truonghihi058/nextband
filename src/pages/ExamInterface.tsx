@@ -131,7 +131,9 @@ export default function ExamInterface() {
   const availableSections = useMemo(
     () =>
       sections?.filter((s: any) =>
-        s.questionGroups?.some((g: any) => g.questions?.length > 0),
+        (s.questionGroups || s.question_groups)?.some(
+          (g: any) => g.questions?.length > 0,
+        ),
       ) || [],
     [sections],
   );
@@ -146,7 +148,9 @@ export default function ExamInterface() {
   const currentSectionQuestions = useMemo(() => {
     if (!currentSection) return [];
     return (
-      currentSection.questionGroups?.flatMap((g: any) =>
+      (
+        currentSection.questionGroups || currentSection.question_groups
+      )?.flatMap((g: any) =>
         (g.questions || []).map((q: any, idx: number) => ({
           ...q,
           groupId: g.id,
@@ -237,7 +241,7 @@ export default function ExamInterface() {
       const validQuestionIds = new Set(
         sections?.flatMap(
           (s: any) =>
-            s.questionGroups?.flatMap((g: any) =>
+            (s.questionGroups || s.question_groups)?.flatMap((g: any) =>
               (g.questions || []).map((q: any) => q.id),
             ) || [],
         ) || [],

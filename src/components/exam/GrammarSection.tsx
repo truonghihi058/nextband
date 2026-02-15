@@ -35,7 +35,19 @@ export function GrammarSection({
   currentQuestionId,
   onQuestionFocus,
 }: GrammarSectionProps) {
-  const questionGroups = section.question_groups || [];
+  const rawGroups = section.question_groups || section.questionGroups || [];
+
+  // Normalize question fields from camelCase to snake_case
+  const questionGroups = rawGroups.map((g: any) => ({
+    ...g,
+    questions: (g.questions || []).map((q: any) => ({
+      ...q,
+      question_text: q.question_text || q.questionText || "",
+      question_type: q.question_type || q.questionType || "short_answer",
+      order_index: q.order_index ?? q.orderIndex ?? 0,
+      correct_answer: q.correct_answer || q.correctAnswer || null,
+    })),
+  }));
 
   return (
     <div className="h-full overflow-auto">
