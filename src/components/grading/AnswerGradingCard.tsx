@@ -57,8 +57,14 @@ export function AnswerGradingCard({
   }, [currentScore, currentFeedback]);
 
   const handleScoreChange = (value: string) => {
-    setScore(value);
-    const num = parseFloat(value);
+    let sanitizedValue = value;
+    if (value.length > 1 && value.startsWith("0") && !value.startsWith("0.")) {
+      sanitizedValue = value.replace(/^0+/, "");
+      if (sanitizedValue === "") sanitizedValue = "0";
+    }
+    
+    setScore(sanitizedValue);
+    const num = parseFloat(sanitizedValue);
     onScoreChange(isNaN(num) ? null : num);
   };
 
