@@ -207,8 +207,8 @@ export default function AdminCheckAttempt() {
                   </TableCell>
                   <TableCell>{getStatusBadge(submission.status)}</TableCell>
                   <TableCell>
-                    {submission.overallScore != null
-                      ? `${submission.overallScore}/9.0`
+                    {submission.totalScore != null
+                      ? submission.totalScore
                       : "-"}
                   </TableCell>
                   <TableCell>

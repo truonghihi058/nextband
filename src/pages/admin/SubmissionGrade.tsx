@@ -93,11 +93,11 @@ export default function SubmissionGrade() {
       const updates = Object.values(grades).filter((g) => g.answerId);
 
       // Calculate total score
-      const currentTotal = allQuestions.reduce((sum, q: any) => {
+      const currentTotalValue = allQuestions.reduce((sum, q: any) => {
         const grade = grades[q.id];
         const answer = answerMap[q.id];
         const score = grade?.score ?? answer?.score ?? 0;
-        return sum + score;
+        return sum + Number(score);
       }, 0);
 
       // Call grade API
@@ -108,7 +108,7 @@ export default function SubmissionGrade() {
           score: u.score || 0,
           feedback: u.feedback || undefined,
         })),
-        finalize ? currentTotal : 0,
+        finalize ? currentTotalValue : 0,
       );
 
       return finalize;
@@ -141,12 +141,15 @@ export default function SubmissionGrade() {
     0,
   );
 
-  const currentTotal = allQuestions.reduce((sum, q: any) => {
-    const grade = grades[q.id];
-    const answer = answerMap[q.id];
-    const score = grade?.score ?? answer?.score ?? 0;
-    return sum + score;
-  }, 0);
+  const currentTotal = useMemo(() => {
+    const total = allQuestions.reduce((sum, q: any) => {
+      const grade = grades[q.id];
+      const answer = answerMap[q.id];
+      const score = grade?.score ?? answer?.score ?? 0;
+      return sum + Number(score);
+    }, 0);
+    return total;
+  }, [allQuestions, grades, answerMap]);
 
   if (isLoading) {
     return (
