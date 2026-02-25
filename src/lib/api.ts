@@ -29,9 +29,42 @@ api.interceptors.request.use(
   },
 );
 
-// Response interceptor - handle 401 errors
+// Format any relative /uploads URLs to absolute URLs from backend responses
+const formatRelativeUrls = (data: any): any => {
+  if (!data) return data;
+
+  if (Array.isArray(data)) {
+    return data.map((item) => formatRelativeUrls(item));
+  }
+
+  if (typeof data === "object") {
+    const formatted = { ...data };
+    for (const key in formatted) {
+      if (
+        typeof formatted[key] === "string" &&
+        formatted[key].startsWith("/uploads")
+      ) {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
+        const baseUrl = apiUrl.replace("/api/v1", "");
+        formatted[key] = `${baseUrl}${formatted[key]}`;
+      } else if (typeof formatted[key] === "object") {
+        formatted[key] = formatRelativeUrls(formatted[key]);
+      }
+    }
+    return formatted;
+  }
+
+  return data;
+};
+
+// Response interceptor - handle 401 errors and format URLs
 api.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response: AxiosResponse) => {
+    if (response.data) {
+      response.data = formatRelativeUrls(response.data);
+    }
+    return response;
+  },
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       // Clear token and redirect to login
