@@ -35,25 +35,9 @@ import {
 import { Loader2, Save, ArrowLeft } from "lucide-react";
 import FileUpload from "@/components/admin/FileUpload";
 
-// Course level options
-const COURSE_LEVELS = [
-  "beginner",
-  "intermediate",
-  "ielts_5",
-  "ielts_5_5",
-  "ielts_6",
-  "ielts_6_5",
-  "ielts_7",
-  "ielts_7_5",
-  "ielts_8",
-  "ielts_8_5",
-  "ielts_9",
-] as const;
-
 const courseSchema = z.object({
   title: z.string().min(1, "Tiêu đề không được để trống"),
   description: z.string().optional(),
-  level: z.enum(COURSE_LEVELS),
   price: z.coerce.number().min(0).optional(),
   thumbnailUrl: z.string().optional(),
   isPublished: z.boolean().default(false),
@@ -67,20 +51,6 @@ interface CourseFormProps {
   courseId?: string;
   onSuccess?: () => void;
 }
-
-const levelLabels: Record<string, string> = {
-  beginner: "Người mới",
-  intermediate: "Trung cấp",
-  ielts_5: "IELTS 5.0",
-  ielts_5_5: "IELTS 5.5",
-  ielts_6: "IELTS 6.0",
-  ielts_6_5: "IELTS 6.5",
-  ielts_7: "IELTS 7.0",
-  ielts_7_5: "IELTS 7.5",
-  ielts_8: "IELTS 8.0",
-  ielts_8_5: "IELTS 8.5",
-  ielts_9: "IELTS 9.0",
-};
 
 export default function CourseForm({
   mode,
@@ -98,7 +68,6 @@ export default function CourseForm({
     defaultValues: {
       title: "",
       description: "",
-      level: "beginner",
       price: 0,
       thumbnailUrl: "",
       isPublished: false,
@@ -120,7 +89,6 @@ export default function CourseForm({
         form.reset({
           title: data.title,
           description: data.description || "",
-          level: (data.level || "beginner") as (typeof COURSE_LEVELS)[number],
           price: data.price || 0,
           thumbnailUrl: data.thumbnailUrl || "",
           isPublished: data.isPublished || false,
@@ -145,7 +113,6 @@ export default function CourseForm({
         await coursesApi.create({
           title: values.title,
           description: values.description,
-          level: values.level,
           price: values.price,
           // thumbnailUrl, isPublished, isActive might not be in create payload based on current api.ts
           // Assume backend accepts them or update api.ts.
@@ -243,35 +210,6 @@ export default function CourseForm({
             />
 
             <div className="grid gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="level"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cấp độ</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={isReadOnly}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn cấp độ" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {COURSE_LEVELS.map((level) => (
-                          <SelectItem key={level} value={level}>
-                            {levelLabels[level] || level}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <FormField
                 control={form.control}
                 name="price"

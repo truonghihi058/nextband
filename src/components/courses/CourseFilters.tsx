@@ -1,32 +1,14 @@
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 interface CourseFiltersProps {
-  levelFilter: string;
-  onLevelChange: (value: string) => void;
   searchQuery: string;
   onSearchChange: (value: string) => void;
 }
 
-const levels = [
-  { value: 'all', label: 'Tất cả cấp độ' },
-  { value: 'beginner', label: 'Người mới' },
-  { value: 'intermediate', label: 'Trung cấp' },
-  { value: 'ielts_5', label: 'IELTS 5.0' },
-  { value: 'ielts_5_5', label: 'IELTS 5.5' },
-  { value: 'ielts_6', label: 'IELTS 6.0' },
-  { value: 'ielts_6_5', label: 'IELTS 6.5' },
-  { value: 'ielts_7', label: 'IELTS 7.0' },
-  { value: 'ielts_7_5', label: 'IELTS 7.5' },
-  { value: 'ielts_8', label: 'IELTS 8.0+' },
-];
-
-export function CourseFilters({ 
-  levelFilter, 
-  onLevelChange, 
-  searchQuery, 
-  onSearchChange 
+export function CourseFilters({
+  searchQuery,
+  onSearchChange,
 }: CourseFiltersProps) {
   return (
     <div className="flex flex-col sm:flex-row gap-4">
@@ -39,18 +21,6 @@ export function CourseFilters({
           className="pl-10"
         />
       </div>
-      <Select value={levelFilter} onValueChange={onLevelChange}>
-        <SelectTrigger className="w-full sm:w-[200px]">
-          <SelectValue placeholder="Chọn cấp độ" />
-        </SelectTrigger>
-        <SelectContent>
-          {levels.map((level) => (
-            <SelectItem key={level.value} value={level.value}>
-              {level.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
     </div>
   );
 }

@@ -44,7 +44,8 @@ const formatRelativeUrls = (data: any): any => {
         typeof formatted[key] === "string" &&
         formatted[key].startsWith("/uploads")
       ) {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
+        const apiUrl =
+          import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
         const baseUrl = apiUrl.replace("/api/v1", "");
         formatted[key] = `${baseUrl}${formatted[key]}`;
       } else if (typeof formatted[key] === "object") {
@@ -192,6 +193,8 @@ export const examsApi = {
     courseId?: string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
+    isPublished?: boolean;
+    isActive?: boolean;
   }) => {
     const { data } = await api.get("/exams", { params });
     return data;

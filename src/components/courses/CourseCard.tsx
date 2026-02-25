@@ -6,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { BookOpen, Play } from "lucide-react";
@@ -16,7 +15,6 @@ interface Course {
   title: string;
   description?: string | null;
   thumbnailUrl?: string | null;
-  level: string;
   price?: number | null;
   isPublished?: boolean;
   isActive?: boolean;
@@ -27,34 +25,6 @@ interface CourseCardProps {
   progress?: number;
   enrolled?: boolean;
 }
-
-const levelLabels: Record<string, string> = {
-  beginner: "Người mới",
-  intermediate: "Trung cấp",
-  ielts_5: "IELTS 5.0",
-  ielts_5_5: "IELTS 5.5",
-  ielts_6: "IELTS 6.0",
-  ielts_6_5: "IELTS 6.5",
-  ielts_7: "IELTS 7.0",
-  ielts_7_5: "IELTS 7.5",
-  ielts_8: "IELTS 8.0",
-  ielts_8_5: "IELTS 8.5",
-  ielts_9: "IELTS 9.0",
-};
-
-const levelColors: Record<string, string> = {
-  beginner: "bg-success/10 text-success border-success/20",
-  intermediate: "bg-info/10 text-info border-info/20",
-  ielts_5: "bg-primary/10 text-primary border-primary/20",
-  ielts_5_5: "bg-primary/10 text-primary border-primary/20",
-  ielts_6: "bg-secondary text-secondary-foreground",
-  ielts_6_5: "bg-secondary text-secondary-foreground",
-  ielts_7: "bg-accent/10 text-accent border-accent/20",
-  ielts_7_5: "bg-accent/10 text-accent border-accent/20",
-  ielts_8: "bg-warning/10 text-warning border-warning/20",
-  ielts_8_5: "bg-warning/10 text-warning border-warning/20",
-  ielts_9: "bg-destructive/10 text-destructive border-destructive/20",
-};
 
 export function CourseCard({ course, progress, enrolled }: CourseCardProps) {
   return (
@@ -71,11 +41,6 @@ export function CourseCard({ course, progress, enrolled }: CourseCardProps) {
             <BookOpen className="h-16 w-16 text-primary/50" />
           </div>
         )}
-        <Badge
-          className={`absolute top-3 right-3 ${levelColors[course.level] || "bg-secondary text-secondary-foreground"}`}
-        >
-          {levelLabels[course.level] || course.level}
-        </Badge>
       </div>
 
       <CardHeader className="pb-2">

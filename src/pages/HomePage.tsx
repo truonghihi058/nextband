@@ -7,15 +7,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen } from "lucide-react";
 
 export default function HomePage() {
-  const [levelFilter, setLevelFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["courses", levelFilter, searchQuery],
+    queryKey: ["courses", searchQuery],
     queryFn: () =>
       coursesApi.list({
         search: searchQuery || undefined,
-        level: levelFilter !== "all" ? levelFilter : undefined,
         limit: 12,
         sortBy: "createdAt",
         sortOrder: "desc",
@@ -44,8 +42,6 @@ export default function HomePage() {
 
       {/* Filters */}
       <CourseFilters
-        levelFilter={levelFilter}
-        onLevelChange={setLevelFilter}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />

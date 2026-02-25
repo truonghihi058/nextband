@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { coursesApi, examsApi, enrollmentsApi } from "@/lib/api";
@@ -13,6 +14,14 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   ArrowLeft,
   BookOpen,
   Clock,
@@ -25,20 +34,6 @@ import {
   Info,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-const levelLabels: Record<string, string> = {
-  beginner: "Người mới",
-  intermediate: "Trung cấp",
-  ielts_5: "IELTS 5.0",
-  ielts_5_5: "IELTS 5.5",
-  ielts_6: "IELTS 6.0",
-  ielts_6_5: "IELTS 6.5",
-  ielts_7: "IELTS 7.0",
-  ielts_7_5: "IELTS 7.5",
-  ielts_8: "IELTS 8.0",
-  ielts_8_5: "IELTS 8.5",
-  ielts_9: "IELTS 9.0",
-};
 
 const sectionIcons: Record<string, any> = {
   listening: Headphones,
@@ -61,6 +56,8 @@ export default function CourseDetail() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const limit = 6;
 
   const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ["course", slug],
@@ -69,8 +66,15 @@ export default function CourseDetail() {
   });
 
   const { data: examsData, isLoading: examsLoading } = useQuery({
-    queryKey: ["course-exams", slug],
-    queryFn: () => examsApi.list({ courseId: slug }),
+    queryKey: ["course-exams", slug, page],
+    queryFn: () =>
+      examsApi.list({
+        courseId: slug,
+        page,
+        limit,
+        isPublished: true,
+        isActive: true,
+      }),
     enabled: !!slug,
   });
 
@@ -81,6 +85,8 @@ export default function CourseDetail() {
   });
 
   const exams = examsData?.data || [];
+  const meta = examsData?.meta;
+  const totalPages = meta?.totalPages || 1;
 
   // Check if user is enrolled in this course
   const enrollmentList = enrollmentsData?.data || [];
@@ -123,9 +129,6 @@ export default function CourseDetail() {
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <div>
-            <Badge className="mb-4">
-              {levelLabels[course.level] || course.level}
-            </Badge>
             <h1 className="text-3xl font-bold text-foreground mb-4">
               {course.title}
             </h1>
@@ -168,12 +171,6 @@ export default function CourseDetail() {
                   ? `${course.price.toLocaleString()} VND`
                   : "Miễn phí"}
               </CardTitle>
-              <CardDescription>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <GraduationCap className="h-4 w-4" />
-                  <span>{levelLabels[course.level] || course.level}</span>
-                </div>
-              </CardDescription>
             </CardHeader>
             <CardContent>
               {enrollment ? (
@@ -209,59 +206,54 @@ export default function CourseDetail() {
           </div>
         ) : exams && exams.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2">
-            {exams
-              .filter((e: any) => e.isPublished && e.isActive)
-              .map((exam: any) => (
-                <Card
-                  key={exam.id}
-                  className="hover:shadow-md transition-shadow"
-                >
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{exam.title}</CardTitle>
-                      {exam.week && (
-                        <Badge variant="outline">Tuần {exam.week}</Badge>
-                      )}
-                    </div>
-                    {exam.description && (
-                      <CardDescription>{exam.description}</CardDescription>
+            {exams.map((exam: any) => (
+              <Card key={exam.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{exam.title}</CardTitle>
+                    {exam.week && (
+                      <Badge variant="outline">Tuần {exam.week}</Badge>
                     )}
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {exam.sections?.map((section: any) => {
-                        const Icon =
-                          sectionIcons[section.sectionType] || FileText;
-                        const colorCls =
-                          sectionColors[section.sectionType] ||
-                          sectionColors.general;
-                        return (
-                          <Badge key={section.id} className={colorCls}>
-                            <Icon className="mr-1 h-3 w-3" />
-                            {section.sectionType === "general"
-                              ? "Grammar"
-                              : section.sectionType}
-                          </Badge>
-                        );
-                      })}
+                  </div>
+                  {exam.description && (
+                    <CardDescription>{exam.description}</CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {exam.sections?.map((section: any) => {
+                      const Icon =
+                        sectionIcons[section.sectionType] || FileText;
+                      const colorCls =
+                        sectionColors[section.sectionType] ||
+                        sectionColors.general;
+                      return (
+                        <Badge key={section.id} className={colorCls}>
+                          <Icon className="mr-1 h-3 w-3" />
+                          {section.sectionType === "general"
+                            ? "Grammar"
+                            : section.sectionType}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Clock className="mr-1 h-4 w-4" />
+                      {exam.durationMinutes || 60} phút
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Clock className="mr-1 h-4 w-4" />
-                        {exam.durationMinutes || 60} phút
-                      </div>
-                      {enrollment && (
-                        <Button size="sm" asChild>
-                          <Link to={`/exam/${exam.id}`}>
-                            <Play className="mr-1 h-4 w-4" />
-                            Làm bài
-                          </Link>
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    {enrollment && (
+                      <Button size="sm" asChild>
+                        <Link to={`/exam/${exam.id}`}>
+                          <Play className="mr-1 h-4 w-4" />
+                          Làm bài
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : (
           <Card className="text-center py-8">
@@ -270,6 +262,46 @@ export default function CourseDetail() {
               <p className="text-muted-foreground">Chưa có bài thi nào</p>
             </CardContent>
           </Card>
+        )}
+
+        {totalPages > 1 && (
+          <div className="mt-8">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    className={
+                      page <= 1
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  />
+                </PaginationItem>
+                {[...Array(totalPages)].map((_, i) => (
+                  <PaginationItem key={i}>
+                    <PaginationLink
+                      isActive={page === i + 1}
+                      onClick={() => setPage(i + 1)}
+                      className="cursor-pointer"
+                    >
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    className={
+                      page >= totalPages
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
         )}
       </div>
     </div>
