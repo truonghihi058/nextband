@@ -22,6 +22,7 @@ import {
   Mic,
   PenTool,
   Play,
+  Info,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -86,32 +87,6 @@ export default function CourseDetail() {
   const enrollment = enrollmentList.find(
     (e: any) => e.courseId === slug || e.course?.id === slug,
   );
-
-  const handleEnroll = async () => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Vui lòng đăng nhập",
-        description: "Bạn cần đăng nhập để đăng ký khóa học",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await enrollmentsApi.enroll(slug!);
-      await queryClient.invalidateQueries({ queryKey: ["my-enrollments"] });
-      toast({
-        title: "Đăng ký thành công",
-        description: "Bạn đã tham gia khóa học này!",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Đăng ký thất bại",
-        description: error.response?.data?.error || error.message,
-        variant: "destructive",
-      });
-    }
-  };
 
   if (courseLoading) {
     return (
@@ -207,10 +182,15 @@ export default function CourseDetail() {
                   Đã đăng ký
                 </Button>
               ) : (
-                <Button className="w-full" size="lg" onClick={handleEnroll}>
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Đăng ký ngay
-                </Button>
+                <div className="text-center space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
+                    <Info className="h-4 w-4 shrink-0" />
+                    <span>
+                      Liên hệ giáo viên hoặc quản trị viên để được thêm vào khóa
+                      học này.
+                    </span>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>

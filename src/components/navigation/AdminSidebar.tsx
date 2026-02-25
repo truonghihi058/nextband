@@ -8,6 +8,7 @@ import {
   GraduationCap,
   ChevronLeft,
   ClipboardCheck,
+  School,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -36,6 +37,11 @@ const navigationItems = [
     title: "Khóa học",
     url: "/admin/courses",
     icon: BookOpen,
+  },
+  {
+    title: "Lớp học",
+    url: "/admin/classes",
+    icon: School,
   },
   {
     title: "Bài thi",

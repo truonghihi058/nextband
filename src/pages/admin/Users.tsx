@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, User, ArrowUpDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
@@ -26,6 +27,7 @@ export default function AdminUsers() {
   const [pageSize, setPageSize] = useState(10);
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -46,12 +48,14 @@ export default function AdminUsers() {
       sortOrder,
       page,
       pageSize,
+      roleFilter,
     ],
     queryFn: () =>
       usersApi.list({
         page,
         limit: pageSize,
         search: debouncedSearch || undefined,
+        role: roleFilter !== "all" ? roleFilter : undefined,
       }),
   });
 
@@ -111,6 +115,21 @@ export default function AdminUsers() {
           className="pl-10"
         />
       </div>
+
+      <Tabs
+        value={roleFilter}
+        onValueChange={(value) => {
+          setRoleFilter(value);
+          setPage(1);
+        }}
+      >
+        <TabsList>
+          <TabsTrigger value="all">Tất cả</TabsTrigger>
+          <TabsTrigger value="student">Học sinh</TabsTrigger>
+          <TabsTrigger value="teacher">Giáo viên</TabsTrigger>
+          <TabsTrigger value="admin">Quản trị</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <div className="border rounded-lg">
         <Table>

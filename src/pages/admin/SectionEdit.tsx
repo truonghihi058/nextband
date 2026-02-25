@@ -77,6 +77,8 @@ const QUESTION_TYPES = [
   { value: "yes_no_not_given", label: "YES/NO/NOT GIVEN" },
   { value: "matching", label: "Nối đáp án" },
   { value: "essay", label: "Bài luận / Viết dài" },
+  { value: "speaking", label: "Ghi âm (Speaking)" },
+  { value: "listening", label: "Nghe hiểu (Listening)" },
 ];
 
 interface QuestionGroup {
@@ -139,6 +141,7 @@ export default function AdminSectionEdit() {
     options: ["", "", "", ""],
     correctAnswer: "",
     points: 1,
+    audioUrl: "",
   });
 
   const { data: sectionData, isLoading: sectionLoading } = useQuery({
@@ -222,6 +225,7 @@ export default function AdminSectionEdit() {
             ? data.options.filter(Boolean)
             : undefined,
         correctAnswer: data.correctAnswer || undefined,
+        audioUrl: data.audioUrl || undefined,
       });
     },
     onSuccess: () => {
@@ -234,6 +238,7 @@ export default function AdminSectionEdit() {
         options: ["", "", "", ""],
         correctAnswer: "",
         points: 1,
+        audioUrl: "",
       });
       toast({ title: "Thành công", description: "Đã tạo câu hỏi mới" });
     },
@@ -250,6 +255,7 @@ export default function AdminSectionEdit() {
             : null,
         correctAnswer: data.correctAnswer || null,
         points: data.points,
+        audioUrl: data.audioUrl || null,
       });
     },
     onSuccess: () => {
@@ -357,15 +363,23 @@ export default function AdminSectionEdit() {
         options: question.options || ["", "", "", ""],
         correctAnswer: question.correctAnswer || "",
         points: question.points,
+        audioUrl: (question as any).audioUrl || "",
       });
     } else {
       setEditingQuestion(null);
+      const defaultType =
+        section?.sectionType === "speaking"
+          ? "speaking"
+          : section?.sectionType === "listening"
+            ? "listening"
+            : "multiple_choice";
       setQuestionForm({
         questionText: "",
-        questionType: "multiple_choice",
+        questionType: defaultType,
         options: ["", "", "", ""],
         correctAnswer: "",
         points: 1,
+        audioUrl: "",
       });
     }
     setQuestionDialogOpen(true);
@@ -477,8 +491,6 @@ export default function AdminSectionEdit() {
               <div className="space-y-2">
                 <Label>File Audio (Listening)</Label>
                 <FileUpload
-                  bucket="exam-assets"
-                  folder={`sections/${id}`}
                   accept="audio/*"
                   currentUrl={section.audioUrl || undefined}
                   onUploadComplete={(url) =>
@@ -580,7 +592,6 @@ export default function AdminSectionEdit() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            fontSize="sm"
                             className="text-destructive hover:text-destructive"
                             onClick={() =>
                               setDeleteGroup({
@@ -621,7 +632,7 @@ export default function AdminSectionEdit() {
                         {group.questions
                           ?.sort(
                             (a: Question, b: Question) =>
-                              (b.order_index || 0) - (a.order_index || 0),
+                              (b.orderIndex || 0) - (a.orderIndex || 0),
                           )
                           .map((q: Question, qIndex: number) => (
                             <div
@@ -937,21 +948,42 @@ export default function AdminSectionEdit() {
                   </SelectContent>
                 </Select>
               </div>
+              {questionForm.questionType !== "speaking" &&
+                questionForm.questionType !== "essay" && (
+                  <div className="space-y-2">
+                    <Label>Điểm</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={questionForm.points}
+                      onChange={(e) =>
+                        setQuestionForm((f) => ({
+                          ...f,
+                          points: parseInt(e.target.value) || 1,
+                        }))
+                      }
+                    />
+                  </div>
+                )}
+            </div>
+
+            {/* Upload audio cho câu hỏi Listening */}
+            {questionForm.questionType === "listening" && (
               <div className="space-y-2">
-                <Label>Điểm</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={questionForm.points}
-                  onChange={(e) =>
-                    setQuestionForm((f) => ({
-                      ...f,
-                      points: parseInt(e.target.value) || 1,
-                    }))
+                <Label>File Audio cho câu hỏi</Label>
+                <FileUpload
+                  accept="audio/*"
+                  currentUrl={questionForm.audioUrl || undefined}
+                  onUploadComplete={(url) =>
+                    setQuestionForm((f) => ({ ...f, audioUrl: url }))
                   }
+                  onRemove={() =>
+                    setQuestionForm((f) => ({ ...f, audioUrl: "" }))
+                  }
+                  maxSizeMB={20}
                 />
               </div>
-            </div>
+            )}
 
             {questionForm.questionType === "multiple_choice" && (
               <div className="space-y-2">
@@ -975,19 +1007,40 @@ export default function AdminSectionEdit() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label>Đáp án đúng</Label>
-              <Input
-                placeholder="Nhập đáp án đúng..."
-                value={questionForm.correctAnswer}
-                onChange={(e) =>
-                  setQuestionForm((f) => ({
-                    ...f,
-                    correctAnswer: e.target.value,
-                  }))
-                }
-              />
-            </div>
+            {questionForm.questionType !== "speaking" &&
+              questionForm.questionType !== "essay" && (
+                <div className="space-y-2">
+                  <Label>Đáp án đúng</Label>
+                  <Input
+                    placeholder="Nhập đáp án đúng..."
+                    value={questionForm.correctAnswer}
+                    onChange={(e) =>
+                      setQuestionForm((f) => ({
+                        ...f,
+                        correctAnswer: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              )}
+
+            {/* Ghi chú cho Speaking */}
+            {questionForm.questionType === "speaking" && (
+              <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                💡 Câu hỏi dạng <strong>Ghi âm (Speaking)</strong>: Chỉ cần nhập
+                nội dung câu hỏi ở trên. Khi thí sinh làm bài sẽ có nút ghi âm
+                để trả lời.
+              </div>
+            )}
+
+            {/* Ghi chú cho Listening */}
+            {questionForm.questionType === "listening" && (
+              <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                🎧 Câu hỏi dạng <strong>Nghe hiểu (Listening)</strong>: Upload
+                file audio ở trên, nhập nội dung câu hỏi, và đáp án nếu có. Thí
+                sinh sẽ nghe audio và trả lời câu hỏi.
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button
@@ -1014,6 +1067,23 @@ export default function AdminSectionEdit() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Admin Sticky Audio Player for Listening Sections */}
+      {section.sectionType === "listening" && section.audioUrl && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-background/95 backdrop-blur shadow-2xl rounded-full border border-primary/20 p-2 pl-4 pr-4 transition-all hover:scale-105 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Headphones className="w-4 h-4 text-primary animate-pulse" />
+            <span className="text-sm font-semibold text-primary">
+              Audio Section
+            </span>
+          </div>
+          <audio
+            controls
+            src={section.audioUrl}
+            className="h-10 outline-none w-[350px]"
+          />
+        </div>
+      )}
     </div>
   );
 }

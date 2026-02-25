@@ -157,6 +157,8 @@ export const examsApi = {
     page?: number;
     limit?: number;
     courseId?: string;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
   }) => {
     const { data } = await api.get("/exams", { params });
     return data;
@@ -491,3 +493,59 @@ export const logsApi = {
 };
 
 export default api;
+
+// =============================================
+// CLASSES API
+// =============================================
+export const classesApi = {
+  list: async (params?: any) => {
+    const { data } = await api.get("/classes", { params });
+    return data;
+  },
+
+  getById: async (id: string) => {
+    const { data } = await api.get(`/classes/${id}`);
+    return data;
+  },
+
+  create: async (body: {
+    name: string;
+    description?: string;
+    teacherId?: string;
+  }) => {
+    const { data } = await api.post("/classes", body);
+    return data;
+  },
+
+  update: async (
+    id: string,
+    body: {
+      name?: string;
+      description?: string;
+      teacherId?: string | null;
+      isActive?: boolean;
+    },
+  ) => {
+    const { data } = await api.put(`/classes/${id}`, body);
+    return data;
+  },
+
+  delete: async (id: string) => {
+    const { data } = await api.delete(`/classes/${id}`);
+    return data;
+  },
+
+  addStudents: async (classId: string, studentIds: string[]) => {
+    const { data } = await api.post(`/classes/${classId}/students`, {
+      studentIds,
+    });
+    return data;
+  },
+
+  removeStudent: async (classId: string, studentId: string) => {
+    const { data } = await api.delete(
+      `/classes/${classId}/students/${studentId}`,
+    );
+    return data;
+  },
+};
