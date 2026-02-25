@@ -86,6 +86,8 @@ export default function ExamInterface() {
   const exam = examData;
   const sections = exam?.sections || [];
 
+  const availableSections = useMemo(() => sections || [], [sections]);
+
   // Create or fetch existing submission
   const { data: submissionData, isLoading: submissionLoading } = useQuery({
     queryKey: ["exam-submission", examId, user?.id],
@@ -123,20 +125,10 @@ export default function ExamInterface() {
 
   // Set default active section
   useEffect(() => {
-    if (sections && sections.length > 0 && !activeSection) {
-      setActiveSection(sections[0].sectionType as SectionType);
+    if (availableSections.length > 0 && !activeSection) {
+      setActiveSection(availableSections[0].sectionType as SectionType);
     }
-  }, [sections, activeSection]);
-
-  const availableSections = useMemo(
-    () =>
-      sections?.filter((s: any) =>
-        (s.questionGroups || s.question_groups)?.some(
-          (g: any) => g.questions?.length > 0,
-        ),
-      ) || [],
-    [sections],
-  );
+  }, [availableSections, activeSection]);
 
   const currentSectionIndex = availableSections.findIndex(
     (s: any) => s.sectionType === activeSection,
@@ -144,20 +136,26 @@ export default function ExamInterface() {
 
   const currentSection = availableSections[currentSectionIndex];
 
+  const sectionHasQuestions = useMemo(() => {
+    if (!currentSection) return false;
+    const groups = currentSection.questionGroups || currentSection.question_groups || [];
+    return groups.some((g: any) => g.questions && g.questions.length > 0);
+  }, [currentSection]);
+
   // Get all questions for pagination
   const currentSectionQuestions = useMemo(() => {
-    if (!currentSection) return [];
+    if (!currentSection || !sectionHasQuestions) return [];
     return (
       (
         currentSection.questionGroups || currentSection.question_groups
       )?.flatMap((g: any) =>
-        (g.questions || []).map((q: any, idx: number) => ({
+        (g.questions || []).map((q: any) => ({
           ...q,
           groupId: g.id,
         })),
       ) || []
     );
-  }, [currentSection]);
+  }, [currentSection, sectionHasQuestions]);
 
   const currentQuestionIndex = useMemo(() => {
     if (!currentQuestionId || currentSectionQuestions.length === 0) return -1;
@@ -312,7 +310,7 @@ export default function ExamInterface() {
         <FileText className="h-16 w-16 text-muted-foreground/50" />
         <h2 className="text-xl font-semibold">{exam.title}</h2>
         <p className="text-muted-foreground">
-          Bài thi này chưa có nội dung câu hỏi. Vui lòng liên hệ giáo viên.
+          Bài thi này chưa được cấu hình phần thi nào. Vui lòng liên hệ giáo viên.
         </p>
         <Button asChild variant="outline">
           <Link to="/">Quay về trang chủ</Link>

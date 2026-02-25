@@ -270,7 +270,11 @@ export default function AdminSectionEdit() {
   });
 
   const updateSectionMutation = useMutation({
-    mutationFn: async (data: { audioUrl?: string; instructions?: string }) => {
+    mutationFn: async (data: {
+      audioUrl?: string;
+      instructions?: string;
+      durationMinutes?: number;
+    }) => {
       return sectionsApi.update(id!, data);
     },
     onSuccess: () => {
@@ -483,16 +487,31 @@ export default function AdminSectionEdit() {
                   onRemove={() =>
                     updateSectionMutation.mutate({ audioUrl: "" })
                   }
+                  onDurationDetected={(duration) => {
+                    const minutes = Math.max(1, Math.ceil(duration / 60));
+                    if (section.durationMinutes !== minutes) {
+                      updateSectionMutation.mutate({ durationMinutes: minutes });
+                    }
+                  }}
                   maxSizeMB={20}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Thời gian (phút)</Label>
-                <Input
-                  type="number"
-                  defaultValue={section.durationMinutes || ""}
-                  disabled
-                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={section.durationMinutes || ""}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      updateSectionMutation.mutate({ durationMinutes: isNaN(val) ? 0 : val });
+                    }}
+                  />
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">phút</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground italic">
+                  * Tự động cập nhật theo độ dài file audio (tối thiểu 1p)
+                </p>
               </div>
             </div>
           )}

@@ -11,6 +11,7 @@ interface FileUploadProps {
   currentUrl?: string | null;
   onUploadComplete: (url: string) => void;
   onRemove?: () => void;
+  onDurationDetected?: (duration: number) => void;
   maxSizeMB?: number;
   disabled?: boolean;
   label?: string;
@@ -21,6 +22,7 @@ export default function FileUpload({
   currentUrl,
   onUploadComplete,
   onRemove,
+  onDurationDetected,
   maxSizeMB = 10,
   disabled = false,
   label,
@@ -192,7 +194,17 @@ export default function FileUpload({
                     {currentUrl.split("/").pop()}
                   </span>
                 </div>
-                <audio controls className="w-full h-8" src={fullUrl}>
+                <audio
+                  controls
+                  className="w-full h-8"
+                  src={fullUrl}
+                  onLoadedMetadata={(e) => {
+                    const duration = (e.target as HTMLAudioElement).duration;
+                    if (onDurationDetected && !isNaN(duration)) {
+                      onDurationDetected(duration);
+                    }
+                  }}
+                >
                   <track kind="captions" />
                 </audio>
               </div>
