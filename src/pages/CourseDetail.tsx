@@ -34,8 +34,21 @@ import {
   Info,
   CheckCircle2,
   ClipboardCheck,
+  Search,
+  ArrowUpDown,
+  SortAsc,
+  SortDesc,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 
 const sectionIcons: Record<string, any> = {
   listening: Headphones,
@@ -59,7 +72,10 @@ export default function CourseDetail() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const limit = 6;
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("week");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const limit = 10;
 
   const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ["course", slug],
@@ -68,12 +84,15 @@ export default function CourseDetail() {
   });
 
   const { data: examsData, isLoading: examsLoading } = useQuery({
-    queryKey: ["course-exams", slug, page],
+    queryKey: ["course-exams", slug, page, search, sortBy, sortOrder],
     queryFn: () =>
       examsApi.list({
         courseId: slug,
         page,
         limit,
+        search,
+        sortBy,
+        sortOrder,
         isPublished: true,
         isActive: true,
       }),
@@ -229,9 +248,62 @@ export default function CourseDetail() {
         </div>
       </div>
 
-      {/* Exams Section */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold">Bài thi trong khóa học</h2>
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <h2 className="text-2xl font-bold">Bài thi trong khóa học</h2>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Input */}
+            <div className="relative w-full md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Tìm kiếm bài thi..."
+                className="pl-9"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1); // Reset to first page on search
+                }}
+              />
+            </div>
+
+            {/* Sort Controls */}
+            <div className="flex items-center gap-2">
+              <Select
+                value={sortBy}
+                onValueChange={(value) => {
+                  setSortBy(value);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Sắp xếp" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="createdAt">Ngày tạo</SelectItem>
+                  <SelectItem value="week">Theo tuần</SelectItem>
+                  <SelectItem value="title">Tên bài thi</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                  setPage(1);
+                }}
+                className="shrink-0"
+                title={sortOrder === "asc" ? "Tăng dần" : "Giảm dần"}
+              >
+                {sortOrder === "asc" ? (
+                  <SortAsc className="h-4 w-4" />
+                ) : (
+                  <SortDesc className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
 
         {examsLoading ? (
           <div className="grid gap-4 md:grid-cols-2">
@@ -240,7 +312,7 @@ export default function CourseDetail() {
             ))}
           </div>
         ) : exams && exams.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1">
             {exams
               .filter((e: any) => e.isPublished && e.isActive)
               .map((exam: any) => {
