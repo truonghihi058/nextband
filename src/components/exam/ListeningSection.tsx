@@ -39,8 +39,10 @@ export function ListeningSection({
       ...q,
       question_text: q.question_text || q.questionText || "",
       question_type: q.question_type || q.questionType || "short_answer",
+      question_audio_url: q.audioUrl || q.audio_url || q.question_audio_url || null,
       order_index: q.order_index ?? q.orderIndex ?? 0,
       correct_answer: q.correct_answer || q.correctAnswer || null,
+      options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : [],
     })),
   }));
 
@@ -133,79 +135,106 @@ export function ListeningSection({
                           }
                         }}
                         className={cn(
-                          "transition-all",
-                          isCurrent && "ring-2 ring-primary shadow-lg",
+                          "transition-all duration-300 border-l-4",
+                          isCurrent
+                            ? "ring-1 ring-primary shadow-md border-l-primary bg-primary/5"
+                            : "border-l-transparent hover:border-l-muted-foreground/30 hover:shadow-sm"
                         )}
                         onClick={() => onQuestionFocus?.(question.id)}
                       >
-                        <CardContent className="p-4">
-                          <p className="font-medium mb-3">
-                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[hsl(var(--listening))] text-white text-sm font-bold mr-2">
+                        <CardContent className="p-5">
+                          <div className="flex items-start gap-4 mb-4">
+                            <span className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-sm">
                               {question.order_index || qIndex + 1}
                             </span>
-                            {question.question_text}
-                          </p>
+                            <div className="flex-1 space-y-3">
+                              <p className="font-semibold text-base leading-snug">
+                                {question.question_text}
+                              </p>
 
-                          {question.question_type === "multiple_choice" &&
-                            question.options && (
-                              <RadioGroup
-                                value={answers[question.id] || ""}
-                                onValueChange={(value) =>
-                                  onAnswerChange(question.id, value)
-                                }
-                                className="space-y-2 ml-9"
-                              >
-                                {(question.options as string[]).map(
-                                  (option: string, i: number) => (
-                                    <div
-                                      key={i}
-                                      className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                                    >
-                                      <RadioGroupItem
-                                        value={option}
-                                        id={`${question.id}-${i}`}
-                                      />
-                                      <Label
-                                        htmlFor={`${question.id}-${i}`}
-                                        className="flex-1 cursor-pointer"
+                              {question.question_audio_url && (
+                                <div className="bg-muted/50 p-3 rounded-xl border border-border/50 flex items-center gap-3">
+                                  <div className="bg-primary/10 p-2 rounded-full">
+                                    <Headphones className="h-4 w-4 text-primary" />
+                                  </div>
+                                  <audio
+                                    src={question.question_audio_url}
+                                    controls
+                                    className="h-8 w-full max-w-[300px]"
+                                  />
+                                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Audio riêng</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="ml-12 space-y-4">
+                            {(question.question_type === "multiple_choice") &&
+                              question.options && question.options.length > 0 && (
+                                <RadioGroup
+                                  value={answers[question.id] || ""}
+                                  onValueChange={(value) =>
+                                    onAnswerChange(question.id, value)
+                                  }
+                                  className="grid gap-2"
+                                >
+                                  {question.options.map(
+                                    (option: string, i: number) => (
+                                      <div
+                                        key={i}
+                                        className={cn(
+                                          "flex items-center space-x-3 p-3 rounded-xl border transition-all cursor-pointer",
+                                          answers[question.id] === option
+                                            ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
+                                            : "bg-background border-transparent hover:bg-muted/30"
+                                        )}
                                       >
-                                        {option}
-                                      </Label>
-                                    </div>
-                                  ),
-                                )}
-                              </RadioGroup>
+                                        <RadioGroupItem
+                                          value={option}
+                                          id={`${question.id}-${i}`}
+                                        />
+                                        <Label
+                                          htmlFor={`${question.id}-${i}`}
+                                          className="flex-1 cursor-pointer font-medium text-sm"
+                                        >
+                                          {option}
+                                        </Label>
+                                      </div>
+                                    ),
+                                  )}
+                                </RadioGroup>
+                              )}
+
+                            {(question.question_type === "fill_blank" || question.question_type === "listening" || question.question_type === "short_answer") && (
+                              <div className="space-y-2">
+                                <Input
+                                  placeholder="Nhập câu trả lời của bạn..."
+                                  value={answers[question.id] || ""}
+                                  onChange={(e) =>
+                                    onAnswerChange(question.id, e.target.value)
+                                  }
+                                  className="max-w-md h-11 bg-background shadow-sm focus-visible:ring-primary/30"
+                                />
+                                <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5 opacity-70">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                                  Gợi ý: Nhập văn bản vào ô trên
+                                </p>
+                              </div>
                             )}
 
-                          {question.question_type === "fill_blank" && (
-                            <div className="ml-9">
-                              <Input
-                                placeholder="Nhập câu trả lời..."
-                                value={answers[question.id] || ""}
-                                onChange={(e) =>
-                                  onAnswerChange(question.id, e.target.value)
-                                }
-                                className="max-w-md"
-                              />
-                              <p className="text-xs text-muted-foreground mt-1 italic">
-                                ONE WORD ONLY
-                              </p>
-                            </div>
-                          )}
-
-                          {question.question_type ===
-                            "true_false_not_given" && (
-                            <div className="ml-9">
-                              <DropdownSelect
-                                value={answers[question.id] || ""}
-                                onChange={(value) =>
-                                  onAnswerChange(question.id, value)
-                                }
-                                options={["TRUE", "FALSE", "NOT GIVEN"]}
-                                placeholder="Chọn đáp án"
-                              />
-                            </div>
-                          )}
+                            {question.question_type === "true_false_not_given" && (
+                              <div className="max-w-[200px]">
+                                <DropdownSelect
+                                  value={answers[question.id] || ""}
+                                  onChange={(value) =>
+                                    onAnswerChange(question.id, value)
+                                  }
+                                  options={["TRUE", "FALSE", "NOT GIVEN"]}
+                                  placeholder="Chọn đáp án"
+                                />
+                              </div>
+                            )}
+                          </div>
                         </CardContent>
                       </Card>
                     );
