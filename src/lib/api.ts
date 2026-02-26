@@ -191,6 +191,7 @@ export const examsApi = {
     page?: number;
     limit?: number;
     courseId?: string;
+    search?: string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
     isPublished?: boolean;

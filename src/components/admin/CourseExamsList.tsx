@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { examsApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, ArrowUpDown } from "lucide-react";
+import { Plus, Edit, Trash2, ArrowUpDown } from "lucide-react";
 import { useState } from "react";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
+import DeleteConfirmDialog from "@/components/admin/DeleteConfirmDialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface CourseExamsListProps {
   courseId: string;
@@ -41,6 +43,12 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [deleteExam, setDeleteExam] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data, isLoading } = useQuery({
     queryKey: [
@@ -65,6 +73,15 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
   const exams = (data?.data || []) as Exam[];
   const totalPages = data?.meta?.totalPages || 1;
   const total = data?.meta?.total || 0;
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => examsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["course-exams-admin"] });
+      toast({ title: "Đã xóa", description: "Bài thi đã được xóa" });
+      setDeleteExam(null);
+    },
+  });
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -119,7 +136,7 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
                   <SortHeader field="title">Tên bài thi</SortHeader>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead>Kích hoạt</TableHead>
-                  <TableHead className="w-[80px]">Hành động</TableHead>
+                  <TableHead className="w-[120px] whitespace-nowrap">Hành động</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -141,12 +158,24 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
                         {exam.isActive ? "Hoạt động" : "Tắt"}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div className="flex items-center gap-1">
                       <Button variant="ghost" size="sm" asChild>
                         <Link to={`/admin/exams/${exam.id}`}>
                           <Edit className="h-4 w-4" />
                         </Link>
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() =>
+                          setDeleteExam({ id: exam.id, title: exam.title })
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -171,6 +200,15 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
           </p>
         )}
       </CardContent>
+
+      <DeleteConfirmDialog
+        open={!!deleteExam}
+        onOpenChange={(open) => !open && setDeleteExam(null)}
+        onConfirm={() => deleteExam && deleteMutation.mutate(deleteExam.id)}
+        loading={deleteMutation.isPending}
+        title="Xóa bài thi?"
+        description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Hành động này không thể hoàn tác.`}
+      />
     </Card>
   );
 }
