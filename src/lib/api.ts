@@ -5,7 +5,7 @@ import axios, {
   AxiosError,
 } from "axios";
 
-const API_URL = "https://api.nextband.site/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "https://api.nextband.site/api/v11";
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -324,6 +324,7 @@ export const submissionsApi = {
     page?: number;
     limit?: number;
     examId?: string;
+    studentId?: string;
     status?: string;
   }) => {
     const { data } = await api.get("/submissions", { params });

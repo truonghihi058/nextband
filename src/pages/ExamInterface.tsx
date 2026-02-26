@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { examsApi, submissionsApi } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,7 @@ export default function ExamInterface() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [activeSection, setActiveSection] = useState<SectionType | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -255,6 +256,9 @@ export default function ExamInterface() {
 
       await submissionsApi.submit(submission.id, answerEntries);
 
+      queryClient.invalidateQueries({ queryKey: ["my-submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["my-enrollments"] });
+
       toast({
         title: "Nộp bài thành công",
         description: "Bài thi của bạn đã được ghi nhận",
@@ -384,9 +388,8 @@ export default function ExamInterface() {
                       setActiveSection(section.sectionType as SectionType);
                       setCurrentQuestionId(undefined);
                     }}
-                    className={`flex items-center gap-2 ${
-                      isActive ? "" : "text-muted-foreground"
-                    }`}
+                    className={`flex items-center gap-2 ${isActive ? "" : "text-muted-foreground"
+                      }`}
                   >
                     <Icon className="h-4 w-4" />
                     {sectionLabels[section.sectionType as SectionType] ||
@@ -433,6 +436,9 @@ export default function ExamInterface() {
             section={currentSection}
             answers={answers}
             onAnswerChange={handleAnswerChange}
+            questionRefs={questionRefs}
+            currentQuestionId={currentQuestionId}
+            onQuestionFocus={setCurrentQuestionId}
           />
         )}
         {currentSection && (activeSection === "general" || isGrammarExam) && (
