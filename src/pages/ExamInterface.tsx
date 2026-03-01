@@ -39,6 +39,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+const safeJsonParse = (value: string | undefined | null) => {
+  if (!value) return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
 type SectionType = "listening" | "reading" | "writing" | "speaking" | "general";
 
 const sectionIcons = {
@@ -65,7 +74,7 @@ export default function ExamInterface() {
   const queryClient = useQueryClient();
 
   const [activeSection, setActiveSection] = useState<SectionType | null>(null);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, any>>({});
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(
     new Set(),
   );
@@ -116,9 +125,11 @@ export default function ExamInterface() {
   // Restore saved answers
   useEffect(() => {
     if (savedAnswersData && savedAnswersData.length > 0) {
-      const restored: Record<string, string> = {};
+      const restored: Record<string, any> = {};
       savedAnswersData.forEach((a: any) => {
-        if (a.answerText) restored[a.questionId] = a.answerText;
+        if (!a.answerText) return;
+        const parsed = safeJsonParse(a.answerText);
+        restored[a.questionId] = parsed ?? a.answerText;
       });
       setAnswers((prev) => ({ ...restored, ...prev }));
     }
@@ -190,7 +201,7 @@ export default function ExamInterface() {
   };
 
   const handleAnswerChange = useCallback(
-    (questionId: string, answer: string) => {
+    (questionId: string, answer: any) => {
       setAnswers((prev) => ({ ...prev, [questionId]: answer }));
     },
     [],
@@ -251,7 +262,10 @@ export default function ExamInterface() {
         .filter(([questionId]) => validQuestionIds.has(questionId))
         .map(([questionId, answerText]) => ({
           questionId,
-          answerText,
+          answerText:
+            typeof answerText === "string"
+              ? answerText
+              : JSON.stringify(answerText),
         }));
 
       await submissionsApi.submit(submission.id, answerEntries);

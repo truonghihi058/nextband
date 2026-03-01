@@ -18,12 +18,16 @@ import { DropdownSelect } from "./DropdownSelect";
 
 interface ReadingSectionProps {
   section: any;
-  answers: Record<string, string>;
-  onAnswerChange: (questionId: string, answer: string) => void;
+  answers: Record<string, any>;
+  onAnswerChange: (questionId: string, answer: any) => void;
   questionRefs?: MutableRefObject<Map<string, HTMLElement>>;
   currentQuestionId?: string;
   onQuestionFocus?: (questionId: string) => void;
 }
+
+const FILL_BLANK_PLACEHOLDER_REGEX = /(\[BLANK(?:_\d+)?\]|_____)/g;
+const hasFillBlankPlaceholders = (text: string) =>
+  /(\[BLANK(?:_\d+)?\]|_____)/.test(text);
 
 export function ReadingSection({
   section,
@@ -258,6 +262,23 @@ export function ReadingSection({
                 )
                 .map((question: any, qIndex: number) => {
                   const isCurrent = question.id === currentQuestionId;
+                  const hasPlaceholders = hasFillBlankPlaceholders(
+                    question.question_text || "",
+                  );
+                  const isFillBlankLike =
+                    question.question_type === "fill_blank" || hasPlaceholders;
+
+                  if (
+                    import.meta.env.DEV &&
+                    hasPlaceholders &&
+                    question.id
+                  ) {
+                    console.debug("[ReadingSection][fill_blank debug]", {
+                      id: question.id,
+                      question_type: question.question_type,
+                      question_text: question.question_text,
+                    });
+                  }
 
                   return (
                     <Card
@@ -282,12 +303,8 @@ export function ReadingSection({
                           </span>
                           <div className="flex-1 space-y-3">
                             <div className="font-semibold text-base leading-snug">
-                              {/* Only show question text here if it's NOT a fill_blank with placeholders */}
-                              {!(
-                                question.question_type === "fill_blank" &&
-                                (question.question_text.includes("_____") ||
-                                  question.question_text.includes("[BLANK]"))
-                              ) && question.question_text}
+                              {/* Only show question text here if it's NOT a fill_blank-like question */}
+                              {!isFillBlankLike && question.question_text}
                             </div>
 
                             {question.question_audio_url && (
@@ -339,48 +356,54 @@ export function ReadingSection({
                               </RadioGroup>
                             )}
 
-                          {(question.question_type === "fill_blank" ||
+                          {(isFillBlankLike ||
                             question.question_type === "short_answer") && (
                               <div className="space-y-2">
-                                {question.question_type === "fill_blank" &&
-                                  (question.question_text.includes("_____") ||
-                                    question.question_text.includes("[BLANK]")) ? (
+                                {isFillBlankLike ? (
                                   <div className="text-base leading-relaxed">
                                     {/* Inline rendering for fill_blank with placeholders */}
                                     {(() => {
                                       const text = question.question_text;
-                                      const parts =
-                                        text.split(/(_____|\[BLANK\])/g);
+                                      const parts = text.split(FILL_BLANK_PLACEHOLDER_REGEX);
+                                      const currentAnswers =
+                                        typeof answers[question.id] === "object" &&
+                                        answers[question.id] !== null
+                                          ? answers[question.id]
+                                          : {};
+                                      let blankCursor = 0;
+
                                       return (
                                         <div className="flex flex-wrap items-baseline gap-2 pt-2">
-                                          {parts.map(
-                                            (part: string, index: number) => {
-                                              if (
-                                                part === "_____" ||
-                                                part === "[BLANK]"
-                                              ) {
-                                                return (
-                                                  <Input
-                                                    key={index}
-                                                    placeholder="..."
-                                                    value={
-                                                      answers[question.id] || ""
-                                                    }
-                                                    onChange={(e) =>
-                                                      onAnswerChange(
-                                                        question.id,
-                                                        e.target.value,
-                                                      )
-                                                    }
-                                                    className="w-32 inline-flex h-9 border-b-2 border-t-0 border-x-0 rounded-none bg-transparent focus-visible:ring-0 focus-visible:border-primary px-1"
-                                                  />
-                                                );
-                                              }
+                                          {parts.map((part: string, index: number) => {
+                                            const isBlank =
+                                              part === "_____" || part.startsWith("[BLANK");
+                                            if (isBlank) {
+                                              const normalizedIndex = part.match(/^\[BLANK_(\d+)\]$/)?.[1]
+                                                ? Number(part.match(/^\[BLANK_(\d+)\]$/)?.[1]) - 1
+                                                : blankCursor;
+                                              const key = String(Math.max(0, normalizedIndex));
+                                              const value = currentAnswers[key] || "";
+                                              blankCursor += 1;
+
                                               return (
-                                                <span key={index} className="font-medium text-foreground/80">{part}</span>
+                                                <Input
+                                                  key={`${question.id}-blank-${index}`}
+                                                  placeholder="..."
+                                                  value={value}
+                                                  onChange={(e) =>
+                                                    onAnswerChange(question.id, {
+                                                      ...currentAnswers,
+                                                      [key]: e.target.value,
+                                                    })
+                                                  }
+                                                  className="w-32 inline-flex h-9 border-b-2 border-t-0 border-x-0 rounded-none bg-transparent focus-visible:ring-0 focus-visible:border-primary px-1"
+                                                />
                                               );
-                                            },
-                                          )}
+                                            }
+                                            return (
+                                              <span key={index} className="font-medium text-foreground/80">{part}</span>
+                                            );
+                                          })}
                                         </div>
                                       );
                                     })()}

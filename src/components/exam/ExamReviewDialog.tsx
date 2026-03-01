@@ -36,12 +36,22 @@ interface ExamReviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sections: Section[];
-  answers: Record<string, string>;
+  answers: Record<string, any>;
   flaggedQuestions: Set<string>;
   onGoToQuestion: (sectionType: string, questionId: string) => void;
   onSubmit: () => void;
   isSubmitting?: boolean;
 }
+
+const isAnsweredValue = (value: any): boolean => {
+  if (typeof value === "string") return value.trim().length > 0;
+  if (value && typeof value === "object") {
+    return Object.values(value).some(
+      (item) => typeof item === "string" && item.trim().length > 0,
+    );
+  }
+  return false;
+};
 
 export function ExamReviewDialog({
   open,
@@ -70,8 +80,8 @@ export function ExamReviewDialog({
   };
 
   const allQuestions = getAllQuestions();
-  const answeredCount = allQuestions.filter(
-    (q) => !!answers[q.question.id]?.trim(),
+  const answeredCount = allQuestions.filter((q) =>
+    isAnsweredValue(answers[q.question.id]),
   ).length;
   const flaggedCount = allQuestions.filter((q) =>
     flaggedQuestions.has(q.question.id),
@@ -130,7 +140,7 @@ export function ExamReviewDialog({
                   </div>
                   <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
                     {sectionQuestions.map((q, idx) => {
-                      const isAnswered = !!answers[q.id]?.trim();
+                      const isAnswered = isAnsweredValue(answers[q.id]);
                       const isFlagged = flaggedQuestions.has(q.id);
 
                       return (
