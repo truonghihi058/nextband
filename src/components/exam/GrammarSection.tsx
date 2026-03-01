@@ -11,12 +11,16 @@ import { DropdownSelect } from "./DropdownSelect";
 
 interface GrammarSectionProps {
   section: any;
-  answers: Record<string, string>;
-  onAnswerChange: (questionId: string, answer: string) => void;
+  answers: Record<string, any>;
+  onAnswerChange: (questionId: string, answer: any) => void;
   questionRefs?: MutableRefObject<Map<string, HTMLElement>>;
   currentQuestionId?: string;
   onQuestionFocus?: (questionId: string) => void;
 }
+
+const FILL_BLANK_PLACEHOLDER_REGEX = /(\[BLANK(?:_\d+)?\]|_____)/g;
+const hasFillBlankPlaceholders = (text: string) =>
+  /(\[BLANK(?:_\d+)?\]|_____)/.test(text);
 
 function WordCount({ text }: { text: string }) {
   const count = text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -141,13 +145,12 @@ export function GrammarSection({
                               <div className="flex-1 space-y-3">
                                 {!(
                                   question.question_type === "fill_blank" &&
-                                  (question.question_text.includes("_____") ||
-                                    question.question_text.includes("[BLANK]"))
+                                  hasFillBlankPlaceholders(question.question_text)
                                 ) && (
-                                    <p className="font-semibold text-base leading-snug">
-                                      {question.question_text}
-                                    </p>
-                                  )}
+                                  <p className="font-semibold text-base leading-snug">
+                                    {question.question_text}
+                                  </p>
+                                )}
 
                                 {question.question_audio_url && (
                                   <div className="bg-muted/50 p-3 rounded-xl border border-border/50 flex items-center gap-3 max-w-sm">
@@ -198,26 +201,48 @@ export function GrammarSection({
                               {/* Fill Blank */}
                               {question.question_type === "fill_blank" && (
                                 <div className="space-y-3">
-                                  {question.question_text.includes("_____") ||
-                                    question.question_text.includes("[BLANK]") ? (
+                                  {hasFillBlankPlaceholders(question.question_text) ? (
                                     <div className="text-base leading-relaxed pt-1">
                                       {(() => {
                                         const text = question.question_text;
-                                        const parts = text.split(/(_____|\[BLANK\])/g);
+                                        const parts = text.split(FILL_BLANK_PLACEHOLDER_REGEX);
+                                        const currentAnswers =
+                                          typeof answers[question.id] === "object" &&
+                                          answers[question.id] !== null
+                                            ? answers[question.id]
+                                            : {};
+                                        let blankCursor = 0;
+
                                         return (
                                           <div className="flex flex-wrap items-baseline gap-2">
                                             {parts.map((part: string, index: number) => {
-                                              if (part === "_____" || part === "[BLANK]") {
+                                              const isBlank =
+                                                part === "_____" || part.startsWith("[BLANK");
+
+                                              if (isBlank) {
+                                                const normalizedIndex = part.match(/^\[BLANK_(\d+)\]$/)?.[1]
+                                                  ? Number(part.match(/^\[BLANK_(\d+)\]$/)?.[1]) - 1
+                                                  : blankCursor;
+                                                const key = String(Math.max(0, normalizedIndex));
+                                                const value = currentAnswers[key] || "";
+                                                blankCursor += 1;
+
                                                 return (
                                                   <Input
-                                                    key={index}
+                                                    key={`${question.id}-blank-${index}`}
                                                     placeholder="..."
-                                                    value={answers[question.id] || ""}
-                                                    onChange={(e) => onAnswerChange(question.id, e.target.value)}
+                                                    value={value}
+                                                    onChange={(e) =>
+                                                      onAnswerChange(question.id, {
+                                                        ...currentAnswers,
+                                                        [key]: e.target.value,
+                                                      })
+                                                    }
                                                     className="w-32 inline-flex h-9 border-b-2 border-t-0 border-x-0 rounded-none bg-transparent focus-visible:ring-0 focus-visible:border-primary px-1"
                                                   />
                                                 );
                                               }
+
                                               return <span key={index} className="font-medium">{part}</span>;
                                             })}
                                           </div>

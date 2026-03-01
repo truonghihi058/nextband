@@ -10,7 +10,7 @@ interface Question {
 
 interface QuestionPaginationProps {
   questions: Question[];
-  answers: Record<string, string>;
+  answers: Record<string, any>;
   flaggedQuestions: Set<string>;
   currentQuestionId?: string;
   onQuestionClick: (questionId: string) => void;
@@ -28,7 +28,16 @@ export function QuestionPagination({
   className,
 }: QuestionPaginationProps) {
   const getQuestionState = (q: Question) => {
-    const isAnswered = !!answers[q.id]?.trim();
+    const value = answers[q.id];
+    const isAnswered =
+      typeof value === 'string'
+        ? value.trim().length > 0
+        : value && typeof value === 'object'
+          ? Object.values(value).some(
+              (item) => typeof item === 'string' && item.trim().length > 0,
+            )
+          : false;
+
     const isFlagged = flaggedQuestions.has(q.id);
     const isCurrent = q.id === currentQuestionId;
 

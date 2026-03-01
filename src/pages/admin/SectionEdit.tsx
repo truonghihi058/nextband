@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sectionsApi, questionsApi } from "@/lib/api";
@@ -100,6 +100,32 @@ interface Question {
   orderIndex: number;
 }
 
+const FILL_BLANK_PLACEHOLDER_REGEX = /(\[BLANK(?:_\d+)?\]|_____)/g;
+
+const extractFillBlankTokens = (text: string): string[] => {
+  if (!text) return [];
+  return text.match(FILL_BLANK_PLACEHOLDER_REGEX) || [];
+};
+
+const parseFillBlankAnswers = (value: string | null | undefined): string[] => {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => String(item ?? "").trim());
+    }
+  } catch {
+  }
+
+  return value
+    .split("|")
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
+const stringifyFillBlankAnswers = (answers: string[]): string =>
+  JSON.stringify(answers.map((item) => item.trim()));
+
 export default function AdminSectionEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -140,6 +166,7 @@ export default function AdminSectionEdit() {
     questionType: "multiple_choice",
     options: ["", "", "", ""],
     correctAnswer: "",
+    fillBlankAnswers: [""],
     points: 1,
     audioUrl: "",
   });
@@ -153,6 +180,37 @@ export default function AdminSectionEdit() {
   const section = sectionData;
   const questionGroups = section?.questionGroups || [];
 
+  const fillBlankTokenCount = useMemo(() => {
+    if (questionForm.questionType !== "fill_blank") return 0;
+    return extractFillBlankTokens(questionForm.questionText).length;
+  }, [questionForm.questionText, questionForm.questionType]);
+
+  useEffect(() => {
+    if (questionForm.questionType !== "fill_blank") return;
+
+    const targetCount = fillBlankTokenCount;
+    setQuestionForm((prev) => {
+      const current = prev.fillBlankAnswers || [];
+
+      if (current.length === targetCount) return prev;
+
+      if (current.length < targetCount) {
+        return {
+          ...prev,
+          fillBlankAnswers: [
+            ...current,
+            ...Array.from({ length: targetCount - current.length }, () => ""),
+          ],
+        };
+      }
+
+      return {
+        ...prev,
+        fillBlankAnswers: current.slice(0, targetCount),
+      };
+    });
+  }, [fillBlankTokenCount, questionForm.questionType]);
+
   // --- Mutations ---
 
   const createGroupMutation = useMutation({
@@ -161,7 +219,6 @@ export default function AdminSectionEdit() {
       passage: string;
       instructions: string;
     }) => {
-      const orderIndex = questionGroups?.length || 0;
       return questionsApi.createGroup({
         sectionId: id!,
         title: data.title || undefined,
@@ -216,6 +273,11 @@ export default function AdminSectionEdit() {
 
   const createQuestionMutation = useMutation({
     mutationFn: async (data: typeof questionForm & { groupId: string }) => {
+      const normalizedCorrectAnswer =
+        data.questionType === "fill_blank" && data.fillBlankAnswers.length > 0
+          ? stringifyFillBlankAnswers(data.fillBlankAnswers)
+          : data.correctAnswer || undefined;
+
       return questionsApi.create({
         groupId: data.groupId,
         questionText: data.questionText,
@@ -224,7 +286,7 @@ export default function AdminSectionEdit() {
           data.questionType === "multiple_choice"
             ? data.options.filter(Boolean)
             : undefined,
-        correctAnswer: data.correctAnswer || undefined,
+        correctAnswer: normalizedCorrectAnswer,
         audioUrl: data.audioUrl || undefined,
       });
     },
@@ -237,6 +299,7 @@ export default function AdminSectionEdit() {
         questionType: "multiple_choice",
         options: ["", "", "", ""],
         correctAnswer: "",
+        fillBlankAnswers: [""],
         points: 1,
         audioUrl: "",
       });
@@ -246,6 +309,11 @@ export default function AdminSectionEdit() {
 
   const updateQuestionMutation = useMutation({
     mutationFn: async (data: typeof questionForm & { id: string }) => {
+      const normalizedCorrectAnswer =
+        data.questionType === "fill_blank" && data.fillBlankAnswers.length > 0
+          ? stringifyFillBlankAnswers(data.fillBlankAnswers)
+          : data.correctAnswer || null;
+
       return questionsApi.update(data.id, {
         questionText: data.questionText,
         questionType: data.questionType,
@@ -253,7 +321,7 @@ export default function AdminSectionEdit() {
           data.questionType === "multiple_choice"
             ? data.options.filter(Boolean)
             : null,
-        correctAnswer: data.correctAnswer || null,
+        correctAnswer: normalizedCorrectAnswer,
         points: data.points,
         audioUrl: data.audioUrl || null,
       });
@@ -309,7 +377,7 @@ export default function AdminSectionEdit() {
         .filter(Boolean);
       if (lines.length === 0) throw new Error("Không có câu hỏi nào để nhập");
 
-      const questions = lines.map((line, i) => ({
+      const questions = lines.map((line) => ({
         questionText: line,
         questionType: questionType,
         points: 1,
@@ -357,11 +425,21 @@ export default function AdminSectionEdit() {
     setSelectedGroupId(groupId);
     if (question) {
       setEditingQuestion(question);
+      const parsedFillBlankAnswers =
+        question.questionType === "fill_blank"
+          ? parseFillBlankAnswers(question.correctAnswer)
+          : [];
+
       setQuestionForm({
         questionText: question.questionText,
         questionType: question.questionType,
         options: question.options || ["", "", "", ""],
-        correctAnswer: question.correctAnswer || "",
+        correctAnswer:
+          question.questionType === "fill_blank"
+            ? ""
+            : question.correctAnswer || "",
+        fillBlankAnswers:
+          parsedFillBlankAnswers.length > 0 ? parsedFillBlankAnswers : [""],
         points: question.points,
         audioUrl: (question as any).audioUrl || "",
       });
@@ -378,6 +456,7 @@ export default function AdminSectionEdit() {
         questionType: defaultType,
         options: ["", "", "", ""],
         correctAnswer: "",
+        fillBlankAnswers: [""],
         points: 1,
         audioUrl: "",
       });
@@ -1008,7 +1087,8 @@ export default function AdminSectionEdit() {
             )}
 
             {questionForm.questionType !== "speaking" &&
-              questionForm.questionType !== "essay" && (
+              questionForm.questionType !== "essay" &&
+              questionForm.questionType !== "fill_blank" && (
                 <div className="space-y-2">
                   <Label>Đáp án đúng</Label>
                   <Input
@@ -1023,6 +1103,45 @@ export default function AdminSectionEdit() {
                   />
                 </div>
               )}
+
+            {questionForm.questionType === "fill_blank" && (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Đáp án cho từng ô trống</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Dùng placeholder <code>[BLANK]</code>, <code>[BLANK_1]</code>
+                    ... hoặc <code>_____</code> trong nội dung câu hỏi.
+                  </p>
+                </div>
+
+                {fillBlankTokenCount > 0 && (
+                  <div className="text-xs text-primary">
+                    Phát hiện {fillBlankTokenCount} ô trống trong nội dung.
+                  </div>
+                )}
+
+                {fillBlankTokenCount === 0 && (
+                  <div className="text-xs text-amber-600">
+                    Chưa có placeholder nào trong nội dung câu hỏi, nên chưa tạo ô đáp án.
+                  </div>
+                )}
+
+                {questionForm.fillBlankAnswers.map((answer, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="text-sm font-medium w-16">Ô {idx + 1}</span>
+                    <Input
+                      placeholder={`Đáp án ô ${idx + 1}`}
+                      value={answer}
+                      onChange={(e) => {
+                        const updated = [...questionForm.fillBlankAnswers];
+                        updated[idx] = e.target.value;
+                        setQuestionForm((f) => ({ ...f, fillBlankAnswers: updated }));
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Ghi chú cho Speaking */}
             {questionForm.questionType === "speaking" && (
@@ -1053,6 +1172,8 @@ export default function AdminSectionEdit() {
               onClick={handleSaveQuestion}
               disabled={
                 !questionForm.questionText ||
+                (questionForm.questionType === "fill_blank" &&
+                  questionForm.fillBlankAnswers.some((a) => !a.trim())) ||
                 createQuestionMutation.isPending ||
                 updateQuestionMutation.isPending
               }
