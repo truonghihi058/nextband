@@ -1,4 +1,4 @@
-import { useState, MutableRefObject } from "react";
+import { MutableRefObject } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -106,9 +106,16 @@ export function GrammarSection({
                         <BookOpen className="h-4 w-4" />
                         Bài đọc
                       </div>
-                      <div className="text-sm leading-relaxed whitespace-pre-wrap">
-                        {group.passage}
-                      </div>
+                      {/<[^>]+>/.test(group.passage) ? (
+                        <div
+                          className="text-sm leading-relaxed prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: group.passage }}
+                        />
+                      ) : (
+                        <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                          {group.passage}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )}

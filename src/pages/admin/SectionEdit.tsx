@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import FileUpload from "@/components/admin/FileUpload";
 import DeleteConfirmDialog from "@/components/admin/DeleteConfirmDialog";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   Accordion,
   AccordionContent,
@@ -690,9 +691,10 @@ export default function AdminSectionEdit() {
                           <div className="text-sm font-medium mb-2">
                             Đoạn văn:
                           </div>
-                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                            {group.passage}
-                          </p>
+                          <div
+                            className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: group.passage }}
+                          />
                         </div>
                       )}
 
@@ -926,13 +928,13 @@ export default function AdminSectionEdit() {
             {section.sectionType !== "speaking" && (
               <div className="space-y-2">
                 <Label>Đoạn văn (Passage) — nếu có</Label>
-                <Textarea
-                  placeholder="Nhập đoạn văn đọc hiểu (nếu nhóm này cần bài đọc kèm theo)..."
+                <RichTextEditor
                   value={groupForm.passage}
-                  onChange={(e) =>
-                    setGroupForm((f) => ({ ...f, passage: e.target.value }))
+                  onChange={(html) =>
+                    setGroupForm((f) => ({ ...f, passage: html }))
                   }
-                  rows={6}
+                  placeholder="Nhập đoạn văn đọc hiểu (nếu nhóm này cần bài đọc kèm theo)..."
+                  minHeight={220}
                 />
               </div>
             )}
@@ -991,20 +993,22 @@ export default function AdminSectionEdit() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nội dung câu hỏi *</Label>
-              <Textarea
-                placeholder="Nhập câu hỏi..."
-                value={questionForm.questionText}
-                onChange={(e) =>
-                  setQuestionForm((f) => ({
-                    ...f,
-                    questionText: e.target.value,
-                  }))
-                }
-                rows={3}
-              />
-            </div>
+            {questionForm.questionType !== "listening" && (
+              <div className="space-y-2">
+                <Label>Nội dung câu hỏi *</Label>
+                <Textarea
+                  placeholder="Nhập câu hỏi..."
+                  value={questionForm.questionText}
+                  onChange={(e) =>
+                    setQuestionForm((f) => ({
+                      ...f,
+                      questionText: e.target.value,
+                    }))
+                  }
+                  rows={3}
+                />
+              </div>
+            )}
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -1046,22 +1050,59 @@ export default function AdminSectionEdit() {
                 )}
             </div>
 
-            {/* Upload audio cho câu hỏi Listening */}
+            {/* Form riêng cho Listening */}
             {questionForm.questionType === "listening" && (
-              <div className="space-y-2">
-                <Label>File Audio cho câu hỏi</Label>
-                <FileUpload
-                  accept="audio/*"
-                  currentUrl={questionForm.audioUrl || undefined}
-                  onUploadComplete={(url) =>
-                    setQuestionForm((f) => ({ ...f, audioUrl: url }))
-                  }
-                  onRemove={() =>
-                    setQuestionForm((f) => ({ ...f, audioUrl: "" }))
-                  }
-                  maxSizeMB={20}
-                />
-              </div>
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-4 space-y-4">
+                  <div className="text-sm font-semibold text-primary">
+                    Cấu hình câu hỏi Listening
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Audio câu hỏi (bắt buộc)</Label>
+                    <FileUpload
+                      accept="audio/*"
+                      currentUrl={questionForm.audioUrl || undefined}
+                      onUploadComplete={(url) =>
+                        setQuestionForm((f) => ({ ...f, audioUrl: url }))
+                      }
+                      onRemove={() =>
+                        setQuestionForm((f) => ({ ...f, audioUrl: "" }))
+                      }
+                      maxSizeMB={20}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Nội dung câu hỏi đi kèm audio</Label>
+                    <Textarea
+                      placeholder="Ví dụ: What is the main reason the speaker moved to the city?"
+                      value={questionForm.questionText}
+                      onChange={(e) =>
+                        setQuestionForm((f) => ({
+                          ...f,
+                          questionText: e.target.value,
+                        }))
+                      }
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Đáp án đúng (nếu cần)</Label>
+                    <Input
+                      placeholder="Nhập đáp án đúng..."
+                      value={questionForm.correctAnswer}
+                      onChange={(e) =>
+                        setQuestionForm((f) => ({
+                          ...f,
+                          correctAnswer: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {questionForm.questionType === "multiple_choice" && (
@@ -1088,7 +1129,8 @@ export default function AdminSectionEdit() {
 
             {questionForm.questionType !== "speaking" &&
               questionForm.questionType !== "essay" &&
-              questionForm.questionType !== "fill_blank" && (
+              questionForm.questionType !== "fill_blank" &&
+              questionForm.questionType !== "listening" && (
                 <div className="space-y-2">
                   <Label>Đáp án đúng</Label>
                   <Input
@@ -1174,6 +1216,8 @@ export default function AdminSectionEdit() {
                 !questionForm.questionText ||
                 (questionForm.questionType === "fill_blank" &&
                   questionForm.fillBlankAnswers.some((a) => !a.trim())) ||
+                (questionForm.questionType === "listening" &&
+                  !questionForm.audioUrl) ||
                 createQuestionMutation.isPending ||
                 updateQuestionMutation.isPending
               }

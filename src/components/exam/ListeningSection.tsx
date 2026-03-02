@@ -85,9 +85,16 @@ export function ListeningSection({
             <div className="p-6">
               <div className="prose prose-sm max-w-none">
                 <h3 className="text-lg font-semibold mb-4">Transcript</h3>
-                <p className="whitespace-pre-wrap leading-relaxed text-foreground">
-                  {currentGroup.passage}
-                </p>
+                {/<[^>]+>/.test(currentGroup.passage) ? (
+                  <div
+                    className="leading-relaxed text-foreground"
+                    dangerouslySetInnerHTML={{ __html: currentGroup.passage }}
+                  />
+                ) : (
+                  <p className="whitespace-pre-wrap leading-relaxed text-foreground">
+                    {currentGroup.passage}
+                  </p>
+                )}
               </div>
             </div>
           </ScrollArea>
