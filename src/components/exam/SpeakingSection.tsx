@@ -145,6 +145,16 @@ export function SpeakingSection({
                               {question.question_text}
                             </p>
 
+                            {question.question_audio_url && (
+                              <div className="bg-white/60 p-3 rounded-xl border border-[hsl(var(--speaking))]/20 flex items-center gap-3 max-w-md">
+                                <audio
+                                  src={question.question_audio_url}
+                                  controls
+                                  className="h-8 w-full"
+                                />
+                              </div>
+                            )}
+
                             {/* Question Type Specific Interaction */}
                             <div className="pl-0 pb-2">
                               {question.question_type === "multiple_choice" && (
