@@ -28,6 +28,7 @@ interface ReadingSectionProps {
 const FILL_BLANK_PLACEHOLDER_REGEX = /(\[BLANK(?:_\d+)?\]|_____)/g;
 const hasFillBlankPlaceholders = (text: string) =>
   /(\[BLANK(?:_\d+)?\]|_____)/.test(text);
+const containsHtml = (text: string) => /<[^>]+>/.test(text);
 
 export function ReadingSection({
   section,
@@ -223,9 +224,16 @@ export function ReadingSection({
 
           {passageText && (
             <div className="prose prose-sm max-w-none">
-              <p className="whitespace-pre-wrap leading-relaxed text-foreground select-text">
-                {renderHighlightedText()}
-              </p>
+              {containsHtml(passageText) ? (
+                <div
+                  className="leading-relaxed text-foreground"
+                  dangerouslySetInnerHTML={{ __html: passageText }}
+                />
+              ) : (
+                <p className="whitespace-pre-wrap leading-relaxed text-foreground select-text">
+                  {renderHighlightedText()}
+                </p>
+              )}
             </div>
           )}
         </div>

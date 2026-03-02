@@ -535,7 +535,9 @@ export default function ExamInterface() {
           <AlertDialogFooter>
             <AlertDialogCancel>Tiếp tục làm bài</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => navigate("/")}
+              onClick={() =>
+                navigate(exam?.courseId ? `/course/${exam.courseId}` : "/my-courses")
+              }
               className="bg-destructive hover:bg-destructive/90"
             >
               Thoát
