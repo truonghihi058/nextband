@@ -183,8 +183,11 @@ export function GrammarSection({
                             </div>
 
                             <div className="ml-12 space-y-4">
-                              {/* Multiple Choice */}
-                              {question.question_type === "multiple_choice" &&
+                              {/* Multiple Choice or Listening with Options */}
+                              {(question.question_type === "multiple_choice" ||
+                                (question.question_type === "listening" &&
+                                  question.options &&
+                                  question.options.length > 0)) &&
                                 question.options &&
                                 question.options.length > 0 && (
                                   <RadioGroup
@@ -323,24 +326,30 @@ export function GrammarSection({
                                 </div>
                               )}
 
+                              {/* Short Answer or Listening without Options */}
+                              {(question.question_type === "short_answer" ||
+                                question.question_type === "listening") &&
+                                (!question.options ||
+                                  question.options.length === 0) && (
+                                  <Input
+                                    placeholder="Nhập câu trả lời..."
+                                    value={answers[question.id] || ""}
+                                    onChange={(e) =>
+                                      onAnswerChange(
+                                        question.id,
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="max-w-2xl h-11"
+                                  />
+                                )}
+
                               {/* Speaking / Audio Answer */}
                               {question.question_type === "speaking" && (
                                 <QuestionRecorder
                                   questionId={question.id}
                                   answer={answers[question.id]}
                                   onAnswerChange={onAnswerChange}
-                                />
-                              )}
-
-                              {/* Short Answer */}
-                              {question.question_type === "short_answer" && (
-                                <Input
-                                  placeholder="Nhập câu trả lời..."
-                                  value={answers[question.id] || ""}
-                                  onChange={(e) =>
-                                    onAnswerChange(question.id, e.target.value)
-                                  }
-                                  className="max-w-2xl h-11"
                                 />
                               )}
 

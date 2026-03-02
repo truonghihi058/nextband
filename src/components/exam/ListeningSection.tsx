@@ -39,10 +39,15 @@ export function ListeningSection({
       ...q,
       question_text: q.question_text || q.questionText || "",
       question_type: q.question_type || q.questionType || "short_answer",
-      question_audio_url: q.audioUrl || q.audio_url || q.question_audio_url || null,
+      question_audio_url:
+        q.audioUrl || q.audio_url || q.question_audio_url || null,
       order_index: q.order_index ?? q.orderIndex ?? 0,
       correct_answer: q.correct_answer || q.correctAnswer || null,
-      options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : [],
+      options: q.options
+        ? typeof q.options === "string"
+          ? JSON.parse(q.options)
+          : q.options
+        : [],
     })),
   }));
 
@@ -145,7 +150,7 @@ export function ListeningSection({
                           "transition-all duration-300 border-l-4",
                           isCurrent
                             ? "ring-1 ring-primary shadow-md border-l-primary bg-primary/5"
-                            : "border-l-transparent hover:border-l-muted-foreground/30 hover:shadow-sm"
+                            : "border-l-transparent hover:border-l-muted-foreground/30 hover:shadow-sm",
                         )}
                         onClick={() => onQuestionFocus?.(question.id)}
                       >
@@ -169,15 +174,21 @@ export function ListeningSection({
                                     controls
                                     className="h-8 w-full max-w-[300px]"
                                   />
-                                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Audio riêng</span>
+                                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                                    Audio riêng
+                                  </span>
                                 </div>
                               )}
                             </div>
                           </div>
 
                           <div className="ml-12 space-y-4">
-                            {(question.question_type === "multiple_choice") &&
-                              question.options && question.options.length > 0 && (
+                            {(question.question_type === "multiple_choice" ||
+                              (question.question_type === "listening" &&
+                                question.options &&
+                                question.options.length > 0)) &&
+                              question.options &&
+                              question.options.length > 0 && (
                                 <RadioGroup
                                   value={answers[question.id] || ""}
                                   onValueChange={(value) =>
@@ -193,7 +204,7 @@ export function ListeningSection({
                                           "flex items-center space-x-3 p-3 rounded-xl border transition-all cursor-pointer",
                                           answers[question.id] === option
                                             ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
-                                            : "bg-background border-transparent hover:bg-muted/30"
+                                            : "bg-background border-transparent hover:bg-muted/30",
                                         )}
                                       >
                                         <RadioGroupItem
@@ -212,24 +223,32 @@ export function ListeningSection({
                                 </RadioGroup>
                               )}
 
-                            {(question.question_type === "fill_blank" || question.question_type === "listening" || question.question_type === "short_answer") && (
-                              <div className="space-y-2">
-                                <Input
-                                  placeholder="Nhập câu trả lời của bạn..."
-                                  value={answers[question.id] || ""}
-                                  onChange={(e) =>
-                                    onAnswerChange(question.id, e.target.value)
-                                  }
-                                  className="max-w-md h-11 bg-background shadow-sm focus-visible:ring-primary/30"
-                                />
-                                <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5 opacity-70">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                                  Gợi ý: Nhập văn bản vào ô trên
-                                </p>
-                              </div>
-                            )}
+                            {(question.question_type === "fill_blank" ||
+                              question.question_type === "listening" ||
+                              question.question_type === "short_answer") &&
+                              (!question.options ||
+                                question.options.length === 0) && (
+                                <div className="space-y-2">
+                                  <Input
+                                    placeholder="Nhập câu trả lời của bạn..."
+                                    value={answers[question.id] || ""}
+                                    onChange={(e) =>
+                                      onAnswerChange(
+                                        question.id,
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="max-w-md h-11 bg-background shadow-sm focus-visible:ring-primary/30"
+                                  />
+                                  <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5 opacity-70">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                                    Gợi ý: Nhập văn bản vào ô trên
+                                  </p>
+                                </div>
+                              )}
 
-                            {question.question_type === "true_false_not_given" && (
+                            {question.question_type ===
+                              "true_false_not_given" && (
                               <div className="max-w-[200px]">
                                 <DropdownSelect
                                   value={answers[question.id] || ""}

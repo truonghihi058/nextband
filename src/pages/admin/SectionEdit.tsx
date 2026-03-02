@@ -115,8 +115,7 @@ const parseFillBlankAnswers = (value: string | null | undefined): string[] => {
     if (Array.isArray(parsed)) {
       return parsed.map((item) => String(item ?? "").trim());
     }
-  } catch {
-  }
+  } catch {}
 
   return value
     .split("|")
@@ -582,7 +581,9 @@ export default function AdminSectionEdit() {
                   onDurationDetected={(duration) => {
                     const minutes = Math.max(1, Math.ceil(duration / 60));
                     if (section.durationMinutes !== minutes) {
-                      updateSectionMutation.mutate({ durationMinutes: minutes });
+                      updateSectionMutation.mutate({
+                        durationMinutes: minutes,
+                      });
                     }
                   }}
                   maxSizeMB={20}
@@ -596,10 +597,14 @@ export default function AdminSectionEdit() {
                     value={section.durationMinutes || ""}
                     onChange={(e) => {
                       const val = parseInt(e.target.value);
-                      updateSectionMutation.mutate({ durationMinutes: isNaN(val) ? 0 : val });
+                      updateSectionMutation.mutate({
+                        durationMinutes: isNaN(val) ? 0 : val,
+                      });
                     }}
                   />
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">phút</span>
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">
+                    phút
+                  </span>
                 </div>
                 <p className="text-[10px] text-muted-foreground italic">
                   * Tự động cập nhật theo độ dài file audio (tối thiểu 1p)
@@ -1053,28 +1058,74 @@ export default function AdminSectionEdit() {
             {/* Form riêng cho Listening */}
             {questionForm.questionType === "listening" && (
               <Card className="border-primary/30 bg-primary/5">
-                <CardContent className="p-4 space-y-4">
-                  <div className="text-sm font-semibold text-primary">
-                    Cấu hình câu hỏi Listening
+                <CardContent className="p-4 space-y-5">
+                  <div className="flex items-center gap-2 text-sm font-bold text-primary pb-2 border-b border-primary/10">
+                    <Headphones className="h-4 w-4" />
+                    CẤU HÌNH CÂU HỎI LISTENING
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Audio câu hỏi (bắt buộc)
+                      </Label>
+                      <FileUpload
+                        accept="audio/*"
+                        currentUrl={questionForm.audioUrl || undefined}
+                        onUploadComplete={(url) =>
+                          setQuestionForm((f) => ({ ...f, audioUrl: url }))
+                        }
+                        onRemove={() =>
+                          setQuestionForm((f) => ({ ...f, audioUrl: "" }))
+                        }
+                        maxSizeMB={20}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Kiểu tương tác
+                      </Label>
+                      <Select
+                        value={
+                          questionForm.options &&
+                          questionForm.options.length > 0
+                            ? "multiple_choice"
+                            : "short_answer"
+                        }
+                        onValueChange={(v) => {
+                          if (v === "multiple_choice") {
+                            setQuestionForm((f) => ({
+                              ...f,
+                              options: ["", "", "", ""],
+                            }));
+                          } else {
+                            setQuestionForm((f) => ({ ...f, options: [] }));
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Chọn kiểu tương tác" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="short_answer">
+                            Trả lời ngắn / Điền từ
+                          </SelectItem>
+                          <SelectItem value="multiple_choice">
+                            Trắc nghiệm (MCQ)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-muted-foreground italic">
+                        * Chọn Trắc nghiệm nếu muốn có các lựa chọn A, B, C, D
+                      </p>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Audio câu hỏi (bắt buộc)</Label>
-                    <FileUpload
-                      accept="audio/*"
-                      currentUrl={questionForm.audioUrl || undefined}
-                      onUploadComplete={(url) =>
-                        setQuestionForm((f) => ({ ...f, audioUrl: url }))
-                      }
-                      onRemove={() =>
-                        setQuestionForm((f) => ({ ...f, audioUrl: "" }))
-                      }
-                      maxSizeMB={20}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Nội dung câu hỏi đi kèm audio</Label>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Nội dung câu hỏi đi kèm audio
+                    </Label>
                     <Textarea
                       placeholder="Ví dụ: What is the main reason the speaker moved to the city?"
                       value={questionForm.questionText}
@@ -1085,11 +1136,44 @@ export default function AdminSectionEdit() {
                         }))
                       }
                       rows={3}
+                      className="bg-background"
                     />
                   </div>
 
+                  {questionForm.options && questionForm.options.length > 0 && (
+                    <div className="space-y-3 pt-2 bg-white/50 p-3 rounded-lg border border-dashed">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Các lựa chọn trắc nghiệm
+                      </Label>
+                      <div className="grid gap-2">
+                        {questionForm.options.map((opt, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <span className="text-sm font-bold w-6 text-primary">
+                              {String.fromCharCode(65 + i)}.
+                            </span>
+                            <Input
+                              placeholder={`Lựa chọn ${String.fromCharCode(65 + i)}`}
+                              value={opt}
+                              onChange={(e) => {
+                                const newOpts = [...questionForm.options];
+                                newOpts[i] = e.target.value;
+                                setQuestionForm((f) => ({
+                                  ...f,
+                                  options: newOpts,
+                                }));
+                              }}
+                              className="bg-background h-9"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
-                    <Label>Đáp án đúng (nếu cần)</Label>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Đáp án chính xác
+                    </Label>
                     <Input
                       placeholder="Nhập đáp án đúng..."
                       value={questionForm.correctAnswer}
@@ -1099,7 +1183,12 @@ export default function AdminSectionEdit() {
                           correctAnswer: e.target.value,
                         }))
                       }
+                      className="bg-background h-10 border-primary/20 focus-visible:border-primary"
                     />
+                    <p className="text-[10px] text-muted-foreground">
+                      * Nếu là trắc nghiệm, hãy nhập nội dung chính xác của lựa
+                      chọn (VD: "New York")
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -1151,7 +1240,8 @@ export default function AdminSectionEdit() {
                 <div className="space-y-1">
                   <Label>Đáp án cho từng ô trống</Label>
                   <p className="text-xs text-muted-foreground">
-                    Dùng placeholder <code>[BLANK]</code>, <code>[BLANK_1]</code>
+                    Dùng placeholder <code>[BLANK]</code>,{" "}
+                    <code>[BLANK_1]</code>
                     ... hoặc <code>_____</code> trong nội dung câu hỏi.
                   </p>
                 </div>
@@ -1164,20 +1254,26 @@ export default function AdminSectionEdit() {
 
                 {fillBlankTokenCount === 0 && (
                   <div className="text-xs text-amber-600">
-                    Chưa có placeholder nào trong nội dung câu hỏi, nên chưa tạo ô đáp án.
+                    Chưa có placeholder nào trong nội dung câu hỏi, nên chưa tạo
+                    ô đáp án.
                   </div>
                 )}
 
                 {questionForm.fillBlankAnswers.map((answer, idx) => (
                   <div key={idx} className="flex items-center gap-2">
-                    <span className="text-sm font-medium w-16">Ô {idx + 1}</span>
+                    <span className="text-sm font-medium w-16">
+                      Ô {idx + 1}
+                    </span>
                     <Input
                       placeholder={`Đáp án ô ${idx + 1}`}
                       value={answer}
                       onChange={(e) => {
                         const updated = [...questionForm.fillBlankAnswers];
                         updated[idx] = e.target.value;
-                        setQuestionForm((f) => ({ ...f, fillBlankAnswers: updated }));
+                        setQuestionForm((f) => ({
+                          ...f,
+                          fillBlankAnswers: updated,
+                        }));
                       }}
                     />
                   </div>
