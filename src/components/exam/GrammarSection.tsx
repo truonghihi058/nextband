@@ -8,6 +8,7 @@ import { FileText, BookOpen } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { DropdownSelect } from "./DropdownSelect";
+import { QuestionRecorder } from "./QuestionRecorder";
 
 interface GrammarSectionProps {
   section: any;
@@ -48,10 +49,15 @@ export function GrammarSection({
       ...q,
       question_text: q.question_text || q.questionText || "",
       question_type: q.question_type || q.questionType || "short_answer",
-      question_audio_url: q.audioUrl || q.audio_url || q.question_audio_url || null,
+      question_audio_url:
+        q.audioUrl || q.audio_url || q.question_audio_url || null,
       order_index: q.order_index ?? q.orderIndex ?? 0,
       correct_answer: q.correct_answer || q.correctAnswer || null,
-      options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : [],
+      options: q.options
+        ? typeof q.options === "string"
+          ? JSON.parse(q.options)
+          : q.options
+        : [],
     })),
   }));
 
@@ -123,7 +129,10 @@ export function GrammarSection({
                 {/* Questions */}
                 <div className="space-y-4">
                   {(group.questions || [])
-                    .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+                    .sort(
+                      (a: any, b: any) =>
+                        (a.order_index || 0) - (b.order_index || 0),
+                    )
                     .map((question: any, qIndex: number) => {
                       const isCurrent = question.id === currentQuestionId;
 
@@ -139,7 +148,7 @@ export function GrammarSection({
                             "transition-all duration-300 border-l-4",
                             isCurrent
                               ? "ring-1 ring-primary shadow-md border-l-primary bg-primary/5"
-                              : "border-l-transparent hover:border-l-muted-foreground/30 hover:shadow-sm"
+                              : "border-l-transparent hover:border-l-muted-foreground/30 hover:shadow-sm",
                           )}
                           onClick={() => onQuestionFocus?.(question.id)}
                         >
@@ -152,7 +161,9 @@ export function GrammarSection({
                               <div className="flex-1 space-y-3">
                                 {!(
                                   question.question_type === "fill_blank" &&
-                                  hasFillBlankPlaceholders(question.question_text)
+                                  hasFillBlankPlaceholders(
+                                    question.question_text,
+                                  )
                                 ) && (
                                   <p className="font-semibold text-base leading-snug">
                                     {question.question_text}
@@ -174,47 +185,60 @@ export function GrammarSection({
                             <div className="ml-12 space-y-4">
                               {/* Multiple Choice */}
                               {question.question_type === "multiple_choice" &&
-                                question.options && question.options.length > 0 && (
+                                question.options &&
+                                question.options.length > 0 && (
                                   <RadioGroup
                                     value={answers[question.id] || ""}
-                                    onValueChange={(value) => onAnswerChange(question.id, value)}
+                                    onValueChange={(value) =>
+                                      onAnswerChange(question.id, value)
+                                    }
                                     className="grid gap-2"
                                   >
-                                    {question.options.map((option: string, i: number) => (
-                                      <div
-                                        key={i}
-                                        className={cn(
-                                          "flex items-center space-x-3 p-3 rounded-xl border transition-all cursor-pointer",
-                                          answers[question.id] === option
-                                            ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
-                                            : "bg-background border-transparent hover:bg-muted/30"
-                                        )}
-                                      >
-                                        <RadioGroupItem value={option} id={`${question.id}-${i}`} />
-                                        <Label
-                                          htmlFor={`${question.id}-${i}`}
-                                          className="flex-1 cursor-pointer font-medium text-sm"
+                                    {question.options.map(
+                                      (option: string, i: number) => (
+                                        <div
+                                          key={i}
+                                          className={cn(
+                                            "flex items-center space-x-3 p-3 rounded-xl border transition-all cursor-pointer",
+                                            answers[question.id] === option
+                                              ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
+                                              : "bg-background border-transparent hover:bg-muted/30",
+                                          )}
                                         >
-                                          <span className="text-muted-foreground mr-2 text-xs font-bold w-4 inline-block">
-                                            {String.fromCharCode(65 + i)}
-                                          </span>
-                                          {option}
-                                        </Label>
-                                      </div>
-                                    ))}
+                                          <RadioGroupItem
+                                            value={option}
+                                            id={`${question.id}-${i}`}
+                                          />
+                                          <Label
+                                            htmlFor={`${question.id}-${i}`}
+                                            className="flex-1 cursor-pointer font-medium text-sm"
+                                          >
+                                            <span className="text-muted-foreground mr-2 text-xs font-bold w-4 inline-block">
+                                              {String.fromCharCode(65 + i)}
+                                            </span>
+                                            {option}
+                                          </Label>
+                                        </div>
+                                      ),
+                                    )}
                                   </RadioGroup>
                                 )}
 
                               {/* Fill Blank */}
                               {question.question_type === "fill_blank" && (
                                 <div className="space-y-3">
-                                  {hasFillBlankPlaceholders(question.question_text) ? (
+                                  {hasFillBlankPlaceholders(
+                                    question.question_text,
+                                  ) ? (
                                     <div className="text-base leading-relaxed pt-1">
                                       {(() => {
                                         const text = question.question_text;
-                                        const parts = text.split(FILL_BLANK_PLACEHOLDER_REGEX);
+                                        const parts = text.split(
+                                          FILL_BLANK_PLACEHOLDER_REGEX,
+                                        );
                                         const currentAnswers =
-                                          typeof answers[question.id] === "object" &&
+                                          typeof answers[question.id] ===
+                                            "object" &&
                                           answers[question.id] !== null
                                             ? answers[question.id]
                                             : {};
@@ -222,36 +246,63 @@ export function GrammarSection({
 
                                         return (
                                           <div className="flex flex-wrap items-baseline gap-2">
-                                            {parts.map((part: string, index: number) => {
-                                              const isBlank =
-                                                part === "_____" || part.startsWith("[BLANK");
+                                            {parts.map(
+                                              (part: string, index: number) => {
+                                                const isBlank =
+                                                  part === "_____" ||
+                                                  part.startsWith("[BLANK");
 
-                                              if (isBlank) {
-                                                const normalizedIndex = part.match(/^\[BLANK_(\d+)\]$/)?.[1]
-                                                  ? Number(part.match(/^\[BLANK_(\d+)\]$/)?.[1]) - 1
-                                                  : blankCursor;
-                                                const key = String(Math.max(0, normalizedIndex));
-                                                const value = currentAnswers[key] || "";
-                                                blankCursor += 1;
+                                                if (isBlank) {
+                                                  const normalizedIndex =
+                                                    part.match(
+                                                      /^\[BLANK_(\d+)\]$/,
+                                                    )?.[1]
+                                                      ? Number(
+                                                          part.match(
+                                                            /^\[BLANK_(\d+)\]$/,
+                                                          )?.[1],
+                                                        ) - 1
+                                                      : blankCursor;
+                                                  const key = String(
+                                                    Math.max(
+                                                      0,
+                                                      normalizedIndex,
+                                                    ),
+                                                  );
+                                                  const value =
+                                                    currentAnswers[key] || "";
+                                                  blankCursor += 1;
+
+                                                  return (
+                                                    <Input
+                                                      key={`${question.id}-blank-${index}`}
+                                                      placeholder="..."
+                                                      value={value}
+                                                      onChange={(e) =>
+                                                        onAnswerChange(
+                                                          question.id,
+                                                          {
+                                                            ...currentAnswers,
+                                                            [key]:
+                                                              e.target.value,
+                                                          },
+                                                        )
+                                                      }
+                                                      className="w-32 inline-flex h-9 border-b-2 border-t-0 border-x-0 rounded-none bg-transparent focus-visible:ring-0 focus-visible:border-primary px-1"
+                                                    />
+                                                  );
+                                                }
 
                                                 return (
-                                                  <Input
-                                                    key={`${question.id}-blank-${index}`}
-                                                    placeholder="..."
-                                                    value={value}
-                                                    onChange={(e) =>
-                                                      onAnswerChange(question.id, {
-                                                        ...currentAnswers,
-                                                        [key]: e.target.value,
-                                                      })
-                                                    }
-                                                    className="w-32 inline-flex h-9 border-b-2 border-t-0 border-x-0 rounded-none bg-transparent focus-visible:ring-0 focus-visible:border-primary px-1"
-                                                  />
+                                                  <span
+                                                    key={index}
+                                                    className="font-medium"
+                                                  >
+                                                    {part}
+                                                  </span>
                                                 );
-                                              }
-
-                                              return <span key={index} className="font-medium">{part}</span>;
-                                            })}
+                                              },
+                                            )}
                                           </div>
                                         );
                                       })()}
@@ -260,11 +311,25 @@ export function GrammarSection({
                                     <Input
                                       placeholder="Nhập đáp án của bạn..."
                                       value={answers[question.id] || ""}
-                                      onChange={(e) => onAnswerChange(question.id, e.target.value)}
+                                      onChange={(e) =>
+                                        onAnswerChange(
+                                          question.id,
+                                          e.target.value,
+                                        )
+                                      }
                                       className="max-w-md h-11"
                                     />
                                   )}
                                 </div>
+                              )}
+
+                              {/* Speaking / Audio Answer */}
+                              {question.question_type === "speaking" && (
+                                <QuestionRecorder
+                                  questionId={question.id}
+                                  answer={answers[question.id]}
+                                  onAnswerChange={onAnswerChange}
+                                />
                               )}
 
                               {/* Short Answer */}
@@ -272,7 +337,9 @@ export function GrammarSection({
                                 <Input
                                   placeholder="Nhập câu trả lời..."
                                   value={answers[question.id] || ""}
-                                  onChange={(e) => onAnswerChange(question.id, e.target.value)}
+                                  onChange={(e) =>
+                                    onAnswerChange(question.id, e.target.value)
+                                  }
                                   className="max-w-2xl h-11"
                                 />
                               )}
@@ -283,21 +350,38 @@ export function GrammarSection({
                                   <Textarea
                                     placeholder="Viết câu trả lời của bạn..."
                                     value={answers[question.id] || ""}
-                                    onChange={(e) => onAnswerChange(question.id, e.target.value)}
+                                    onChange={(e) =>
+                                      onAnswerChange(
+                                        question.id,
+                                        e.target.value,
+                                      )
+                                    }
                                     rows={8}
                                     className="resize-y shadow-sm"
                                   />
-                                  <WordCount text={answers[question.id] || ""} />
+                                  <WordCount
+                                    text={answers[question.id] || ""}
+                                  />
                                 </div>
                               )}
 
                               {/* TRUE/FALSE/NOT GIVEN */}
-                              {(question.question_type === "true_false_not_given" || question.question_type === "yes_no_not_given") && (
+                              {(question.question_type ===
+                                "true_false_not_given" ||
+                                question.question_type ===
+                                  "yes_no_not_given") && (
                                 <div className="max-w-[200px]">
                                   <DropdownSelect
                                     value={answers[question.id] || ""}
-                                    onChange={(value) => onAnswerChange(question.id, value)}
-                                    options={question.question_type === "true_false_not_given" ? ["TRUE", "FALSE", "NOT GIVEN"] : ["YES", "NO", "NOT GIVEN"]}
+                                    onChange={(value) =>
+                                      onAnswerChange(question.id, value)
+                                    }
+                                    options={
+                                      question.question_type ===
+                                      "true_false_not_given"
+                                        ? ["TRUE", "FALSE", "NOT GIVEN"]
+                                        : ["YES", "NO", "NOT GIVEN"]
+                                    }
                                     placeholder="Chọn đáp án"
                                   />
                                 </div>
