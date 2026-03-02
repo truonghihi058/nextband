@@ -159,6 +159,8 @@ export default function ExamForm({
           description: values.description || "",
           isPublished: values.isPublished,
           isActive: values.isActive,
+          week: values.week,
+          durationMinutes: values.durationMinutes,
         } as any);
 
         toast({

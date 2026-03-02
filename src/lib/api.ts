@@ -224,6 +224,8 @@ export const examsApi = {
       description: string;
       isPublished: boolean;
       isActive: boolean;
+      week: number;
+      durationMinutes: number;
     }>,
   ) => {
     const { data } = await api.put(`/exams/${id}`, exam);
