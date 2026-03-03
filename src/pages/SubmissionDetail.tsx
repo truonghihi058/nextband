@@ -78,9 +78,22 @@ export default function SubmissionDetail() {
     0,
   );
   const isGraded = submission?.status === "graded";
-  const answeredCount = allQuestions.filter(
-    (q: any) => answerMap[q.id]?.answerText || answerMap[q.id]?.audioUrl,
-  ).length;
+  const answeredCount = useMemo(() => {
+    return allQuestions.filter((q: any) => {
+      const answer = answerMap[q.id];
+      if (!answer) return false;
+      return (
+        (typeof answer.answerText === "string" &&
+          answer.answerText.trim() !== "") ||
+        !!answer.audioUrl
+      );
+    }).length;
+  }, [allQuestions, answerMap]);
+
+  const completionRate = useMemo(() => {
+    if (allQuestions.length === 0) return 0;
+    return Math.round((answeredCount / allQuestions.length) * 100);
+  }, [answeredCount, allQuestions.length]);
 
   if (isLoading) {
     return (
@@ -158,7 +171,7 @@ export default function SubmissionDetail() {
             <div className="text-center">
               <p className="text-xs text-muted-foreground">Đã trả lời</p>
               <p className="text-lg font-semibold">
-                {answeredCount}/{allQuestions.length}
+                {answeredCount}/{allQuestions.length} ({completionRate}%)
               </p>
             </div>
             <div className="text-center">
