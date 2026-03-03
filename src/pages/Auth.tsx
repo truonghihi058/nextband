@@ -101,7 +101,7 @@ export default function Auth() {
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
             <GraduationCap className="h-8 w-8 text-primary" />
-            Dreamer
+            Homework
           </h1>
           <p className="text-muted-foreground mt-2">
             Nền tảng học IELTS hiện đại
@@ -139,7 +139,7 @@ export default function Auth() {
         </div>
 
         <p className="text-sm text-muted-foreground">
-          © 2024 Dreamer. Tất cả quyền được bảo lưu.
+          © {new Date().getFullYear()} Homework. Tất cả quyền được bảo lưu.
         </p>
       </div>
 
@@ -148,7 +148,7 @@ export default function Auth() {
           <CardHeader className="text-center">
             <div className="lg:hidden flex items-center justify-center gap-2 mb-4">
               <GraduationCap className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold">Dreamer</span>
+              <span className="text-2xl font-bold">Homework</span>
             </div>
             <CardTitle className="text-2xl">Đăng nhập</CardTitle>
             <CardDescription>Đăng nhập để tiếp tục học tập</CardDescription>

@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { coursesApi, examsApi, enrollmentsApi, submissionsApi } from "@/lib/api";
+import {
+  coursesApi,
+  examsApi,
+  enrollmentsApi,
+  submissionsApi,
+} from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +53,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 
 const sectionIcons: Record<string, any> = {
   listening: Headphones,
@@ -141,7 +145,10 @@ export default function CourseDetail() {
       const examId = sub.exam?.id || sub.examId;
       if (!examId) continue;
       const existing = map[examId];
-      if (!existing || (priority[sub.status] ?? 0) > (priority[existing] ?? 0)) {
+      if (
+        !existing ||
+        (priority[sub.status] ?? 0) > (priority[existing] ?? 0)
+      ) {
         map[examId] = sub.status;
       }
     }
@@ -220,11 +227,7 @@ export default function CourseDetail() {
                   className="w-full h-48 object-cover rounded-lg mb-4"
                 />
               )}
-              <CardTitle className="text-2xl">
-                {course.price
-                  ? `${course.price.toLocaleString()} VND`
-                  : "Miễn phí"}
-              </CardTitle>
+              <CardTitle className="text-2xl">Thông tin khóa học</CardTitle>
             </CardHeader>
             <CardContent>
               {enrollment ? (
@@ -325,8 +328,11 @@ export default function CourseDetail() {
                 return (
                   <Card
                     key={exam.id}
-                    className={`hover:shadow-md transition-all duration-200 ${isDone ? "border-green-200 bg-green-50/30 dark:border-green-800/40 dark:bg-green-900/10" : ""
-                      }`}
+                    className={`hover:shadow-md transition-all duration-200 ${
+                      isDone
+                        ? "border-green-200 bg-green-50/30 dark:border-green-800/40 dark:bg-green-900/10"
+                        : ""
+                    }`}
                   >
                     <CardHeader>
                       <div className="flex items-center justify-between gap-2">

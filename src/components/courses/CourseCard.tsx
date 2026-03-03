@@ -67,13 +67,7 @@ export function CourseCard({ course, progress, enrolled }: CourseCardProps) {
 
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            {course.price ? (
-              <span className="font-semibold text-foreground">
-                {course.price.toLocaleString()} VND
-              </span>
-            ) : (
-              <span className="text-success font-medium">Miễn phí</span>
-            )}
+            {/* Price hidden as requested */}
           </div>
 
           <Button size="sm" variant={enrolled ? "default" : "outline"} asChild>

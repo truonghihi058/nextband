@@ -36,7 +36,7 @@ CREATE TABLE public.courses (
   thumbnail_url TEXT,
   level TEXT NOT NULL DEFAULT 'beginner'::text,
   teacher_id UUID,
-  price NUMERIC NOT NULL DEFAULT 0,
+  price NUMERIC DEFAULT 0,
   is_published BOOLEAN NOT NULL DEFAULT false,
   is_active BOOLEAN NOT NULL DEFAULT true,
   syllabus JSONB DEFAULT '[]'::jsonb,

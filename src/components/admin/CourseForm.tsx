@@ -209,7 +209,7 @@ export default function CourseForm({
               )}
             />
 
-            <div className="grid gap-4 md:grid-cols-2">
+            {/* <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="price"
@@ -228,7 +228,7 @@ export default function CourseForm({
                   </FormItem>
                 )}
               />
-            </div>
+            </div> */}
 
             <FormField
               control={form.control}
