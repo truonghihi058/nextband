@@ -18,6 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import {
   Pagination,
   PaginationContent,
@@ -124,6 +125,7 @@ export default function CourseDetail() {
   const exams = examsData?.data || [];
   const meta = examsData?.meta;
   const totalPages = meta?.totalPages || 1;
+  const totalExams = meta?.total || exams.length;
 
   // Check if user is enrolled in this course
   const enrollmentList = enrollmentsData?.data || [];
@@ -154,6 +156,13 @@ export default function CourseDetail() {
     }
     return map;
   })();
+
+  // Progress stats
+  const completedExams = Object.values(submissionStatusMap).filter(
+    (s) => s === "submitted" || s === "graded",
+  ).length;
+  const progressPercent =
+    totalExams > 0 ? Math.round((completedExams / totalExams) * 100) : 0;
 
   if (courseLoading) {
     return (
@@ -229,7 +238,37 @@ export default function CourseDetail() {
               )}
               <CardTitle className="text-2xl">Thông tin khóa học</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              {/* Course stats */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2 text-sm rounded-lg bg-muted/50 p-3">
+                  <BookOpen className="h-4 w-4 text-primary" />
+                  <span className="font-medium">{totalExams} buổi</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm rounded-lg bg-muted/50 p-3">
+                  <GraduationCap className="h-4 w-4 text-primary" />
+                  <span className="font-medium">
+                    {course._count?.enrollments || 0} học viên
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress bar (only for enrolled users) */}
+              {enrollment && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Tiến độ</span>
+                    <span className="font-semibold text-primary">
+                      {completedExams}/{totalExams} bài
+                    </span>
+                  </div>
+                  <Progress value={progressPercent} className="h-2.5" />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {progressPercent}% hoàn thành
+                  </p>
+                </div>
+              )}
+
               {enrollment ? (
                 <Button className="w-full" size="lg" disabled>
                   <Play className="mr-2 h-4 w-4" />
@@ -325,38 +364,60 @@ export default function CourseDetail() {
                 const isInProgress = examStatus === "in_progress";
                 const isDone = isGraded || isSubmitted;
 
+                // Build section type summary string
+                const sectionTypes = (exam.sections || [])
+                  .map((s: any) =>
+                    s.sectionType === "general"
+                      ? "Grammar"
+                      : s.sectionType.charAt(0).toUpperCase() +
+                        s.sectionType.slice(1),
+                  )
+                  .join(" · ");
+
                 return (
                   <Card
                     key={exam.id}
-                    className={`hover:shadow-md transition-all duration-200 ${
+                    className={`hover:shadow-md transition-all duration-200 relative ${
                       isDone
                         ? "border-green-200 bg-green-50/30 dark:border-green-800/40 dark:bg-green-900/10"
                         : ""
                     }`}
                   >
-                    <CardHeader>
+                    {/* Green checkmark circle for completed exams */}
+                    {isDone && (
+                      <div className="absolute -top-2 -right-2 z-10">
+                        <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center shadow-md ring-2 ring-background">
+                          <CheckCircle2 className="h-4 w-4 text-white" />
+                        </div>
+                      </div>
+                    )}
+                    <CardHeader className="pb-3">
                       <div className="flex items-center justify-between gap-2">
                         <CardTitle className="text-lg flex items-center gap-2">
-                          {isGraded && (
-                            <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
-                          )}
-                          {isSubmitted && (
-                            <ClipboardCheck className="h-5 w-5 text-amber-500 shrink-0" />
-                          )}
                           {exam.title}
                         </CardTitle>
                         <div className="flex items-center gap-2 shrink-0">
                           {exam.week && (
-                            <Badge variant="outline">Tuần {exam.week}</Badge>
+                            <Badge variant="outline" className="font-semibold">
+                              Week {exam.week}
+                            </Badge>
                           )}
                         </div>
                       </div>
+                      {/* Section types as subtitle */}
+                      {sectionTypes && (
+                        <p className="text-sm text-muted-foreground">
+                          {sectionTypes}
+                        </p>
+                      )}
                       {exam.description && (
-                        <CardDescription>{exam.description}</CardDescription>
+                        <CardDescription className="mt-1">
+                          {exam.description}
+                        </CardDescription>
                       )}
                     </CardHeader>
                     <CardContent>
-                      <div className="flex flex-wrap gap-2 mb-4">
+                      <div className="flex flex-wrap gap-1.5 mb-4">
                         {exam.sections?.map((section: any) => {
                           const Icon =
                             sectionIcons[section.sectionType] || FileText;
@@ -364,11 +425,15 @@ export default function CourseDetail() {
                             sectionColors[section.sectionType] ||
                             sectionColors.general;
                           return (
-                            <Badge key={section.id} className={colorCls}>
+                            <Badge
+                              key={section.id}
+                              className={`${colorCls} text-xs px-2 py-0.5`}
+                            >
                               <Icon className="mr-1 h-3 w-3" />
                               {section.sectionType === "general"
                                 ? "Grammar"
-                                : section.sectionType}
+                                : section.sectionType.charAt(0).toUpperCase() +
+                                  section.sectionType.slice(1)}
                             </Badge>
                           );
                         })}

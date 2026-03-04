@@ -5,7 +5,7 @@ import axios, {
   AxiosError,
 } from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://api.nextband.site/api/v11";
+const API_URL = import.meta.env.VITE_API_URL || "https://api.nextband.site/api/v1";
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -409,6 +409,11 @@ export const usersApi = {
     password: string;
     fullName?: string;
     role?: string;
+    gender?: string;
+    dateOfBirth?: string;
+    phone?: string;
+    parentName?: string;
+    parentPhone?: string;
   }) => {
     const { data } = await api.post("/users", user);
     return data;
@@ -416,7 +421,16 @@ export const usersApi = {
 
   update: async (
     id: string,
-    user: Partial<{ fullName: string; isActive: boolean; role: string }>,
+    user: Partial<{
+      fullName: string;
+      isActive: boolean;
+      role: string;
+      gender: string;
+      dateOfBirth: string;
+      phone: string;
+      parentName: string;
+      parentPhone: string;
+    }>,
   ) => {
     const { data } = await api.put(`/users/${id}`, user);
     return data;
@@ -553,6 +567,8 @@ export const classesApi = {
     name: string;
     description?: string;
     teacherId?: string;
+    startDate?: string;
+    endDate?: string;
   }) => {
     const { data } = await api.post("/classes", body);
     return data;
@@ -564,6 +580,8 @@ export const classesApi = {
       name?: string;
       description?: string;
       teacherId?: string | null;
+      startDate?: string | null;
+      endDate?: string | null;
       isActive?: boolean;
     },
   ) => {

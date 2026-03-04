@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { classesApi } from "@/lib/api";
+import { classesApi, usersApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,6 +19,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -29,6 +36,7 @@ import {
   ArrowUpDown,
   Users,
   Loader2,
+  Calendar,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +44,14 @@ import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import DeleteConfirmDialog from "@/components/admin/DeleteConfirmDialog";
 
 type SortField = "name" | "createdAt";
+
+const emptyForm = {
+  name: "",
+  description: "",
+  teacherId: "",
+  startDate: "",
+  endDate: "",
+};
 
 export default function AdminClasses() {
   const [search, setSearch] = useState("");
@@ -50,8 +66,9 @@ export default function AdminClasses() {
     id: string;
     name: string;
   } | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: "", description: "" });
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingClass, setEditingClass] = useState<any>(null);
+  const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -80,19 +97,57 @@ export default function AdminClasses() {
       }),
   });
 
+  // Fetch teachers for the dropdown
+  const { data: teachersData } = useQuery({
+    queryKey: ["teachers-list"],
+    queryFn: () => usersApi.list({ role: "teacher", limit: 100 }),
+  });
+
+  const teachers = teachersData?.data || [];
+
   const createMutation = useMutation({
-    mutationFn: (body: { name: string; description?: string }) =>
-      classesApi.create(body),
+    mutationFn: (body: typeof emptyForm) =>
+      classesApi.create({
+        ...body,
+        teacherId: body.teacherId || undefined,
+        startDate: body.startDate || undefined,
+        endDate: body.endDate || undefined,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-classes"] });
       toast({ title: "Đã tạo lớp học mới" });
-      setCreateOpen(false);
-      setCreateForm({ name: "", description: "" });
+      setDialogOpen(false);
+      setForm(emptyForm);
     },
     onError: () => {
       toast({
         title: "Lỗi",
         description: "Không thể tạo lớp học",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, ...body }: any) =>
+      classesApi.update(id, {
+        name: body.name,
+        description: body.description,
+        teacherId: body.teacherId || null,
+        startDate: body.startDate || null,
+        endDate: body.endDate || null,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-classes"] });
+      toast({ title: "Đã cập nhật lớp học" });
+      setDialogOpen(false);
+      setEditingClass(null);
+      setForm(emptyForm);
+    },
+    onError: () => {
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật",
         variant: "destructive",
       });
     },
@@ -136,15 +191,50 @@ export default function AdminClasses() {
     </TableHead>
   );
 
+  const openCreate = () => {
+    setEditingClass(null);
+    setForm(emptyForm);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (cls: any) => {
+    setEditingClass(cls);
+    setForm({
+      name: cls.name || "",
+      description: cls.description || "",
+      teacherId: cls.teacherId || cls.teacher?.id || "",
+      startDate: cls.startDate
+        ? new Date(cls.startDate).toISOString().split("T")[0]
+        : "",
+      endDate: cls.endDate
+        ? new Date(cls.endDate).toISOString().split("T")[0]
+        : "",
+    });
+    setDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (editingClass) {
+      updateMutation.mutate({ id: editingClass.id, ...form });
+    } else {
+      createMutation.mutate(form);
+    }
+  };
+
   const classes = data?.data || [];
   const totalPages = data?.meta?.totalPages || 1;
   const total = data?.meta?.total || 0;
+
+  const formatDate = (d: string | null | undefined) => {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("vi-VN");
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Quản lý lớp học</h1>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" />
           Thêm lớp học
         </Button>
@@ -167,6 +257,8 @@ export default function AdminClasses() {
               <SortHeader field="name">Tên lớp</SortHeader>
               <TableHead>Giáo viên</TableHead>
               <TableHead>Số học viên</TableHead>
+              <TableHead>Ngày bắt đầu</TableHead>
+              <TableHead>Ngày kết thúc</TableHead>
               <SortHeader field="createdAt">Ngày tạo</SortHeader>
               <TableHead className="w-[140px]">Hành động</TableHead>
             </TableRow>
@@ -174,14 +266,14 @@ export default function AdminClasses() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   Đang tải...
                 </TableCell>
               </TableRow>
             ) : classes.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={7}
                   className="text-center py-8 text-muted-foreground"
                 >
                   Không tìm thấy lớp học nào
@@ -202,13 +294,26 @@ export default function AdminClasses() {
                       {cls._count?.students || 0}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-sm">
+                    {formatDate(cls.startDate)}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {formatDate(cls.endDate)}
+                  </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {new Date(cls.createdAt).toLocaleDateString("vi-VN")}
+                    {formatDate(cls.createdAt)}
                   </TableCell>
                   <TableCell className="space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEdit(cls)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/classes/${cls.id}`}>
-                        <Edit className="h-4 w-4" />
+                        <Users className="h-4 w-4" />
                       </Link>
                     </Button>
                     <Button
@@ -240,47 +345,101 @@ export default function AdminClasses() {
         )}
       </div>
 
-      {/* Create Dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
+      {/* Create / Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Tạo lớp học mới</DialogTitle>
+            <DialogTitle>
+              {editingClass ? "Chỉnh sửa lớp học" : "Tạo lớp học mới"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Tên lớp *</Label>
               <Input
-                value={createForm.name}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, name: e.target.value })
-                }
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="VD: IELTS Foundation 01"
               />
             </div>
             <div className="space-y-2">
               <Label>Mô tả</Label>
               <Textarea
-                value={createForm.description}
+                value={form.description}
                 onChange={(e) =>
-                  setCreateForm({ ...createForm, description: e.target.value })
+                  setForm({ ...form, description: e.target.value })
                 }
                 placeholder="Mô tả lớp học..."
                 rows={3}
               />
             </div>
+
+            {/* Teacher select */}
+            <div className="space-y-2">
+              <Label>Giáo viên</Label>
+              <Select
+                value={form.teacherId}
+                onValueChange={(v) => setForm({ ...form, teacherId: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn giáo viên" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teachers.map((t: any) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.fullName || t.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Dates */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Ngày bắt đầu
+                </Label>
+                <Input
+                  type="date"
+                  value={form.startDate}
+                  onChange={(e) =>
+                    setForm({ ...form, startDate: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Ngày kết thúc
+                </Label>
+                <Input
+                  type="date"
+                  value={form.endDate}
+                  onChange={(e) =>
+                    setForm({ ...form, endDate: e.target.value })
+                  }
+                />
+              </div>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Hủy
             </Button>
             <Button
-              onClick={() => createMutation.mutate(createForm)}
-              disabled={!createForm.name || createMutation.isPending}
+              onClick={handleSave}
+              disabled={
+                !form.name ||
+                createMutation.isPending ||
+                updateMutation.isPending
+              }
             >
-              {createMutation.isPending && (
+              {(createMutation.isPending || updateMutation.isPending) && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Tạo lớp
+              {editingClass ? "Lưu" : "Tạo lớp"}
             </Button>
           </DialogFooter>
         </DialogContent>

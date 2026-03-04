@@ -77,9 +77,21 @@
     --speaking: 25 95% 53%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(173 80% 40%), hsl(199 89% 48%));
-    --gradient-accent: linear-gradient(135deg, hsl(25 95% 53%), hsl(38 92% 50%));
-    --gradient-hero: linear-gradient(135deg, hsl(173 80% 95%), hsl(250 50% 98%));
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(173 80% 40%),
+      hsl(199 89% 48%)
+    );
+    --gradient-accent: linear-gradient(
+      135deg,
+      hsl(25 95% 53%),
+      hsl(38 92% 50%)
+    );
+    --gradient-hero: linear-gradient(
+      135deg,
+      hsl(173 80% 95%),
+      hsl(250 50% 98%)
+    );
   }
 
   .dark {
@@ -143,12 +155,15 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
   }
 
-  /* Smooth scrolling */
+  /* Smooth scrolling + increase base size 1.2x */
   html {
     scroll-behavior: smooth;
+    font-size: 1.2rem;
   }
 
   /* Custom scrollbar */
@@ -175,15 +190,15 @@
   .skill-listening {
     @apply bg-[hsl(var(--listening))] text-white;
   }
-  
+
   .skill-reading {
     @apply bg-[hsl(var(--reading))] text-white;
   }
-  
+
   .skill-writing {
     @apply bg-[hsl(var(--writing))] text-white;
   }
-  
+
   .skill-speaking {
     @apply bg-[hsl(var(--speaking))] text-white;
   }
@@ -206,7 +221,7 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }

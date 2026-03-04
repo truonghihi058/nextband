@@ -43,16 +43,16 @@ export default function SubmissionGrade() {
     return map;
   }, [answers]);
 
-  // All questions flat list for counting
+  // All questions flat list for counting (with sectionType)
   const allQuestions = useMemo(() => {
     if (!sections) return [];
     return sections.flatMap((sec: any) =>
       (sec.questionGroups || [])
         .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
         .flatMap((g: any) =>
-          (g.questions || []).sort(
-            (a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0),
-          ),
+          (g.questions || [])
+            .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
+            .map((q: any) => ({ ...q, _sectionType: sec.sectionType })),
         ),
     );
   }, [sections]);
@@ -92,8 +92,16 @@ export default function SubmissionGrade() {
     mutationFn: async ({ finalize }: { finalize: boolean }) => {
       const updates = Object.values(grades).filter((g) => g.answerId);
 
-      // Calculate total score
+      // Calculate total score (exclude speaking/writing from auto calculation)
       const currentTotalValue = allQuestions.reduce((sum, q: any) => {
+        const isManual = ["speaking", "writing"].includes(q._sectionType);
+        if (isManual) {
+          // Only include manual-grade scores that have been explicitly graded
+          const grade = grades[q.id];
+          const answer = answerMap[q.id];
+          const score = grade?.score ?? answer?.score ?? 0;
+          return sum + Number(score);
+        }
         const grade = grades[q.id];
         const answer = answerMap[q.id];
         const score = grade?.score ?? answer?.score ?? 0;
@@ -217,6 +225,15 @@ export default function SubmissionGrade() {
                   {currentTotal}/{totalPoints}
                 </span>
               </div>
+              {allQuestions.some((q: any) =>
+                ["speaking", "writing"].includes(q._sectionType),
+              ) && (
+                <div>
+                  <span className="text-xs text-amber-600 dark:text-amber-400">
+                    * Speaking/Writing chấm thủ công
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -319,6 +336,7 @@ export default function SubmissionGrade() {
                             )
                           }
                           readOnly={!canGrade}
+                          sectionType={section.sectionType}
                         />
                       );
                     })}

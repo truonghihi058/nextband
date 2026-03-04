@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sectionsApi, questionsApi } from "@/lib/api";
@@ -47,6 +47,11 @@ import {
 import FileUpload from "@/components/admin/FileUpload";
 import DeleteConfirmDialog from "@/components/admin/DeleteConfirmDialog";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import {
+  QuestionFormRenderer,
+  stringifyFillBlankAnswers,
+  parseFillBlankAnswers,
+} from "@/components/admin/question-forms";
 import {
   Accordion,
   AccordionContent,
@@ -101,31 +106,6 @@ interface Question {
   orderIndex: number;
 }
 
-const FILL_BLANK_PLACEHOLDER_REGEX = /(\[BLANK(?:_\d+)?\]|_____)/g;
-
-const extractFillBlankTokens = (text: string): string[] => {
-  if (!text) return [];
-  return text.match(FILL_BLANK_PLACEHOLDER_REGEX) || [];
-};
-
-const parseFillBlankAnswers = (value: string | null | undefined): string[] => {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value);
-    if (Array.isArray(parsed)) {
-      return parsed.map((item) => String(item ?? "").trim());
-    }
-  } catch {}
-
-  return value
-    .split("|")
-    .map((item) => item.trim())
-    .filter(Boolean);
-};
-
-const stringifyFillBlankAnswers = (answers: string[]): string =>
-  JSON.stringify(answers.map((item) => item.trim()));
-
 export default function AdminSectionEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -179,37 +159,6 @@ export default function AdminSectionEdit() {
 
   const section = sectionData;
   const questionGroups = section?.questionGroups || [];
-
-  const fillBlankTokenCount = useMemo(() => {
-    if (questionForm.questionType !== "fill_blank") return 0;
-    return extractFillBlankTokens(questionForm.questionText).length;
-  }, [questionForm.questionText, questionForm.questionType]);
-
-  useEffect(() => {
-    if (questionForm.questionType !== "fill_blank") return;
-
-    const targetCount = fillBlankTokenCount;
-    setQuestionForm((prev) => {
-      const current = prev.fillBlankAnswers || [];
-
-      if (current.length === targetCount) return prev;
-
-      if (current.length < targetCount) {
-        return {
-          ...prev,
-          fillBlankAnswers: [
-            ...current,
-            ...Array.from({ length: targetCount - current.length }, () => ""),
-          ],
-        };
-      }
-
-      return {
-        ...prev,
-        fillBlankAnswers: current.slice(0, targetCount),
-      };
-    });
-  }, [fillBlankTokenCount, questionForm.questionType]);
 
   // --- Mutations ---
 
@@ -998,432 +947,36 @@ export default function AdminSectionEdit() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {questionForm.questionType !== "listening" && (
-              <div className="space-y-2">
-                <Label>Nội dung câu hỏi *</Label>
-                <Textarea
-                  placeholder="Nhập câu hỏi..."
-                  value={questionForm.questionText}
-                  onChange={(e) =>
-                    setQuestionForm((f) => ({
-                      ...f,
-                      questionText: e.target.value,
-                    }))
-                  }
-                  rows={3}
-                />
-              </div>
-            )}
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Loại câu hỏi</Label>
-                <Select
-                  value={questionForm.questionType}
-                  onValueChange={(v) =>
-                    setQuestionForm((f) => ({ ...f, questionType: v }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {QUESTION_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {questionForm.questionType !== "speaking" &&
-                questionForm.questionType !== "essay" && (
-                  <div className="space-y-2">
-                    <Label>Điểm</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={questionForm.points}
-                      onChange={(e) =>
-                        setQuestionForm((f) => ({
-                          ...f,
-                          points: parseInt(e.target.value) || 1,
-                        }))
-                      }
-                    />
-                  </div>
-                )}
+            {/* Question type selector */}
+            <div className="space-y-2">
+              <Label>Loại câu hỏi</Label>
+              <Select
+                value={questionForm.questionType}
+                onValueChange={(v) =>
+                  setQuestionForm((f) => ({ ...f, questionType: v }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {QUESTION_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Form riêng cho Listening */}
-            {questionForm.questionType === "listening" && (
-              <Card className="border-primary/30 bg-primary/5">
-                <CardContent className="p-4 space-y-5">
-                  <div className="flex items-center gap-2 text-sm font-bold text-primary pb-2 border-b border-primary/10">
-                    <Headphones className="h-4 w-4" />
-                    CẤU HÌNH CÂU HỎI LISTENING
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        Audio câu hỏi (bắt buộc)
-                      </Label>
-                      <FileUpload
-                        accept="audio/*"
-                        currentUrl={questionForm.audioUrl || undefined}
-                        onUploadComplete={(url) =>
-                          setQuestionForm((f) => ({ ...f, audioUrl: url }))
-                        }
-                        onRemove={() =>
-                          setQuestionForm((f) => ({ ...f, audioUrl: "" }))
-                        }
-                        maxSizeMB={20}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        Kiểu tương tác
-                      </Label>
-                      <Select
-                        value={
-                          questionForm.options &&
-                          questionForm.options.length > 0
-                            ? "multiple_choice"
-                            : "short_answer"
-                        }
-                        onValueChange={(v) => {
-                          if (v === "multiple_choice") {
-                            setQuestionForm((f) => ({
-                              ...f,
-                              options: ["", "", "", ""],
-                            }));
-                          } else {
-                            setQuestionForm((f) => ({ ...f, options: [] }));
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="bg-background">
-                          <SelectValue placeholder="Chọn kiểu tương tác" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="short_answer">
-                            Trả lời ngắn / Điền từ
-                          </SelectItem>
-                          <SelectItem value="multiple_choice">
-                            Trắc nghiệm (MCQ)
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[10px] text-muted-foreground italic">
-                        * Chọn Trắc nghiệm nếu muốn có các lựa chọn A, B, C, D
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Nội dung câu hỏi đi kèm audio
-                    </Label>
-                    <Textarea
-                      placeholder="Ví dụ: What is the main reason the speaker moved to the city?"
-                      value={questionForm.questionText}
-                      onChange={(e) =>
-                        setQuestionForm((f) => ({
-                          ...f,
-                          questionText: e.target.value,
-                        }))
-                      }
-                      rows={3}
-                      className="bg-background"
-                    />
-                  </div>
-
-                  {questionForm.options && questionForm.options.length > 0 && (
-                    <div className="space-y-3 pt-2 bg-white/50 p-3 rounded-lg border border-dashed">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        Các lựa chọn trắc nghiệm
-                      </Label>
-                      <div className="grid gap-2">
-                        {questionForm.options.map((opt, i) => (
-                          <div key={i} className="flex items-center gap-2">
-                            <span className="text-sm font-bold w-6 text-primary">
-                              {String.fromCharCode(65 + i)}.
-                            </span>
-                            <Input
-                              placeholder={`Lựa chọn ${String.fromCharCode(65 + i)}`}
-                              value={opt}
-                              onChange={(e) => {
-                                const newOpts = [...questionForm.options];
-                                newOpts[i] = e.target.value;
-                                setQuestionForm((f) => ({
-                                  ...f,
-                                  options: newOpts,
-                                }));
-                              }}
-                              className="bg-background h-9"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Đáp án chính xác
-                    </Label>
-                    <Input
-                      placeholder="Nhập đáp án đúng..."
-                      value={questionForm.correctAnswer}
-                      onChange={(e) =>
-                        setQuestionForm((f) => ({
-                          ...f,
-                          correctAnswer: e.target.value,
-                        }))
-                      }
-                      className="bg-background h-10 border-primary/20 focus-visible:border-primary"
-                    />
-                    <p className="text-[10px] text-muted-foreground">
-                      * Nếu là trắc nghiệm, hãy nhập nội dung chính xác của lựa
-                      chọn (VD: "New York")
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Form riêng cho Speaking */}
-            {questionForm.questionType === "speaking" && (
-              <Card className="border-[hsl(var(--speaking))]/30 bg-[hsl(var(--speaking))]/5">
-                <CardContent className="p-4 space-y-5">
-                  <div className="flex items-center gap-2 text-sm font-bold text-[hsl(var(--speaking))] pb-2 border-b border-[hsl(var(--speaking))]/10">
-                    <Mic className="h-4 w-4" />
-                    CẤU HÌNH CÂU HỎI SPEAKING
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Audio đề bài / Câu hỏi mẫu (không bắt buộc)
-                    </Label>
-                    <FileUpload
-                      accept="audio/*"
-                      currentUrl={questionForm.audioUrl || undefined}
-                      onUploadComplete={(url) =>
-                        setQuestionForm((f) => ({ ...f, audioUrl: url }))
-                      }
-                      onRemove={() =>
-                        setQuestionForm((f) => ({ ...f, audioUrl: "" }))
-                      }
-                      maxSizeMB={20}
-                    />
-                    <p className="text-[10px] text-muted-foreground italic">
-                      * Upload file âm thanh nếu muốn thí sinh nghe đề bài thay
-                      vì chỉ đọc chữ.
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Nội dung câu hỏi / Yêu cầu Speaking
-                    </Label>
-                    <Textarea
-                      placeholder="Ví dụ: Describe a place you visited that had a significant impact on you."
-                      value={questionForm.questionText}
-                      onChange={(e) =>
-                        setQuestionForm((f) => ({
-                          ...f,
-                          questionText: e.target.value,
-                        }))
-                      }
-                      rows={3}
-                      className="bg-background"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Câu trả lời mẫu / Gợi ý (Reference Answer)
-                    </Label>
-                    <Textarea
-                      placeholder="Nhập nội dung trả lời mẫu hoặc các ý chính cần có..."
-                      value={questionForm.correctAnswer}
-                      onChange={(e) =>
-                        setQuestionForm((f) => ({
-                          ...f,
-                          correctAnswer: e.target.value,
-                        }))
-                      }
-                      rows={4}
-                      className="bg-background border-[hsl(var(--speaking))]/20 focus-visible:border-[hsl(var(--speaking))]"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {questionForm.questionType === "multiple_choice" && (
-              <div className="space-y-2">
-                <Label>Các lựa chọn</Label>
-                {questionForm.options.map((opt, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="text-sm font-medium w-6">
-                      {String.fromCharCode(65 + i)}.
-                    </span>
-                    <Input
-                      placeholder={`Lựa chọn ${String.fromCharCode(65 + i)}`}
-                      value={opt}
-                      onChange={(e) => {
-                        const newOpts = [...questionForm.options];
-                        newOpts[i] = e.target.value;
-                        setQuestionForm((f) => ({ ...f, options: newOpts }));
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {questionForm.questionType !== "speaking" &&
-              questionForm.questionType !== "essay" &&
-              questionForm.questionType !== "fill_blank" &&
-              questionForm.questionType !== "listening" && (
-                <div className="space-y-2">
-                  <Label>Đáp án đúng</Label>
-                  <Input
-                    placeholder="Nhập đáp án đúng..."
-                    value={questionForm.correctAnswer}
-                    onChange={(e) =>
-                      setQuestionForm((f) => ({
-                        ...f,
-                        correctAnswer: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-              )}
-
-            {/* Form riêng cho Fill in the Blank */}
-            {questionForm.questionType === "fill_blank" && (
-              <Card className="border-amber-500/30 bg-amber-500/5">
-                <CardContent className="p-4 space-y-5">
-                  <div className="flex items-center gap-2 text-sm font-bold text-amber-600 pb-2 border-b border-amber-500/10">
-                    <Zap className="h-4 w-4" />
-                    CẤU HÌNH CÂU HỎI ĐIỀN VÀO CHỖ TRỐNG
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Nội dung câu hỏi (chứa ô trống)
-                    </Label>
-                    <Textarea
-                      placeholder="Ví dụ: I live in [BLANK] which is a big city."
-                      value={questionForm.questionText}
-                      onChange={(e) =>
-                        setQuestionForm((f) => ({
-                          ...f,
-                          questionText: e.target.value,
-                        }))
-                      }
-                      rows={4}
-                      className="bg-background"
-                    />
-                    <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground mt-1 px-1">
-                      <span>Placeholder hợp lệ:</span>
-                      <code className="bg-muted px-1 rounded text-primary">
-                        [BLANK]
-                      </code>
-                      <code className="bg-muted px-1 rounded text-primary">
-                        [BLANK_1]
-                      </code>
-                      <code className="bg-muted px-1 rounded text-primary">
-                        _____
-                      </code>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Audio đính kèm (không bắt buộc)
-                    </Label>
-                    <FileUpload
-                      accept="audio/*"
-                      currentUrl={questionForm.audioUrl || undefined}
-                      onUploadComplete={(url) =>
-                        setQuestionForm((f) => ({ ...f, audioUrl: url }))
-                      }
-                      onRemove={() =>
-                        setQuestionForm((f) => ({ ...f, audioUrl: "" }))
-                      }
-                      maxSizeMB={20}
-                    />
-                  </div>
-
-                  <div className="space-y-3 pt-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        Đáp án cho từng ô trống
-                      </Label>
-                      {fillBlankTokenCount > 0 && (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] bg-amber-100/50 text-amber-700 border-amber-200"
-                        >
-                          Phát hiện {fillBlankTokenCount} ô trống
-                        </Badge>
-                      )}
-                    </div>
-
-                    {fillBlankTokenCount === 0 ? (
-                      <div className="rounded-lg border border-dashed border-amber-200 p-4 text-center bg-white/50">
-                        <p className="text-xs text-amber-600 italic">
-                          Chưa có placeholder nào trong nội dung câu hỏi. Hãy
-                          thêm [BLANK] để tạo ô đáp án.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid gap-3">
-                        {questionForm.fillBlankAnswers.map((answer, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-3 bg-white/50 p-2 rounded-lg border border-amber-100"
-                          >
-                            <span className="text-xs font-bold w-12 text-amber-600">
-                              Ô #{idx + 1}
-                            </span>
-                            <Input
-                              placeholder={`Nhập đáp án đúng cho ô ${idx + 1}...`}
-                              value={answer}
-                              onChange={(e) => {
-                                const updated = [
-                                  ...questionForm.fillBlankAnswers,
-                                ];
-                                updated[idx] = e.target.value;
-                                setQuestionForm((f) => ({
-                                  ...f,
-                                  fillBlankAnswers: updated,
-                                }));
-                              }}
-                              className="bg-background h-9 border-none focus-visible:ring-1 focus-visible:ring-amber-500/30"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Ghi chú cho Listening */}
-            {questionForm.questionType === "listening" && (
-              <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
-                🎧 Câu hỏi dạng <strong>Nghe hiểu (Listening)</strong>: Upload
-                file audio ở trên, nhập nội dung câu hỏi, và đáp án nếu có. Thí
-                sinh sẽ nghe audio và trả lời câu hỏi.
-              </div>
-            )}
+            {/* Specialized form per question type */}
+            <QuestionFormRenderer
+              questionType={questionForm.questionType}
+              form={questionForm}
+              onChange={(updates) =>
+                setQuestionForm((f) => ({ ...f, ...updates }))
+              }
+            />
           </div>
           <DialogFooter>
             <Button

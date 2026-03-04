@@ -286,6 +286,7 @@ export default function SubmissionDetail() {
                           score={answer?.score ?? null}
                           feedback={answer?.feedback ?? null}
                           isGraded={isGraded}
+                          sectionType={section.sectionType}
                         />
                       );
                     })}

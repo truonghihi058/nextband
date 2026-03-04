@@ -19,6 +19,7 @@ interface AnswerGradingCardProps {
   onScoreChange: (score: number | null) => void;
   onFeedbackChange: (feedback: string) => void;
   readOnly?: boolean;
+  sectionType?: string;
 }
 
 const questionTypeLabels: Record<string, string> = {
@@ -45,7 +46,9 @@ export function AnswerGradingCard({
   onScoreChange,
   onFeedbackChange,
   readOnly = false,
+  sectionType,
 }: AnswerGradingCardProps) {
+  const isManualGradeOnly = ["speaking", "writing"].includes(sectionType || "");
   const [score, setScore] = useState<string>(
     currentScore != null ? String(currentScore) : "",
   );
@@ -62,17 +65,17 @@ export function AnswerGradingCard({
       sanitizedValue = value.replace(/^0+/, "");
       if (sanitizedValue === "") sanitizedValue = "0";
     }
-    
+
     setScore(sanitizedValue);
     const num = parseFloat(sanitizedValue);
     onScoreChange(isNaN(num) ? null : num);
   };
 
-  const isAutoGradable = [
-    "multiple_choice",
-    "true_false_not_given",
-    "yes_no_not_given",
-  ].includes(questionType);
+  const isAutoGradable =
+    !isManualGradeOnly &&
+    ["multiple_choice", "true_false_not_given", "yes_no_not_given"].includes(
+      questionType,
+    );
   const isCorrect =
     isAutoGradable &&
     correctAnswer != null &&
@@ -100,6 +103,14 @@ export function AnswerGradingCard({
               <Badge variant="outline" className="text-xs">
                 {questionTypeLabels[questionType] || questionType}
               </Badge>
+              {isManualGradeOnly && (
+                <Badge
+                  variant="secondary"
+                  className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                >
+                  Chấm thủ công
+                </Badge>
+              )}
               <span className="text-xs text-muted-foreground">
                 ({points} điểm)
               </span>
