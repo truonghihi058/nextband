@@ -58,6 +58,11 @@ const navigationItems = [
     url: "/admin/users",
     icon: Users,
   },
+  {
+    title: "Giáo viên",
+    url: "/admin/teachers",
+    icon: GraduationCap,
+  },
 ];
 
 const settingsItems = [

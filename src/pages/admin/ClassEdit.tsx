@@ -29,8 +29,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   ArrowLeft,
   Loader2,
@@ -39,6 +47,9 @@ import {
   Trash2,
   Search,
   Users,
+  GraduationCap,
+  Mail,
+  Calendar,
 } from "lucide-react";
 import DeleteConfirmDialog from "@/components/admin/DeleteConfirmDialog";
 
@@ -51,6 +62,9 @@ export default function AdminClassEdit() {
   // Form state
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [teacherId, setTeacherId] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [initialized, setInitialized] = useState(false);
 
   // Add students dialog
@@ -71,10 +85,29 @@ export default function AdminClassEdit() {
     enabled: !!id,
   });
 
+  // Fetch teachers list for dropdown
+  const { data: teachersData } = useQuery({
+    queryKey: ["teachers-list"],
+    queryFn: () => usersApi.list({ role: "teacher", limit: 100 }),
+  });
+
+  const teachers = teachersData?.data || [];
+
   // Initialize form when data loads
   if (classData && !initialized) {
     setName(classData.name || "");
     setDescription(classData.description || "");
+    setTeacherId(classData.teacherId || classData.teacher?.id || "");
+    setStartDate(
+      classData.startDate
+        ? new Date(classData.startDate).toISOString().split("T")[0]
+        : "",
+    );
+    setEndDate(
+      classData.endDate
+        ? new Date(classData.endDate).toISOString().split("T")[0]
+        : "",
+    );
     setInitialized(true);
   }
 
@@ -93,8 +126,13 @@ export default function AdminClassEdit() {
 
   // Update class mutation
   const updateMutation = useMutation({
-    mutationFn: (body: { name?: string; description?: string }) =>
-      classesApi.update(id!, body),
+    mutationFn: (body: {
+      name?: string;
+      description?: string;
+      teacherId?: string | null;
+      startDate?: string | null;
+      endDate?: string | null;
+    }) => classesApi.update(id!, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-class", id] });
       queryClient.invalidateQueries({ queryKey: ["admin-classes"] });
@@ -163,6 +201,19 @@ export default function AdminClassEdit() {
     (u: any) => !existingStudentIds.has(u.id),
   );
 
+  // Find current teacher info
+  const currentTeacher = teachers.find((t: any) => t.id === teacherId);
+
+  const handleSave = () => {
+    updateMutation.mutate({
+      name,
+      description,
+      teacherId: teacherId || null,
+      startDate: startDate || null,
+      endDate: endDate || null,
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -198,7 +249,86 @@ export default function AdminClassEdit() {
                 placeholder="VD: IELTS Foundation 01"
               />
             </div>
+
+            {/* Teacher Select */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <GraduationCap className="h-3.5 w-3.5" />
+                Giáo viên phụ trách
+              </Label>
+              <Select value={teacherId} onValueChange={(v) => setTeacherId(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn giáo viên">
+                    {currentTeacher ? (
+                      <div className="flex items-center gap-2">
+                        <GraduationCap className="h-3.5 w-3.5 text-amber-500" />
+                        <span>
+                          {currentTeacher.fullName || currentTeacher.email}
+                        </span>
+                      </div>
+                    ) : teacherId ? (
+                      <span>
+                        {classData.teacher?.fullName ||
+                          classData.teacher?.email ||
+                          "Giáo viên"}
+                      </span>
+                    ) : (
+                      "Chọn giáo viên"
+                    )}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {teachers.map((t: any) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={t.avatarUrl || undefined} />
+                          <AvatarFallback className="bg-amber-500/10 text-amber-600 text-xs">
+                            <GraduationCap className="h-3 w-3" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {t.fullName || "Chưa đặt tên"}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {t.email}
+                          </span>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
+          {/* Dates */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                Ngày bắt đầu
+              </Label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                Ngày kết thúc
+              </Label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Mô tả</Label>
             <Textarea
@@ -209,7 +339,7 @@ export default function AdminClassEdit() {
             />
           </div>
           <Button
-            onClick={() => updateMutation.mutate({ name, description })}
+            onClick={handleSave}
             disabled={!name || updateMutation.isPending}
           >
             {updateMutation.isPending ? (

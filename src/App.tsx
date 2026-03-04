@@ -36,6 +36,7 @@ import AdminSubmissionGrade from "@/pages/admin/SubmissionGrade";
 import AdminLogViewer from "@/pages/admin/LogViewer";
 import AdminClasses from "@/pages/admin/Classes";
 import AdminClassEdit from "@/pages/admin/ClassEdit";
+import AdminTeachers from "@/pages/admin/Teachers";
 
 const queryClient = new QueryClient();
 
@@ -110,6 +111,7 @@ const App = () => (
               <Route path="/admin/logs" element={<AdminLogViewer />} />
               <Route path="/admin/classes" element={<AdminClasses />} />
               <Route path="/admin/classes/:id" element={<AdminClassEdit />} />
+              <Route path="/admin/teachers" element={<AdminTeachers />} />
             </Route>
 
             {/* Catch-all */}

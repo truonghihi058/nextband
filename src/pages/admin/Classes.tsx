@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { classesApi, usersApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,
   TableBody,
@@ -37,6 +38,7 @@ import {
   Users,
   Loader2,
   Calendar,
+  GraduationCap,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -376,18 +378,43 @@ export default function AdminClasses() {
 
             {/* Teacher select */}
             <div className="space-y-2">
-              <Label>Giáo viên</Label>
+              <Label className="flex items-center gap-1.5">
+                <GraduationCap className="h-3.5 w-3.5" />
+                Giáo viên phụ trách
+              </Label>
               <Select
                 value={form.teacherId}
-                onValueChange={(v) => setForm({ ...form, teacherId: v })}
+                onValueChange={(v) =>
+                  setForm({ ...form, teacherId: v === "__none__" ? "" : v })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Chọn giáo viên" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__none__">
+                    <span className="text-muted-foreground">
+                      — Không chọn —
+                    </span>
+                  </SelectItem>
                   {teachers.map((t: any) => (
                     <SelectItem key={t.id} value={t.id}>
-                      {t.fullName || t.email}
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={t.avatarUrl || undefined} />
+                          <AvatarFallback className="bg-amber-500/10 text-amber-600 text-xs">
+                            <GraduationCap className="h-3 w-3" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {t.fullName || "Chưa đặt tên"}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {t.email}
+                          </span>
+                        </div>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
