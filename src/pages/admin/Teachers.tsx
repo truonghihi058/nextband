@@ -261,6 +261,7 @@ export default function AdminTeachers() {
               <SortHeader field="email">Email</SortHeader>
               <TableHead>SĐT</TableHead>
               <TableHead>Giới tính</TableHead>
+              <TableHead>Ngày sinh</TableHead>
               <SortHeader field="createdAt">Ngày tạo</SortHeader>
               <TableHead>Kích hoạt</TableHead>
               <TableHead className="w-[60px]"></TableHead>
@@ -269,7 +270,7 @@ export default function AdminTeachers() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={8} className="text-center py-8">
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Đang tải...
@@ -279,7 +280,7 @@ export default function AdminTeachers() {
             ) : teachers.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="text-center py-8 text-muted-foreground"
                 >
                   <div className="flex flex-col items-center gap-2">
@@ -331,6 +332,13 @@ export default function AdminTeachers() {
                   </TableCell>
                   <TableCell className="text-sm">
                     {genderLabel(teacher.gender)}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {teacher.dateOfBirth
+                      ? new Date(teacher.dateOfBirth).toLocaleDateString(
+                          "vi-VN",
+                        )
+                      : "—"}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(teacher.createdAt).toLocaleDateString("vi-VN")}
