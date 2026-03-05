@@ -75,7 +75,7 @@ const sectionColors = {
   general: "bg-primary text-primary-foreground",
 };
 
-const QUESTION_TYPES = [
+const ALL_QUESTION_TYPES = [
   { value: "multiple_choice", label: "Trắc nghiệm" },
   { value: "fill_blank", label: "Điền vào chỗ trống" },
   { value: "short_answer", label: "Trả lời ngắn" },
@@ -86,6 +86,34 @@ const QUESTION_TYPES = [
   { value: "speaking", label: "Ghi âm (Speaking)" },
   { value: "listening", label: "Nghe hiểu (Listening)" },
 ];
+
+const SECTION_QUESTION_TYPES: Record<string, string[]> = {
+  listening: [
+    "multiple_choice",
+    "fill_blank",
+    "short_answer",
+    "true_false_not_given",
+    "yes_no_not_given",
+    "matching",
+  ],
+  reading: [
+    "multiple_choice",
+    "fill_blank",
+    "short_answer",
+    "true_false_not_given",
+    "yes_no_not_given",
+    "matching",
+  ],
+  writing: ["essay"],
+  speaking: ["speaking"],
+  general: ALL_QUESTION_TYPES.map((t) => t.value),
+};
+
+function getQuestionTypesForSection(sectionType: string) {
+  const allowed =
+    SECTION_QUESTION_TYPES[sectionType] || SECTION_QUESTION_TYPES.general;
+  return ALL_QUESTION_TYPES.filter((t) => allowed.includes(t.value));
+}
 
 interface QuestionGroup {
   id: string;
@@ -394,12 +422,15 @@ export default function AdminSectionEdit() {
       });
     } else {
       setEditingQuestion(null);
+      const allowedTypes = getQuestionTypesForSection(
+        section?.sectionType || "general",
+      );
       const defaultType =
         section?.sectionType === "speaking"
           ? "speaking"
-          : section?.sectionType === "listening"
-            ? "listening"
-            : "multiple_choice";
+          : section?.sectionType === "writing"
+            ? "essay"
+            : allowedTypes[0]?.value || "multiple_choice";
       setQuestionForm({
         questionText: "",
         questionType: defaultType,
@@ -683,7 +714,7 @@ export default function AdminSectionEdit() {
                                 </p>
                                 <div className="flex items-center gap-2 mt-1">
                                   <Badge variant="outline" className="text-xs">
-                                    {QUESTION_TYPES.find(
+                                    {ALL_QUESTION_TYPES.find(
                                       (t) => t.value === q.questionType,
                                     )?.label || q.questionType}
                                   </Badge>
@@ -790,7 +821,9 @@ export default function AdminSectionEdit() {
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {QUESTION_TYPES.map((t) => (
+                                      {getQuestionTypesForSection(
+                                        section.sectionType,
+                                      ).map((t) => (
                                         <SelectItem
                                           key={t.value}
                                           value={t.value}
@@ -839,7 +872,7 @@ export default function AdminSectionEdit() {
 
       {/* Group Dialog */}
       <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingGroup ? "Chỉnh sửa nhóm" : "Thêm nhóm mới"}
@@ -940,7 +973,7 @@ export default function AdminSectionEdit() {
 
       {/* Question Dialog */}
       <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {editingQuestion ? "Chỉnh sửa câu hỏi" : "Thêm câu hỏi mới"}
@@ -960,7 +993,7 @@ export default function AdminSectionEdit() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {QUESTION_TYPES.map((t) => (
+                  {getQuestionTypesForSection(section.sectionType).map((t) => (
                     <SelectItem key={t.value} value={t.value}>
                       {t.label}
                     </SelectItem>
