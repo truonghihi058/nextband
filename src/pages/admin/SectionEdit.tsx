@@ -1022,8 +1022,6 @@ export default function AdminSectionEdit() {
               onClick={handleSaveQuestion}
               disabled={
                 !questionForm.questionText ||
-                (questionForm.questionType === "fill_blank" &&
-                  questionForm.fillBlankAnswers.some((a) => !a.trim())) ||
                 (questionForm.questionType === "listening" &&
                   !questionForm.audioUrl) ||
                 createQuestionMutation.isPending ||
