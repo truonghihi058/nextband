@@ -698,7 +698,7 @@ export default function AdminSectionEdit() {
                         {group.questions
                           ?.sort(
                             (a: Question, b: Question) =>
-                              (b.orderIndex || 0) - (a.orderIndex || 0),
+                              (a.orderIndex || 0) - (b.orderIndex || 0),
                           )
                           .map((q: Question, qIndex: number) => (
                             <div
