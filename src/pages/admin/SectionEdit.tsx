@@ -695,12 +695,8 @@ export default function AdminSectionEdit() {
                       )}
 
                       <div className="space-y-3">
-                        {group.questions
-                          ?.sort(
-                            (a: Question, b: Question) =>
-                              (a.orderIndex || 0) - (b.orderIndex || 0),
-                          )
-                          .map((q: Question, qIndex: number) => (
+                        {(group.questions || []).map(
+                          (q: Question, qIndex: number) => (
                             <div
                               key={q.id}
                               className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors"
@@ -753,7 +749,8 @@ export default function AdminSectionEdit() {
                                 </Button>
                               </div>
                             </div>
-                          ))}
+                          ),
+                        )}
 
                         {/* Action buttons */}
                         <div className="flex gap-2">

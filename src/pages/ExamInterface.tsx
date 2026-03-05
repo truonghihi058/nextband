@@ -96,7 +96,12 @@ export default function ExamInterface() {
   const exam = examData;
   const sections = exam?.sections || [];
 
-  const availableSections = useMemo(() => sections || [], [sections]);
+  const availableSections = useMemo(() => {
+    return (sections || []).filter((s: any) => {
+      const groups = s.questionGroups || s.question_groups || [];
+      return groups.some((g: any) => g.questions && g.questions.length > 0);
+    });
+  }, [sections]);
 
   // Create or fetch existing submission
   const { data: submissionData, isLoading: submissionLoading } = useQuery({
@@ -150,7 +155,8 @@ export default function ExamInterface() {
 
   const sectionHasQuestions = useMemo(() => {
     if (!currentSection) return false;
-    const groups = currentSection.questionGroups || currentSection.question_groups || [];
+    const groups =
+      currentSection.questionGroups || currentSection.question_groups || [];
     return groups.some((g: any) => g.questions && g.questions.length > 0);
   }, [currentSection]);
 
@@ -200,12 +206,9 @@ export default function ExamInterface() {
     }
   };
 
-  const handleAnswerChange = useCallback(
-    (questionId: string, answer: any) => {
-      setAnswers((prev) => ({ ...prev, [questionId]: answer }));
-    },
-    [],
-  );
+  const handleAnswerChange = useCallback((questionId: string, answer: any) => {
+    setAnswers((prev) => ({ ...prev, [questionId]: answer }));
+  }, []);
 
   const handleQuestionClick = useCallback((questionId: string) => {
     setCurrentQuestionId(questionId);
@@ -328,7 +331,8 @@ export default function ExamInterface() {
         <FileText className="h-16 w-16 text-muted-foreground/50" />
         <h2 className="text-xl font-semibold">{exam.title}</h2>
         <p className="text-muted-foreground">
-          Bài thi này chưa được cấu hình phần thi nào. Vui lòng liên hệ giáo viên.
+          Bài thi này chưa được cấu hình phần thi nào. Vui lòng liên hệ giáo
+          viên.
         </p>
         <Button asChild variant="outline">
           <Link to="/">Quay về trang chủ</Link>
@@ -402,8 +406,9 @@ export default function ExamInterface() {
                       setActiveSection(section.sectionType as SectionType);
                       setCurrentQuestionId(undefined);
                     }}
-                    className={`flex items-center gap-2 ${isActive ? "" : "text-muted-foreground"
-                      }`}
+                    className={`flex items-center gap-2 ${
+                      isActive ? "" : "text-muted-foreground"
+                    }`}
                   >
                     <Icon className="h-4 w-4" />
                     {sectionLabels[section.sectionType as SectionType] ||
@@ -536,7 +541,9 @@ export default function ExamInterface() {
             <AlertDialogCancel>Tiếp tục làm bài</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
-                navigate(exam?.courseId ? `/course/${exam.courseId}` : "/my-courses")
+                navigate(
+                  exam?.courseId ? `/course/${exam.courseId}` : "/my-courses",
+                )
               }
               className="bg-destructive hover:bg-destructive/90"
             >

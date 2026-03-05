@@ -130,12 +130,8 @@ export function GrammarSection({
 
                 {/* Questions */}
                 <div className="space-y-4">
-                  {(group.questions || [])
-                    .sort(
-                      (a: any, b: any) =>
-                        (a.order_index || 0) - (b.order_index || 0),
-                    )
-                    .map((question: any, qIndex: number) => {
+                  {(group.questions || []).map(
+                    (question: any, qIndex: number) => {
                       const isCurrent = question.id === currentQuestionId;
 
                       return (
@@ -166,11 +162,19 @@ export function GrammarSection({
                                   hasFillBlankPlaceholders(
                                     question.question_text,
                                   )
-                                ) && (
-                                  <p className="font-semibold text-base leading-snug">
-                                    {question.question_text}
-                                  </p>
-                                )}
+                                ) &&
+                                  (/<[^>]+>/.test(question.question_text) ? (
+                                    <div
+                                      className="font-semibold text-base leading-snug prose prose-sm max-w-none"
+                                      dangerouslySetInnerHTML={{
+                                        __html: question.question_text,
+                                      }}
+                                    />
+                                  ) : (
+                                    <p className="font-semibold text-base leading-snug">
+                                      {question.question_text}
+                                    </p>
+                                  ))}
 
                                 {question.question_audio_url && (
                                   <div className="bg-muted/50 p-3 rounded-xl border border-border/50 flex items-center gap-3 max-w-sm">
@@ -421,7 +425,8 @@ export function GrammarSection({
                           </CardContent>
                         </Card>
                       );
-                    })}
+                    },
+                  )}
                 </div>
               </div>
             ))}

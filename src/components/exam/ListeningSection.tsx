@@ -15,6 +15,7 @@ interface ListeningSectionProps {
   answers: Record<string, string>;
   onAnswerChange: (questionId: string, answer: string) => void;
   strictMode?: boolean;
+  showTranscript?: boolean;
   questionRefs?: MutableRefObject<Map<string, HTMLElement>>;
   currentQuestionId?: string;
   onQuestionFocus?: (questionId: string) => void;
@@ -25,6 +26,7 @@ export function ListeningSection({
   answers,
   onAnswerChange,
   strictMode = false,
+  showTranscript = false,
   questionRefs,
   currentQuestionId,
   onQuestionFocus,
@@ -58,9 +60,9 @@ export function ListeningSection({
   return (
     <div className="h-full flex flex-col">
       {/* Sticky Audio Player */}
-      {section.audio_url && (
+      {(section.audio_url || section.audioUrl) && (
         <StickyAudioPlayer
-          audioUrl={section.audio_url}
+          audioUrl={section.audio_url || section.audioUrl}
           strictMode={strictMode}
         />
       )}
@@ -84,8 +86,8 @@ export function ListeningSection({
 
       {/* Split-screen layout */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x overflow-hidden">
-        {/* Left Panel - Transcript/Passage (if available) */}
-        {currentGroup?.passage && (
+        {/* Left Panel - Transcript/Passage - Hidden during exam, only shown in review mode */}
+        {showTranscript && currentGroup?.passage && (
           <ScrollArea className="h-[calc(100vh-280px)]">
             <div className="p-6">
               <div className="prose prose-sm max-w-none">
