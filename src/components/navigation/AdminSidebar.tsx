@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const navigationItems = [
   {
@@ -57,11 +58,13 @@ const navigationItems = [
     title: "Người dùng",
     url: "/admin/users",
     icon: Users,
+    adminOnly: true,
   },
   {
     title: "Giáo viên",
     url: "/admin/teachers",
     icon: GraduationCap,
+    adminOnly: true,
   },
 ];
 
@@ -81,7 +84,13 @@ const settingsItems = [
 export function AdminSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
+  const { isAdmin } = useAuth();
   const collapsed = state === "collapsed";
+
+  // Filter navigation items based on role
+  const visibleNavItems = navigationItems.filter(
+    (item) => !item.adminOnly || isAdmin,
+  );
 
   const isActive = (path: string) => {
     if (path === "/admin") {
@@ -111,7 +120,7 @@ export function AdminSidebar() {
           <SidebarGroupLabel>Quản lý</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map((item) => (
+              {visibleNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
