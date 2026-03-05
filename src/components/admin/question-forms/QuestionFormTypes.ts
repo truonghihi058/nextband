@@ -16,7 +16,7 @@ export interface QuestionFormProps {
 }
 
 // Fill-blank utils
-export const FILL_BLANK_PLACEHOLDER_REGEX = /(\[BLANK(?:_\d+)?\]|_____)/g;
+export const FILL_BLANK_PLACEHOLDER_REGEX = /(\[BLANK(?:_\d+)?\])/g;
 
 export const extractFillBlankTokens = (text: string): string[] => {
   if (!text) return [];

@@ -56,7 +56,6 @@ export function FillBlankForm({ form, onChange }: QuestionFormProps) {
             <code className="bg-muted px-1 rounded text-primary">
               [BLANK_1]
             </code>
-            <code className="bg-muted px-1 rounded text-primary">_____</code>
           </div>
         </div>
 

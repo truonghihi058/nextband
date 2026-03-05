@@ -19,10 +19,10 @@ interface GrammarSectionProps {
   onQuestionFocus?: (questionId: string) => void;
 }
 
-const FILL_BLANK_PLACEHOLDER_REGEX = /(\[BLANK(?:_\d+)?\]|_____)/g;
+const FILL_BLANK_PLACEHOLDER_REGEX = /(\[BLANK(?:_\d+)?\])/g;
 const hasFillBlankPlaceholders = (text: string) => {
   const plain = text.replace(/<[^>]*>/g, "");
-  return /(\[BLANK(?:_\d+)?\]|_____)/.test(plain);
+  return /(\[BLANK(?:_\d+)?\])/.test(plain);
 };
 
 function WordCount({ text }: { text: string }) {
@@ -260,7 +260,6 @@ export function GrammarSection({
                                                   "",
                                                 );
                                                 const isBlank =
-                                                  plainPart === "_____" ||
                                                   plainPart.startsWith(
                                                     "[BLANK",
                                                   );
