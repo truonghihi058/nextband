@@ -1,11 +1,11 @@
 import { useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Zap } from "lucide-react";
 import FileUpload from "@/components/admin/FileUpload";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import type { QuestionFormProps } from "./QuestionFormTypes";
 import { extractFillBlankTokens } from "./QuestionFormTypes";
 
@@ -44,12 +44,11 @@ export function FillBlankForm({ form, onChange }: QuestionFormProps) {
           <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Nội dung câu hỏi (chứa ô trống)
           </Label>
-          <Textarea
+          <RichTextEditor
             placeholder="Ví dụ: I live in [BLANK] which is a big city."
             value={form.questionText}
-            onChange={(e) => onChange({ questionText: e.target.value })}
-            rows={4}
-            className="bg-background"
+            onChange={(html) => onChange({ questionText: html })}
+            minHeight={120}
           />
           <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground mt-1 px-1">
             <span>Placeholder hợp lệ:</span>

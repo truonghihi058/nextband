@@ -20,7 +20,9 @@ export const FILL_BLANK_PLACEHOLDER_REGEX = /(\[BLANK(?:_\d+)?\]|_____)/g;
 
 export const extractFillBlankTokens = (text: string): string[] => {
   if (!text) return [];
-  return text.match(FILL_BLANK_PLACEHOLDER_REGEX) || [];
+  // Strip HTML tags so we match placeholders in the text content
+  const plain = text.replace(/<[^>]*>/g, "");
+  return plain.match(FILL_BLANK_PLACEHOLDER_REGEX) || [];
 };
 
 export const parseFillBlankAnswers = (

@@ -20,8 +20,10 @@ interface GrammarSectionProps {
 }
 
 const FILL_BLANK_PLACEHOLDER_REGEX = /(\[BLANK(?:_\d+)?\]|_____)/g;
-const hasFillBlankPlaceholders = (text: string) =>
-  /(\[BLANK(?:_\d+)?\]|_____)/.test(text);
+const hasFillBlankPlaceholders = (text: string) => {
+  const plain = text.replace(/<[^>]*>/g, "");
+  return /(\[BLANK(?:_\d+)?\]|_____)/.test(plain);
+};
 
 function WordCount({ text }: { text: string }) {
   const count = text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -236,6 +238,7 @@ export function GrammarSection({
                                     <div className="text-base leading-relaxed pt-1">
                                       {(() => {
                                         const text = question.question_text;
+                                        // Split on placeholders - works with both plain text and HTML
                                         const parts = text.split(
                                           FILL_BLANK_PLACEHOLDER_REGEX,
                                         );
@@ -251,17 +254,24 @@ export function GrammarSection({
                                           <div className="flex flex-wrap items-baseline gap-2">
                                             {parts.map(
                                               (part: string, index: number) => {
+                                                // Strip HTML to check if it's a placeholder
+                                                const plainPart = part.replace(
+                                                  /<[^>]*>/g,
+                                                  "",
+                                                );
                                                 const isBlank =
-                                                  part === "_____" ||
-                                                  part.startsWith("[BLANK");
+                                                  plainPart === "_____" ||
+                                                  plainPart.startsWith(
+                                                    "[BLANK",
+                                                  );
 
                                                 if (isBlank) {
                                                   const normalizedIndex =
-                                                    part.match(
+                                                    plainPart.match(
                                                       /^\[BLANK_(\d+)\]$/,
                                                     )?.[1]
                                                       ? Number(
-                                                          part.match(
+                                                          plainPart.match(
                                                             /^\[BLANK_(\d+)\]$/,
                                                           )?.[1],
                                                         ) - 1
@@ -292,6 +302,19 @@ export function GrammarSection({
                                                         )
                                                       }
                                                       className="w-32 inline-flex h-9 border-b-2 border-t-0 border-x-0 rounded-none bg-transparent focus-visible:ring-0 focus-visible:border-primary px-1"
+                                                    />
+                                                  );
+                                                }
+
+                                                // Check if part contains HTML
+                                                if (/<[^>]*>/.test(part)) {
+                                                  return (
+                                                    <span
+                                                      key={index}
+                                                      className="font-medium prose prose-sm max-w-none"
+                                                      dangerouslySetInnerHTML={{
+                                                        __html: part,
+                                                      }}
                                                     />
                                                   );
                                                 }
