@@ -16,6 +16,11 @@ import { useTextHighlight, Highlight } from "@/hooks/useTextHighlight";
 import { cn } from "@/lib/utils";
 import { DropdownSelect } from "./DropdownSelect";
 
+import {
+  FillBlankHtmlRenderer,
+  hasFillBlankPlaceholders,
+} from "./FillBlankHtmlRenderer";
+
 interface ReadingSectionProps {
   section: any;
   answers: Record<string, any>;
@@ -25,11 +30,6 @@ interface ReadingSectionProps {
   onQuestionFocus?: (questionId: string) => void;
 }
 
-const FILL_BLANK_PLACEHOLDER_REGEX = /(\[BLANK(?:_\d+)?\])/g;
-const hasFillBlankPlaceholders = (text: string) => {
-  const plain = text.replace(/<[^>]*>/g, "");
-  return /(\[BLANK(?:_\d+)?\])/.test(plain);
-};
 const containsHtml = (text: string) => /<[^>]+>/.test(text);
 
 export function ReadingSection({
@@ -56,23 +56,40 @@ export function ReadingSection({
     section.question_groups ||
     section.questionGroups ||
     []
-  ).map((g: any) => ({
-    ...g,
-    questions: (g.questions || []).map((q: any) => ({
-      ...q,
-      question_text: q.question_text || q.questionText || "",
-      question_type: q.question_type || q.questionType || "short_answer",
-      question_audio_url:
-        q.audioUrl || q.audio_url || q.question_audio_url || null,
-      order_index: q.order_index ?? q.orderIndex ?? 0,
-      correct_answer: q.correct_answer || q.correctAnswer || null,
-      options: q.options
-        ? typeof q.options === "string"
-          ? JSON.parse(q.options)
-          : q.options
-        : [],
-    })),
-  }));
+  )
+    .map((g: any) => ({
+      ...g,
+      questions: (g.questions || [])
+        .map((q: any) => ({
+          ...q,
+          question_text: q.question_text || q.questionText || "",
+          question_type: q.question_type || q.questionType || "short_answer",
+          question_audio_url:
+            q.audioUrl || q.audio_url || q.question_audio_url || null,
+          order_index: q.order_index ?? q.orderIndex ?? 0,
+          correct_answer: q.correct_answer || q.correctAnswer || null,
+          options: q.options
+            ? typeof q.options === "string"
+              ? JSON.parse(q.options)
+              : q.options
+            : [],
+        }))
+        .sort((a: any, b: any) => {
+          const orderDiff = (a.order_index || 0) - (b.order_index || 0);
+          if (orderDiff !== 0) return orderDiff;
+          // Secondary sort by createdAt to maintain insertion order if index is the same
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        }),
+    }))
+    .sort((a: any, b: any) => {
+      const orderDiff =
+        (a.order_index || a.orderIndex || 0) -
+        (b.order_index || b.orderIndex || 0);
+      if (orderDiff !== 0) return orderDiff;
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
 
   // Get passage text from first question group or section
   const passageText = questionGroups[0]?.passage || section.passage_text || "";
@@ -377,80 +394,12 @@ export function ReadingSection({
                           question.question_type === "short_answer") && (
                           <div className="space-y-2">
                             {isFillBlankLike ? (
-                              <div className="text-base leading-relaxed">
-                                {/* Inline rendering for fill_blank with placeholders */}
-                                {(() => {
-                                  const text = question.question_text;
-                                  const parts = text.split(
-                                    FILL_BLANK_PLACEHOLDER_REGEX,
-                                  );
-                                  const currentAnswers =
-                                    typeof answers[question.id] === "object" &&
-                                    answers[question.id] !== null
-                                      ? answers[question.id]
-                                      : {};
-                                  let blankCursor = 0;
-
-                                  return (
-                                    <div className="flex flex-wrap items-baseline gap-2 pt-2">
-                                      {parts.map(
-                                        (part: string, index: number) => {
-                                          const isBlank =
-                                            part.startsWith("[BLANK");
-                                          if (isBlank) {
-                                            const normalizedIndex = part.match(
-                                              /^\[BLANK_(\d+)\]$/,
-                                            )?.[1]
-                                              ? Number(
-                                                  part.match(
-                                                    /^\[BLANK_(\d+)\]$/,
-                                                  )?.[1],
-                                                ) - 1
-                                              : blankCursor;
-                                            const key = String(
-                                              Math.max(0, normalizedIndex),
-                                            );
-                                            const value =
-                                              currentAnswers[key] || "";
-                                            blankCursor += 1;
-
-                                            return (
-                                              <Input
-                                                key={`${question.id}-blank-${index}`}
-                                                placeholder="..."
-                                                value={value}
-                                                onChange={(e) =>
-                                                  onAnswerChange(question.id, {
-                                                    ...currentAnswers,
-                                                    [key]: e.target.value,
-                                                  })
-                                                }
-                                                className="w-32 inline-flex h-9 border-b-2 border-t-0 border-x-0 rounded-none bg-transparent focus-visible:ring-0 focus-visible:border-primary px-1"
-                                              />
-                                            );
-                                          }
-                                          return /<[^>]*>/.test(part) ? (
-                                            <span
-                                              key={index}
-                                              className="font-medium text-foreground/80 prose prose-sm max-w-none"
-                                              dangerouslySetInnerHTML={{
-                                                __html: part,
-                                              }}
-                                            />
-                                          ) : (
-                                            <span
-                                              key={index}
-                                              className="font-medium text-foreground/80"
-                                            >
-                                              {part}
-                                            </span>
-                                          );
-                                        },
-                                      )}
-                                    </div>
-                                  );
-                                })()}
-                              </div>
+                              <FillBlankHtmlRenderer
+                                html={question.question_text}
+                                answers={answers[question.id] || {}}
+                                questionId={question.id}
+                                onAnswerChange={onAnswerChange as any}
+                              />
                             ) : (
                               /* Standard rendering for short_answer or fill_blank without placeholders */
                               <div className="space-y-2">

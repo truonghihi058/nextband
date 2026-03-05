@@ -9,6 +9,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { DropdownSelect } from "./DropdownSelect";
 import { QuestionRecorder } from "./QuestionRecorder";
+import {
+  FillBlankHtmlRenderer,
+  hasFillBlankPlaceholders,
+} from "./FillBlankHtmlRenderer";
 
 interface GrammarSectionProps {
   section: any;
@@ -18,12 +22,6 @@ interface GrammarSectionProps {
   currentQuestionId?: string;
   onQuestionFocus?: (questionId: string) => void;
 }
-
-const FILL_BLANK_PLACEHOLDER_REGEX = /(\[BLANK(?:_\d+)?\])/g;
-const hasFillBlankPlaceholders = (text: string) => {
-  const plain = text.replace(/<[^>]*>/g, "");
-  return /(\[BLANK(?:_\d+)?\])/.test(plain);
-};
 
 function WordCount({ text }: { text: string }) {
   const count = text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -45,23 +43,39 @@ export function GrammarSection({
   const rawGroups = section.question_groups || section.questionGroups || [];
 
   // Normalize question fields from camelCase to snake_case
-  const questionGroups = rawGroups.map((g: any) => ({
-    ...g,
-    questions: (g.questions || []).map((q: any) => ({
-      ...q,
-      question_text: q.question_text || q.questionText || "",
-      question_type: q.question_type || q.questionType || "short_answer",
-      question_audio_url:
-        q.audioUrl || q.audio_url || q.question_audio_url || null,
-      order_index: q.order_index ?? q.orderIndex ?? 0,
-      correct_answer: q.correct_answer || q.correctAnswer || null,
-      options: q.options
-        ? typeof q.options === "string"
-          ? JSON.parse(q.options)
-          : q.options
-        : [],
-    })),
-  }));
+  const questionGroups = rawGroups
+    .map((g: any) => ({
+      ...g,
+      questions: (g.questions || [])
+        .map((q: any) => ({
+          ...q,
+          question_text: q.question_text || q.questionText || "",
+          question_type: q.question_type || q.questionType || "short_answer",
+          question_audio_url:
+            q.audioUrl || q.audio_url || q.question_audio_url || null,
+          order_index: q.order_index ?? q.orderIndex ?? 0,
+          correct_answer: q.correct_answer || q.correctAnswer || null,
+          options: q.options
+            ? typeof q.options === "string"
+              ? JSON.parse(q.options)
+              : q.options
+            : [],
+        }))
+        .sort((a: any, b: any) => {
+          const orderDiff = (a.order_index || 0) - (b.order_index || 0);
+          return orderDiff !== 0
+            ? orderDiff
+            : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        }),
+    }))
+    .sort((a: any, b: any) => {
+      const orderDiff =
+        (a.order_index || a.orderIndex || 0) -
+        (b.order_index || b.orderIndex || 0);
+      return orderDiff !== 0
+        ? orderDiff
+        : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
 
   return (
     <div className="h-full overflow-auto">
@@ -239,103 +253,12 @@ export function GrammarSection({
                                   {hasFillBlankPlaceholders(
                                     question.question_text,
                                   ) ? (
-                                    <div className="text-base leading-relaxed pt-1">
-                                      {(() => {
-                                        const text = question.question_text;
-                                        // Split on placeholders - works with both plain text and HTML
-                                        const parts = text.split(
-                                          FILL_BLANK_PLACEHOLDER_REGEX,
-                                        );
-                                        const currentAnswers =
-                                          typeof answers[question.id] ===
-                                            "object" &&
-                                          answers[question.id] !== null
-                                            ? answers[question.id]
-                                            : {};
-                                        let blankCursor = 0;
-
-                                        return (
-                                          <div className="flex flex-wrap items-baseline gap-2">
-                                            {parts.map(
-                                              (part: string, index: number) => {
-                                                // Strip HTML to check if it's a placeholder
-                                                const plainPart = part.replace(
-                                                  /<[^>]*>/g,
-                                                  "",
-                                                );
-                                                const isBlank =
-                                                  plainPart.startsWith(
-                                                    "[BLANK",
-                                                  );
-
-                                                if (isBlank) {
-                                                  const normalizedIndex =
-                                                    plainPart.match(
-                                                      /^\[BLANK_(\d+)\]$/,
-                                                    )?.[1]
-                                                      ? Number(
-                                                          plainPart.match(
-                                                            /^\[BLANK_(\d+)\]$/,
-                                                          )?.[1],
-                                                        ) - 1
-                                                      : blankCursor;
-                                                  const key = String(
-                                                    Math.max(
-                                                      0,
-                                                      normalizedIndex,
-                                                    ),
-                                                  );
-                                                  const value =
-                                                    currentAnswers[key] || "";
-                                                  blankCursor += 1;
-
-                                                  return (
-                                                    <Input
-                                                      key={`${question.id}-blank-${index}`}
-                                                      placeholder="..."
-                                                      value={value}
-                                                      onChange={(e) =>
-                                                        onAnswerChange(
-                                                          question.id,
-                                                          {
-                                                            ...currentAnswers,
-                                                            [key]:
-                                                              e.target.value,
-                                                          },
-                                                        )
-                                                      }
-                                                      className="w-32 inline-flex h-9 border-b-2 border-t-0 border-x-0 rounded-none bg-transparent focus-visible:ring-0 focus-visible:border-primary px-1"
-                                                    />
-                                                  );
-                                                }
-
-                                                // Check if part contains HTML
-                                                if (/<[^>]*>/.test(part)) {
-                                                  return (
-                                                    <span
-                                                      key={index}
-                                                      className="font-medium prose prose-sm max-w-none"
-                                                      dangerouslySetInnerHTML={{
-                                                        __html: part,
-                                                      }}
-                                                    />
-                                                  );
-                                                }
-
-                                                return (
-                                                  <span
-                                                    key={index}
-                                                    className="font-medium"
-                                                  >
-                                                    {part}
-                                                  </span>
-                                                );
-                                              },
-                                            )}
-                                          </div>
-                                        );
-                                      })()}
-                                    </div>
+                                    <FillBlankHtmlRenderer
+                                      html={question.question_text}
+                                      answers={answers[question.id] || {}}
+                                      questionId={question.id}
+                                      onAnswerChange={onAnswerChange}
+                                    />
                                   ) : (
                                     <Input
                                       placeholder="Nhập đáp án của bạn..."

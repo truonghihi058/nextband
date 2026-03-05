@@ -25,10 +25,29 @@ export function WritingSection({
   onAnswerChange,
   timeRemaining,
 }: WritingSectionProps) {
-  // Use the first question's ID if available, otherwise fall back to section.id
-  // This ensures the answer key is a valid question_id for the answers table FK constraint
-  const firstQuestion = (section.question_groups || section.questionGroups)?.[0]
-    ?.questions?.[0];
+  const rawGroups = section.question_groups || section.questionGroups || [];
+
+  // Normalize question fields
+  const questionGroups = rawGroups.map((g: any) => ({
+    ...g,
+    questions: (g.questions || []).map((q: any) => ({
+      ...q,
+      question_text: q.question_text || q.questionText || "",
+      question_audio_url:
+        q.audioUrl || q.audio_url || q.question_audio_url || null,
+      order_index: q.order_index ?? q.orderIndex ?? 0,
+      image_url: q.imageUrl || q.image_url || null,
+    })),
+  }));
+
+  const firstQuestion = questionGroups[0]?.questions?.[0];
+
+  // Use a consolidated prompt text
+  const promptText = section.prompt_text || firstQuestion?.question_text || "";
+  const imageUrl = section.image_url || firstQuestion?.image_url || "";
+  const instructions =
+    section.instructions || questionGroups[0]?.instructions || "";
+
   const taskId = firstQuestion?.id || section.id;
   const text = answers[taskId] || "";
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -36,7 +55,7 @@ export function WritingSection({
   const [imageZoom, setImageZoom] = useState(1);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-save every 30 seconds
+  // Auto-save simulation
   useEffect(() => {
     if (text) {
       if (saveTimeoutRef.current) {
@@ -69,37 +88,49 @@ export function WritingSection({
   const wordProgress = Math.min((wordCount / minWords) * 100, 100);
 
   return (
-    <div className="h-full grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x">
+    <div className="h-full grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x overflow-hidden">
       {/* Left - Task Prompt */}
-      <div className="p-6 overflow-auto">
+      <div className="p-6 overflow-auto bg-muted/5">
         <div className="max-w-2xl mx-auto space-y-6">
-          <div className="flex items-center gap-2 text-[hsl(var(--writing))]">
+          <div className="flex items-center gap-2 text-[hsl(var(--writing))] mb-4">
             <PenTool className="h-5 w-5" />
-            <h2 className="text-xl font-semibold">{section.title}</h2>
+            <h2 className="text-xl font-bold">{section.title}</h2>
           </div>
 
           {/* Prompt Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Đề bài</CardTitle>
+          <Card className="shadow-sm border-muted/50">
+            <CardHeader className="py-4 bg-muted/20 border-b">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                ĐỀ BÀI (QUESTION PROMPT)
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {section.prompt_text && (
-                <p className="whitespace-pre-wrap">{section.prompt_text}</p>
-              )}
-              {section.instructions && (
-                <p className="text-sm text-muted-foreground border-t pt-4">
-                  {section.instructions}
-                </p>
+            <CardContent className="py-6 space-y-4">
+              {promptText &&
+                (/<[^>]+>/.test(promptText) ? (
+                  <div
+                    className="prose prose-sm max-w-none text-foreground leading-relaxed font-medium text-base"
+                    dangerouslySetInnerHTML={{ __html: promptText }}
+                  />
+                ) : (
+                  <p className="whitespace-pre-wrap leading-relaxed font-medium text-base">
+                    {promptText}
+                  </p>
+                ))}
+              {instructions && (
+                <div className="text-sm text-blue-600 font-medium bg-blue-50/50 p-4 rounded-xl border border-blue-100 italic">
+                  {instructions}
+                </div>
               )}
             </CardContent>
           </Card>
 
           {/* Image with zoom (for Task 1 charts/maps) */}
-          {section.image_url && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base">Hình ảnh</CardTitle>
+          {imageUrl && (
+            <Card className="shadow-sm border-muted/50 overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between py-3 px-4 bg-muted/20 border-b">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                  HÌNH ẢNH MINH HỌA
+                </CardTitle>
                 <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
@@ -127,26 +158,26 @@ export function WritingSection({
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4">
                 <Dialog>
                   <DialogTrigger asChild>
-                    <div className="overflow-auto cursor-zoom-in border rounded-lg">
+                    <div className="overflow-auto cursor-zoom-in border rounded-lg bg-white p-4 shadow-inner min-h-[200px] flex items-center justify-center">
                       <img
-                        src={section.image_url}
+                        src={imageUrl}
                         alt="Task image"
                         style={{
                           transform: `scale(${imageZoom})`,
-                          transformOrigin: "top left",
+                          transformOrigin: "center center",
                         }}
-                        className="transition-transform"
+                        className="transition-transform max-w-full h-auto drop-shadow-md"
                       />
                     </div>
                   </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+                  <DialogContent className="max-w-5xl max-h-[90vh] overflow-auto">
                     <img
-                      src={section.image_url}
+                      src={imageUrl}
                       alt="Task image"
-                      className="w-full"
+                      className="w-full h-auto"
                     />
                   </DialogContent>
                 </Dialog>
@@ -157,15 +188,17 @@ export function WritingSection({
       </div>
 
       {/* Right - Writing Area */}
-      <div className="p-6 flex flex-col">
-        <div className="max-w-2xl mx-auto flex-1 flex flex-col w-full">
-          <Card className="flex-1 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between py-3 border-b">
-              <CardTitle className="text-base">Bài viết của bạn</CardTitle>
+      <div className="p-6 flex flex-col bg-background">
+        <div className="max-w-3xl mx-auto flex-1 flex flex-col w-full">
+          <Card className="flex-1 flex flex-col shadow-lg border-muted/30">
+            <CardHeader className="flex flex-row items-center justify-between py-4 border-b">
+              <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                NHẬP BÀI VIẾT TẠI ĐÂY
+              </CardTitle>
               <div className="flex items-center gap-3">
                 {lastSaved && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Save className="h-3 w-3" />
+                  <span className="text-xs text-muted-foreground flex items-center gap-1.5 bg-muted/50 px-2 py-1 rounded-full">
+                    <Save className="h-3 w-3 text-primary" />
                     Đã lưu {lastSaved.toLocaleTimeString("vi-VN")}
                   </span>
                 )}
@@ -178,40 +211,49 @@ export function WritingSection({
                       "_blank",
                     )
                   }
-                  className="gap-1.5"
+                  className="gap-1.5 text-xs h-8 border-primary/20 hover:bg-primary/5"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
-                  Mở Google Docs
+                  Docs
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col p-0">
+            <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
               <Textarea
                 placeholder="Bắt đầu viết bài của bạn tại đây..."
                 value={text}
                 onChange={(e) => onAnswerChange(taskId, e.target.value)}
-                className="flex-1 min-h-[400px] resize-none border-0 rounded-none focus-visible:ring-0"
+                className="flex-1 min-h-[400px] resize-none border-0 rounded-none focus-visible:ring-0 p-8 text-lg leading-relaxed font-serif"
               />
             </CardContent>
-            <div className="border-t p-3 flex items-center justify-between bg-muted/30">
-              <div className="flex items-center gap-4">
+            <div className="border-t p-4 flex items-center justify-between bg-muted/10">
+              <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Số từ:</span>
+                  <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                    SỐ TỪ:
+                  </span>
                   <span
-                    className={`font-semibold ${wordCount >= minWords ? "text-[hsl(var(--success))]" : "text-foreground"}`}
+                    className={`text-xl font-bold ${wordCount >= minWords ? "text-green-600" : "text-primary"}`}
                   >
                     {wordCount}
                   </span>
-                  <span className="text-sm text-muted-foreground">
-                    / {minWords} tối thiểu
+                  <span className="text-xs font-bold text-muted-foreground opacity-50">
+                    / {minWords}
                   </span>
                 </div>
               </div>
-              <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all ${wordCount >= minWords ? "bg-[hsl(var(--success))]" : "bg-primary"}`}
-                  style={{ width: `${wordProgress}%` }}
-                />
+              <div className="flex items-center gap-4 flex-1 max-w-[200px]">
+                <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden border border-muted shadow-inner">
+                  <div
+                    className={`h-full transition-all duration-700 ${wordCount >= minWords ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]" : "bg-primary shadow-[0_0_10px_rgba(var(--primary),0.2)]"}`}
+                    style={{ width: `${wordProgress}%` }}
+                  />
+                </div>
+                {wordCount >= minWords && (
+                  <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+                    PASS
+                  </span>
+                )}
               </div>
             </div>
           </Card>

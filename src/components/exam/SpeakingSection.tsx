@@ -8,10 +8,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { QuestionRecorder } from "./QuestionRecorder";
 
+import {
+  FillBlankHtmlRenderer,
+  hasFillBlankPlaceholders,
+} from "./FillBlankHtmlRenderer";
+
 interface SpeakingSectionProps {
   section: any;
-  answers: Record<string, string>;
-  onAnswerChange: (questionId: string, answer: string) => void;
+  answers: Record<string, any>;
+  onAnswerChange: (questionId: string, answer: any) => void;
   questionRefs?: MutableRefObject<Map<string, HTMLElement>>;
   currentQuestionId?: string;
   onQuestionFocus?: (questionId: string) => void;
@@ -29,20 +34,37 @@ export function SpeakingSection({
 
   // Normalize question fields
   const questionGroups = useMemo(() => {
-    return rawGroups.map((g: any) => ({
-      ...g,
-      questions: (g.questions || []).map((q: any) => ({
-        ...q,
-        question_text: q.question_text || q.questionText || "",
-        question_type: q.question_type || q.questionType || "speaking",
-        order_index: q.order_index ?? q.orderIndex ?? 0,
-        options: q.options
-          ? typeof q.options === "string"
-            ? JSON.parse(q.options)
-            : q.options
-          : [],
-      })),
-    }));
+    return rawGroups
+      .map((g: any) => ({
+        ...g,
+        questions: (g.questions || [])
+          .map((q: any) => ({
+            ...q,
+            question_text: q.question_text || q.questionText || "",
+            question_type: q.question_type || q.questionType || "speaking",
+            order_index: q.order_index ?? q.orderIndex ?? 0,
+            options: q.options
+              ? typeof q.options === "string"
+                ? JSON.parse(q.options)
+                : q.options
+              : [],
+          }))
+          .sort((a: any, b: any) => {
+            const orderDiff = (a.order_index || 0) - (b.order_index || 0);
+            return orderDiff !== 0
+              ? orderDiff
+              : new Date(a.createdAt).getTime() -
+                  new Date(b.createdAt).getTime();
+          }),
+      }))
+      .sort((a: any, b: any) => {
+        const orderDiff =
+          (a.orderIndex || a.order_index || 0) -
+          (b.orderIndex || b.order_index || 0);
+        return orderDiff !== 0
+          ? orderDiff
+          : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
   }, [rawGroups]);
 
   // Flatten for calculations
@@ -141,9 +163,22 @@ export function SpeakingSection({
                           </span>
 
                           <div className="flex-1 space-y-4">
-                            <p className="font-semibold text-lg leading-snug pt-1">
-                              {question.question_text}
-                            </p>
+                            {!(
+                              question.question_type === "fill_blank" &&
+                              hasFillBlankPlaceholders(question.question_text)
+                            ) &&
+                              (/<[^>]+>/.test(question.question_text) ? (
+                                <div
+                                  className="font-semibold text-lg leading-snug pt-1 prose prose-sm max-w-none"
+                                  dangerouslySetInnerHTML={{
+                                    __html: question.question_text,
+                                  }}
+                                />
+                              ) : (
+                                <p className="font-semibold text-lg leading-snug pt-1">
+                                  {question.question_text}
+                                </p>
+                              ))}
 
                             {question.question_audio_url && (
                               <div className="bg-white/60 p-3 rounded-xl border border-[hsl(var(--speaking))]/20 flex items-center gap-3 max-w-md">
@@ -204,11 +239,24 @@ export function SpeakingSection({
                                 />
                               )}
 
+                              {question.question_type === "fill_blank" &&
+                                hasFillBlankPlaceholders(
+                                  question.question_text,
+                                ) && (
+                                  <FillBlankHtmlRenderer
+                                    html={question.question_text}
+                                    answers={answers[question.id] || {}}
+                                    questionId={question.id}
+                                    onAnswerChange={onAnswerChange}
+                                  />
+                                )}
+
                               {/* Generic input for others */}
                               {![
                                 "multiple_choice",
                                 "speaking",
                                 "essay",
+                                "fill_blank",
                               ].includes(question.question_type) && (
                                 <Input
                                   placeholder="Nhập câu trả lời..."

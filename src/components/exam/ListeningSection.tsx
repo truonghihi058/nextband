@@ -8,12 +8,16 @@ import { Headphones } from "lucide-react";
 import { StickyAudioPlayer } from "./StickyAudioPlayer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import {
+  FillBlankHtmlRenderer,
+  hasFillBlankPlaceholders,
+} from "./FillBlankHtmlRenderer";
 import { DropdownSelect } from "./DropdownSelect";
 
 interface ListeningSectionProps {
   section: any;
-  answers: Record<string, string>;
-  onAnswerChange: (questionId: string, answer: string) => void;
+  answers: Record<string, any>;
+  onAnswerChange: (questionId: string, answer: any) => void;
   strictMode?: boolean;
   showTranscript?: boolean;
   questionRefs?: MutableRefObject<Map<string, HTMLElement>>;
@@ -35,23 +39,39 @@ export function ListeningSection({
   const rawGroups = section.question_groups || section.questionGroups || [];
 
   // Normalize question fields from camelCase to snake_case
-  const questionGroups = rawGroups.map((g: any) => ({
-    ...g,
-    questions: (g.questions || []).map((q: any) => ({
-      ...q,
-      question_text: q.question_text || q.questionText || "",
-      question_type: q.question_type || q.questionType || "short_answer",
-      question_audio_url:
-        q.audioUrl || q.audio_url || q.question_audio_url || null,
-      order_index: q.order_index ?? q.orderIndex ?? 0,
-      correct_answer: q.correct_answer || q.correctAnswer || null,
-      options: q.options
-        ? typeof q.options === "string"
-          ? JSON.parse(q.options)
-          : q.options
-        : [],
-    })),
-  }));
+  const questionGroups = rawGroups
+    .map((g: any) => ({
+      ...g,
+      questions: (g.questions || [])
+        .map((q: any) => ({
+          ...q,
+          question_text: q.question_text || q.questionText || "",
+          question_type: q.question_type || q.questionType || "short_answer",
+          question_audio_url:
+            q.audioUrl || q.audio_url || q.question_audio_url || null,
+          order_index: q.order_index ?? q.orderIndex ?? 0,
+          correct_answer: q.correct_answer || q.correctAnswer || null,
+          options: q.options
+            ? typeof q.options === "string"
+              ? JSON.parse(q.options)
+              : q.options
+            : [],
+        }))
+        .sort((a: any, b: any) => {
+          const orderDiff = (a.order_index || 0) - (b.order_index || 0);
+          return orderDiff !== 0
+            ? orderDiff
+            : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        }),
+    }))
+    .sort((a: any, b: any) => {
+      const orderDiff =
+        (a.order_index || a.orderIndex || 0) -
+        (b.order_index || b.orderIndex || 0);
+      return orderDiff !== 0
+        ? orderDiff
+        : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
 
   // Get current part questions
   const currentGroup = questionGroups[currentPart];
@@ -162,9 +182,22 @@ export function ListeningSection({
                               {question.order_index || qIndex + 1}
                             </span>
                             <div className="flex-1 space-y-3">
-                              <p className="font-semibold text-base leading-snug">
-                                {question.question_text}
-                              </p>
+                              {!(
+                                question.question_type === "fill_blank" &&
+                                hasFillBlankPlaceholders(question.question_text)
+                              ) &&
+                                (/<[^>]+>/.test(question.question_text) ? (
+                                  <div
+                                    className="font-semibold text-base leading-snug prose prose-sm max-w-none"
+                                    dangerouslySetInnerHTML={{
+                                      __html: question.question_text,
+                                    }}
+                                  />
+                                ) : (
+                                  <p className="font-semibold text-base leading-snug">
+                                    {question.question_text}
+                                  </p>
+                                ))}
 
                               {question.question_audio_url && (
                                 <div className="bg-muted/50 p-3 rounded-xl border border-border/50 flex items-center gap-3">
@@ -225,7 +258,24 @@ export function ListeningSection({
                                 </RadioGroup>
                               )}
 
-                            {(question.question_type === "fill_blank" ||
+                            {/* Fill Blank with placeholders - HTML rendering support */}
+                            {question.question_type === "fill_blank" &&
+                              hasFillBlankPlaceholders(
+                                question.question_text,
+                              ) && (
+                                <FillBlankHtmlRenderer
+                                  html={question.question_text}
+                                  answers={answers[question.id] || {}}
+                                  questionId={question.id}
+                                  onAnswerChange={onAnswerChange}
+                                />
+                              )}
+
+                            {/* Simple text input for listening/short_answer/fill_blank without placeholders */}
+                            {((question.question_type === "fill_blank" &&
+                              !hasFillBlankPlaceholders(
+                                question.question_text,
+                              )) ||
                               question.question_type === "listening" ||
                               question.question_type === "short_answer") &&
                               (!question.options ||
