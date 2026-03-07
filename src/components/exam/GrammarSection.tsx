@@ -88,9 +88,11 @@ export function GrammarSection({
           </div>
 
           {section.instructions && (
-            <Card className="bg-muted/30 border-muted">
-              <CardContent className="p-4 text-sm text-muted-foreground">
-                {section.instructions}
+            <Card className="bg-white border-orange-500 border shadow-sm">
+              <CardContent className="p-4 text-sm text-black font-medium leading-relaxed">
+                <div
+                  dangerouslySetInnerHTML={{ __html: section.instructions }}
+                />
               </CardContent>
             </Card>
           )}
@@ -111,11 +113,13 @@ export function GrammarSection({
                       </div>
                     )}
                     {group.instructions && (
-                      <Card className="bg-accent/20 border-accent/40">
-                        <CardContent className="p-3 text-sm text-accent-foreground">
-                          {group.instructions}
-                        </CardContent>
-                      </Card>
+                      <div className="p-3 bg-white border-orange-500/50 border rounded-lg text-sm text-black font-semibold shadow-sm mb-4">
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: group.instructions,
+                          }}
+                        />
+                      </div>
                     )}
                   </div>
                 )}

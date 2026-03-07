@@ -1,10 +1,10 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Badge } from "@/components/ui/badge";
 import { CheckSquare } from "lucide-react";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import type { QuestionFormProps } from "./QuestionFormTypes";
 
 const ANSWER_OPTIONS = {
@@ -39,16 +39,15 @@ export function TrueFalseForm({ form, onChange }: QuestionFormProps) {
           <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Statement (Nhận định) *
           </Label>
-          <Textarea
+          <RichTextEditor
             placeholder={
               isYesNo
                 ? "VD: The writer believes that technology has improved education."
                 : "VD: The company was founded in 1995."
             }
             value={form.questionText}
-            onChange={(e) => onChange({ questionText: e.target.value })}
-            rows={3}
-            className="bg-background"
+            onChange={(html) => onChange({ questionText: html })}
+            minHeight={100}
           />
           <p className="text-[10px] text-muted-foreground italic">
             * Nhập nhận định để thí sinh xác định{" "}

@@ -83,9 +83,13 @@ export function SpeakingSection({
             </div>
             <div>
               <h2 className="text-2xl font-bold">{section.title}</h2>
-              <p className="text-sm text-muted-foreground">
-                {section.instructions || "Thực hiện các phần thi nói dưới đây"}
-              </p>
+              {section.instructions && (
+                <div className="mt-2 p-3 bg-white border-orange-500 border rounded-lg text-sm text-black font-medium shadow-sm">
+                  <div
+                    dangerouslySetInnerHTML={{ __html: section.instructions }}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -103,8 +107,10 @@ export function SpeakingSection({
                     )}
                   </div>
                   {group.instructions && (
-                    <div className="p-4 bg-muted/30 border border-muted rounded-xl text-sm italic text-muted-foreground">
-                      {group.instructions}
+                    <div className="p-3 bg-white border-orange-500/50 border rounded-lg text-sm text-black font-semibold shadow-sm mb-4">
+                      <div
+                        dangerouslySetInnerHTML={{ __html: group.instructions }}
+                      />
                     </div>
                   )}
                 </div>

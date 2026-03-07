@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowRightLeft, Plus, Trash2 } from "lucide-react";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import type { QuestionFormProps } from "./QuestionFormTypes";
 
 interface MatchingPair {
@@ -144,12 +144,11 @@ export function MatchingForm({ form, onChange }: QuestionFormProps) {
           <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Hướng dẫn / Câu hỏi *
           </Label>
-          <Textarea
+          <RichTextEditor
             placeholder="VD: Match the following headings with the correct paragraphs."
             value={form.questionText}
-            onChange={(e) => onChange({ questionText: e.target.value })}
-            rows={2}
-            className="bg-background"
+            onChange={(html) => onChange({ questionText: html })}
+            minHeight={100}
           />
         </div>
 

@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { PenTool } from "lucide-react";
@@ -28,12 +28,11 @@ export function EssayForm({ form, onChange }: QuestionFormProps) {
           <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Đề bài / Yêu cầu viết *
           </Label>
-          <Textarea
+          <RichTextEditor
             placeholder="VD: Some people believe that universities should focus more on practical skills. To what extent do you agree or disagree?"
             value={form.questionText}
-            onChange={(e) => onChange({ questionText: e.target.value })}
-            rows={4}
-            className="bg-background"
+            onChange={(html) => onChange({ questionText: html })}
+            minHeight={120}
           />
         </div>
 
@@ -68,12 +67,11 @@ export function EssayForm({ form, onChange }: QuestionFormProps) {
           <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Bài mẫu / Sample Answer (tham khảo cho giáo viên)
           </Label>
-          <Textarea
+          <RichTextEditor
             placeholder="Nhập bài viết mẫu hoặc các ý chính cần có..."
             value={form.correctAnswer}
-            onChange={(e) => onChange({ correctAnswer: e.target.value })}
-            rows={5}
-            className="bg-background border-emerald-500/20 focus-visible:border-emerald-500"
+            onChange={(html) => onChange({ correctAnswer: html })}
+            minHeight={150}
           />
         </div>
 

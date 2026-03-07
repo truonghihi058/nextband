@@ -142,9 +142,11 @@ export function ListeningSection({
               </div>
 
               {section.instructions && (
-                <Card className="bg-muted/30">
-                  <CardContent className="p-4 text-sm text-muted-foreground">
-                    {section.instructions}
+                <Card className="bg-white border-orange-500 border shadow-sm">
+                  <CardContent className="p-4 text-sm text-black font-medium leading-relaxed">
+                    <div
+                      dangerouslySetInnerHTML={{ __html: section.instructions }}
+                    />
                   </CardContent>
                 </Card>
               )}
@@ -152,9 +154,13 @@ export function ListeningSection({
               {currentGroup && (
                 <div className="space-y-4">
                   {currentGroup.instructions && (
-                    <p className="text-sm text-muted-foreground font-medium">
-                      {currentGroup.instructions}
-                    </p>
+                    <div className="p-3 bg-white border-orange-500/50 border rounded-lg text-sm text-black font-semibold shadow-sm mb-4">
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: currentGroup.instructions,
+                        }}
+                      />
+                    </div>
                   )}
 
                   {currentQuestions.map((question: any, qIndex: number) => {

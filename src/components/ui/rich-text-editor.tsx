@@ -1,7 +1,25 @@
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Bold, Italic, Underline, List, ListOrdered } from "lucide-react";
+import {
+  Bold,
+  Italic,
+  Underline,
+  List,
+  ListOrdered,
+  Type,
+  Eraser,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface RichTextEditorProps {
   value: string;
@@ -38,21 +56,110 @@ export function RichTextEditor({
   return (
     <div className={cn("border rounded-md bg-background", className)}>
       <div className="flex items-center gap-1 border-b p-2">
-        <Button type="button" variant="ghost" size="icon" onClick={() => exec("bold")}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => exec("bold")}
+        >
           <Bold className="h-4 w-4" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => exec("italic")}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => exec("italic")}
+        >
           <Italic className="h-4 w-4" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => exec("underline")}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => exec("underline")}
+        >
           <Underline className="h-4 w-4" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => exec("insertUnorderedList")}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => exec("insertUnorderedList")}
+        >
           <List className="h-4 w-4" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => exec("insertOrderedList")}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => exec("insertOrderedList")}
+        >
           <ListOrdered className="h-4 w-4" />
         </Button>
+
+        <div className="h-4 w-px bg-border mx-1" />
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => exec("justifyLeft")}
+        >
+          <AlignLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => exec("justifyCenter")}
+        >
+          <AlignCenter className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => exec("justifyRight")}
+        >
+          <AlignRight className="h-4 w-4" />
+        </Button>
+
+        <div className="h-4 w-px bg-border mx-1" />
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => exec("removeFormat")}
+          title="Xóa định dạng"
+        >
+          <Eraser className="h-4 w-4" />
+        </Button>
+
+        <div className="h-4 w-px bg-border mx-1" />
+
+        <Select
+          onValueChange={(value) => {
+            document.execCommand("fontSize", false, value);
+            if (editorRef.current) {
+              onChange(editorRef.current.innerHTML);
+            }
+          }}
+        >
+          <SelectTrigger className="h-8 w-[110px] text-xs">
+            <Type className="h-3 w-3 mr-1" />
+            <SelectValue placeholder="Cỡ chữ" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="1">Rất nhỏ</SelectItem>
+            <SelectItem value="2">Nhỏ</SelectItem>
+            <SelectItem value="3">Bình thường</SelectItem>
+            <SelectItem value="4">Lớn</SelectItem>
+            <SelectItem value="5">Rất lớn</SelectItem>
+            <SelectItem value="6">Cực lớn</SelectItem>
+            <SelectItem value="7">Khổng lồ</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div
@@ -75,4 +182,3 @@ export function RichTextEditor({
     </div>
   );
 }
-

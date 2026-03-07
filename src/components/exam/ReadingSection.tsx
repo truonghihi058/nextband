@@ -267,9 +267,11 @@ export function ReadingSection({
       <ScrollArea className="h-[calc(100vh-200px)]">
         <div className="p-6 space-y-6">
           {section.instructions && (
-            <Card className="bg-muted/30">
-              <CardContent className="p-4 text-sm text-muted-foreground">
-                {section.instructions}
+            <Card className="bg-white border-orange-500 border shadow-sm">
+              <CardContent className="p-4 text-sm text-black font-medium leading-relaxed">
+                <div
+                  dangerouslySetInnerHTML={{ __html: section.instructions }}
+                />
               </CardContent>
             </Card>
           )}
@@ -282,9 +284,11 @@ export function ReadingSection({
                 </h3>
               )}
               {group.instructions && (
-                <p className="text-sm text-muted-foreground">
-                  {group.instructions}
-                </p>
+                <div className="p-3 bg-white border-orange-500/50 border rounded-lg text-sm text-black font-semibold shadow-sm mb-4">
+                  <div
+                    dangerouslySetInnerHTML={{ __html: group.instructions }}
+                  />
+                </div>
               )}
 
               {(group.questions || []).map((question: any, qIndex: number) => {

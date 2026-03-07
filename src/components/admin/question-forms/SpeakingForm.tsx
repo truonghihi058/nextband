@@ -1,8 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Mic } from "lucide-react";
 import FileUpload from "@/components/admin/FileUpload";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import type { QuestionFormProps } from "./QuestionFormTypes";
 
 export function SpeakingForm({ form, onChange }: QuestionFormProps) {
@@ -35,12 +35,11 @@ export function SpeakingForm({ form, onChange }: QuestionFormProps) {
           <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Nội dung câu hỏi / Yêu cầu Speaking
           </Label>
-          <Textarea
+          <RichTextEditor
             placeholder="Ví dụ: Describe a place you visited that had a significant impact on you."
             value={form.questionText}
-            onChange={(e) => onChange({ questionText: e.target.value })}
-            rows={3}
-            className="bg-background"
+            onChange={(html) => onChange({ questionText: html })}
+            minHeight={100}
           />
         </div>
 
@@ -48,12 +47,11 @@ export function SpeakingForm({ form, onChange }: QuestionFormProps) {
           <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Câu trả lời mẫu / Gợi ý (Reference Answer)
           </Label>
-          <Textarea
+          <RichTextEditor
             placeholder="Nhập nội dung trả lời mẫu hoặc các ý chính cần có..."
             value={form.correctAnswer}
-            onChange={(e) => onChange({ correctAnswer: e.target.value })}
-            rows={4}
-            className="bg-background border-[hsl(var(--speaking))]/20 focus-visible:border-[hsl(var(--speaking))]"
+            onChange={(html) => onChange({ correctAnswer: html })}
+            minHeight={120}
           />
         </div>
       </CardContent>

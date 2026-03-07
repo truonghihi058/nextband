@@ -5,7 +5,8 @@ import axios, {
   AxiosError,
 } from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://api.nextband.site/api/v1";
+const API_URL =
+  import.meta.env.VITE_API_URL || "https://api.nextband.site/api/v1";
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -277,6 +278,8 @@ export const questionsApi = {
     title?: string;
     instructions?: string;
     passage?: string;
+    audioUrl?: string;
+    orderIndex?: number;
   }) => {
     const { data } = await api.post("/questions/groups", group);
     return data;
@@ -299,6 +302,7 @@ export const questionsApi = {
     options?: any;
     correctAnswer?: string;
     audioUrl?: string;
+    orderIndex?: number;
   }) => {
     const { data } = await api.post("/questions", question);
     return data;

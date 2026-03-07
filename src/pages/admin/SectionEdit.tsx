@@ -43,6 +43,7 @@ import {
   Mic,
   FileText,
   Zap,
+  Edit,
 } from "lucide-react";
 import FileUpload from "@/components/admin/FileUpload";
 import DeleteConfirmDialog from "@/components/admin/DeleteConfirmDialog";
@@ -120,6 +121,7 @@ interface QuestionGroup {
   title: string | null;
   passage: string | null;
   instructions: string | null;
+  audioUrl: string | null;
   orderIndex: number;
   questions: Question[];
 }
@@ -168,6 +170,8 @@ export default function AdminSectionEdit() {
     title: "",
     passage: "",
     instructions: "",
+    audioUrl: "",
+    orderIndex: 0,
   });
   const [questionForm, setQuestionForm] = useState({
     questionText: "",
@@ -177,6 +181,7 @@ export default function AdminSectionEdit() {
     fillBlankAnswers: [""],
     points: 1,
     audioUrl: "",
+    orderIndex: 0,
   });
 
   const { data: sectionData, isLoading: sectionLoading } = useQuery({
@@ -191,51 +196,22 @@ export default function AdminSectionEdit() {
   // --- Mutations ---
 
   const createGroupMutation = useMutation({
-    mutationFn: async (data: {
-      title: string;
-      passage: string;
-      instructions: string;
-    }) => {
-      return questionsApi.createGroup({
-        sectionId: id!,
-        title: data.title || undefined,
-        passage: data.passage || undefined,
-        instructions: data.instructions || undefined,
-      });
-    },
+    mutationFn: async (data: any) =>
+      questionsApi.createGroup({ ...data, sectionId: id! }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
       setGroupDialogOpen(false);
-      setGroupForm({ title: "", passage: "", instructions: "" });
-      toast({ title: "Thành công", description: "Đã tạo nhóm câu hỏi mới" });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Lỗi",
-        description: error.response?.data?.error || error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Đã thêm nhóm câu hỏi" });
     },
   });
 
   const updateGroupMutation = useMutation({
-    mutationFn: async (data: {
-      id: string;
-      title: string;
-      passage: string;
-      instructions: string;
-    }) => {
-      return questionsApi.updateGroup(data.id, {
-        title: data.title || null,
-        passage: data.passage || null,
-        instructions: data.instructions || null,
-      });
-    },
+    mutationFn: async ({ id: groupId, ...data }: any) =>
+      questionsApi.updateGroup(groupId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
       setGroupDialogOpen(false);
-      setEditingGroup(null);
-      toast({ title: "Thành công", description: "Đã cập nhật nhóm câu hỏi" });
+      toast({ title: "Đã cập nhật nhóm câu hỏi" });
     },
   });
 
@@ -243,71 +219,49 @@ export default function AdminSectionEdit() {
     mutationFn: (groupId: string) => questionsApi.deleteGroup(groupId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
-      toast({ title: "Đã xóa", description: "Nhóm câu hỏi đã được xóa" });
       setDeleteGroup(null);
+      toast({ title: "Đã xóa nhóm câu hỏi" });
     },
   });
 
   const createQuestionMutation = useMutation({
-    mutationFn: async (data: typeof questionForm & { groupId: string }) => {
-      const normalizedCorrectAnswer =
-        data.questionType === "fill_blank" && data.fillBlankAnswers.length > 0
-          ? stringifyFillBlankAnswers(data.fillBlankAnswers)
-          : data.correctAnswer || undefined;
-
-      return questionsApi.create({
-        groupId: data.groupId,
-        questionText: data.questionText,
-        questionType: data.questionType,
-        options:
-          data.questionType === "multiple_choice"
-            ? data.options.filter(Boolean)
-            : undefined,
-        correctAnswer: normalizedCorrectAnswer,
-        audioUrl: data.audioUrl || undefined,
-      });
+    mutationFn: async (data: any) => {
+      let finalData = { ...data };
+      if (data.questionType === "fill_blank") {
+        finalData.correctAnswer = stringifyFillBlankAnswers(
+          data.fillBlankAnswers,
+        );
+      }
+      return questionsApi.create(finalData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
       setQuestionDialogOpen(false);
-      setSelectedGroupId(null);
-      setQuestionForm({
-        questionText: "",
-        questionType: "multiple_choice",
-        options: ["", "", "", ""],
-        correctAnswer: "",
-        fillBlankAnswers: [""],
-        points: 1,
-        audioUrl: "",
+      toast({ title: "Đã thêm câu hỏi" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi",
+        description: error.response?.data?.message || "Không thể thêm câu hỏi",
+        variant: "destructive",
       });
-      toast({ title: "Thành công", description: "Đã tạo câu hỏi mới" });
     },
   });
 
   const updateQuestionMutation = useMutation({
-    mutationFn: async (data: typeof questionForm & { id: string }) => {
-      const normalizedCorrectAnswer =
-        data.questionType === "fill_blank" && data.fillBlankAnswers.length > 0
-          ? stringifyFillBlankAnswers(data.fillBlankAnswers)
-          : data.correctAnswer || null;
-
-      return questionsApi.update(data.id, {
-        questionText: data.questionText,
-        questionType: data.questionType,
-        options:
-          data.questionType === "multiple_choice"
-            ? data.options.filter(Boolean)
-            : null,
-        correctAnswer: normalizedCorrectAnswer,
-        points: data.points,
-        audioUrl: data.audioUrl || null,
-      });
+    mutationFn: async ({ id: questionId, ...data }: any) => {
+      let finalData = { ...data };
+      if (data.questionType === "fill_blank") {
+        finalData.correctAnswer = stringifyFillBlankAnswers(
+          data.fillBlankAnswers,
+        );
+      }
+      return questionsApi.update(questionId, finalData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
       setQuestionDialogOpen(false);
-      setEditingQuestion(null);
-      toast({ title: "Thành công", description: "Đã cập nhật câu hỏi" });
+      toast({ title: "Đã cập nhật câu hỏi" });
     },
   });
 
@@ -315,67 +269,44 @@ export default function AdminSectionEdit() {
     mutationFn: (questionId: string) => questionsApi.delete(questionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
-      toast({ title: "Đã xóa", description: "Câu hỏi đã được xóa" });
       setDeleteQuestion(null);
+      toast({ title: "Đã xóa câu hỏi" });
     },
   });
 
   const updateSectionMutation = useMutation({
-    mutationFn: async (data: {
-      audioUrl?: string;
-      instructions?: string;
-      durationMinutes?: number;
-    }) => {
-      return sectionsApi.update(id!, data);
-    },
+    mutationFn: (data: any) => sectionsApi.update(id!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
-      toast({
-        title: "Đã lưu",
-        description: "Thông tin section đã được cập nhật",
-      });
     },
   });
 
-  // Bulk import mutation
   const bulkImportMutation = useMutation({
-    mutationFn: async ({
-      groupId,
-      text,
-      questionType,
-    }: {
-      groupId: string;
-      text: string;
-      questionType: string;
-    }) => {
+    mutationFn: async ({ groupId, text, questionType }: any) => {
       const lines = text
         .split("\n")
-        .map((l) => l.trim())
+        .map((l: string) => l.trim())
         .filter(Boolean);
-      if (lines.length === 0) throw new Error("Không có câu hỏi nào để nhập");
-
-      const questions = lines.map((line) => ({
-        questionText: line,
-        questionType: questionType,
-        points: 1,
-      }));
-
-      return questionsApi.bulkCreate(groupId, questions);
+      for (const line of lines) {
+        await questionsApi.create({
+          groupId,
+          questionType,
+          questionText: line,
+          points: 1,
+          orderIndex: 0,
+        });
+      }
     },
-    onSuccess: (_, { text }) => {
-      const count = text
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean).length;
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
       setBulkImportGroupId(null);
       setBulkImportText("");
-      toast({ title: "Thành công", description: `Đã tạo ${count} câu hỏi` });
+      toast({ title: "Đã nhập thành công các câu hỏi" });
     },
     onError: (error: any) => {
       toast({
-        title: "Lỗi",
-        description: error.response?.data?.error || error.message,
+        title: "Lỗi nhập liệu",
+        description: "Có lỗi xảy ra khi tạo câu hỏi hàng loạt",
         variant: "destructive",
       });
     },
@@ -390,10 +321,18 @@ export default function AdminSectionEdit() {
         title: group.title || "",
         passage: group.passage || "",
         instructions: group.instructions || "",
+        audioUrl: group.audioUrl || "",
+        orderIndex: group.orderIndex || 0,
       });
     } else {
       setEditingGroup(null);
-      setGroupForm({ title: "", passage: "", instructions: "" });
+      setGroupForm({
+        title: "",
+        passage: "",
+        instructions: "",
+        audioUrl: "",
+        orderIndex: questionGroups.length,
+      });
     }
     setGroupDialogOpen(true);
   };
@@ -402,23 +341,20 @@ export default function AdminSectionEdit() {
     setSelectedGroupId(groupId);
     if (question) {
       setEditingQuestion(question);
-      const parsedFillBlankAnswers =
-        question.questionType === "fill_blank"
-          ? parseFillBlankAnswers(question.correctAnswer)
-          : [];
-
       setQuestionForm({
-        questionText: question.questionText,
+        questionText: question.questionText || "",
         questionType: question.questionType,
-        options: question.options || ["", "", "", ""],
-        correctAnswer:
-          question.questionType === "fill_blank"
-            ? ""
-            : question.correctAnswer || "",
+        options: Array.isArray(question.options)
+          ? (question.options as string[])
+          : ["", "", "", ""],
+        correctAnswer: question.correctAnswer || "",
         fillBlankAnswers:
-          parsedFillBlankAnswers.length > 0 ? parsedFillBlankAnswers : [""],
-        points: question.points,
+          question.questionType === "fill_blank"
+            ? parseFillBlankAnswers(question.correctAnswer)
+            : [""],
+        points: question.points || 1,
         audioUrl: (question as any).audioUrl || "",
+        orderIndex: question.orderIndex || 0,
       });
     } else {
       setEditingQuestion(null);
@@ -431,6 +367,11 @@ export default function AdminSectionEdit() {
           : section?.sectionType === "writing"
             ? "essay"
             : allowedTypes[0]?.value || "multiple_choice";
+
+      const groupCount =
+        questionGroups.find((g: any) => g.id === groupId)?.questions?.length ||
+        0;
+
       setQuestionForm({
         questionText: "",
         questionType: defaultType,
@@ -439,6 +380,7 @@ export default function AdminSectionEdit() {
         fillBlankAnswers: [""],
         points: 1,
         audioUrl: "",
+        orderIndex: groupCount,
       });
     }
     setQuestionDialogOpen(true);
@@ -489,7 +431,14 @@ export default function AdminSectionEdit() {
   }
 
   if (!section) {
-    return <div className="text-center py-8">Section không tồn tại</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <p className="text-muted-foreground text-lg">Section không tồn tại</p>
+        <Button variant="outline" onClick={() => navigate(-1)}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
+        </Button>
+      </div>
+    );
   }
 
   const Icon =
@@ -507,8 +456,8 @@ export default function AdminSectionEdit() {
             variant="ghost"
             size="icon"
             onClick={() => {
-              if (section.exam?.id) {
-                navigate(`/admin/exams/${section.exam.id}?tab=sections`);
+              if (section.examId) {
+                navigate(`/admin/exams/${section.examId}?tab=sections`);
               } else {
                 navigate(-1);
               }
@@ -520,17 +469,11 @@ export default function AdminSectionEdit() {
             <div className="flex items-center gap-2 mb-1">
               <Badge className={colorClass}>
                 <Icon className="mr-1 h-3 w-3" />
-                {section.sectionType?.toUpperCase()}
+                {(section.sectionType || "").toUpperCase()}
               </Badge>
-              {section.exam && (
-                <span className="text-sm text-muted-foreground">
-                  /{" "}
-                  <Link
-                    to={`/admin/exams/${section.exam.id}?tab=sections`}
-                    className="hover:underline"
-                  >
-                    {section.exam.title}
-                  </Link>
+              {section.examTitle && (
+                <span className="text-sm text-muted-foreground italic">
+                  / {section.examTitle}
                 </span>
               )}
             </div>
@@ -548,7 +491,7 @@ export default function AdminSectionEdit() {
           {section.sectionType === "listening" && (
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>File Audio (Listening)</Label>
+                <Label>File Audio chính (Listening)</Label>
                 <FileUpload
                   accept="audio/*"
                   currentUrl={section.audioUrl || undefined}
@@ -558,14 +501,6 @@ export default function AdminSectionEdit() {
                   onRemove={() =>
                     updateSectionMutation.mutate({ audioUrl: "" })
                   }
-                  onDurationDetected={(duration) => {
-                    const minutes = Math.max(1, Math.ceil(duration / 60));
-                    if (section.durationMinutes !== minutes) {
-                      updateSectionMutation.mutate({
-                        durationMinutes: minutes,
-                      });
-                    }
-                  }}
                   maxSizeMB={20}
                 />
               </div>
@@ -586,21 +521,18 @@ export default function AdminSectionEdit() {
                     phút
                   </span>
                 </div>
-                <p className="text-[10px] text-muted-foreground italic">
-                  * Tự động cập nhật theo độ dài file audio (tối thiểu 1p)
-                </p>
               </div>
             </div>
           )}
           <div className="space-y-2">
-            <Label>Hướng dẫn chung</Label>
-            <Textarea
-              placeholder="Nhập hướng dẫn cho section..."
-              defaultValue={section.instructions || ""}
-              onBlur={(e) =>
-                updateSectionMutation.mutate({ instructions: e.target.value })
+            <Label>Hướng dẫn chung cho Section</Label>
+            <RichTextEditor
+              placeholder="Nhập hướng dẫn cho toàn bộ section..."
+              value={section.instructions || ""}
+              onChange={(html) =>
+                updateSectionMutation.mutate({ instructions: html })
               }
-              rows={3}
+              minHeight={100}
             />
           </div>
         </CardContent>
@@ -608,119 +540,167 @@ export default function AdminSectionEdit() {
 
       {/* Question Groups */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">Nhóm câu hỏi</CardTitle>
-            <CardDescription>
-              Quản lý passages, audios và câu hỏi
-            </CardDescription>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Nhóm câu hỏi</CardTitle>
+              <CardDescription>
+                Tạo các nhóm câu hỏi (Passage, Section con...)
+              </CardDescription>
+            </div>
+            <Button
+              onClick={() => handleOpenGroupDialog()}
+              size="sm"
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" /> Thêm nhóm
+            </Button>
           </div>
-          <Button onClick={() => handleOpenGroupDialog()}>
-            <Plus className="mr-2 h-4 w-4" />
-            {section.sectionType === "speaking" ? "Thêm phần thi" : "Thêm nhóm"}
-          </Button>
         </CardHeader>
         <CardContent>
           {questionGroups && questionGroups.length > 0 ? (
-            <div className="max-w-4xl mx-auto space-y-4">
-              <Accordion type="multiple" className="space-y-4">
-                {questionGroups.map((group: QuestionGroup, gIndex: number) => (
+            <div className="space-y-4">
+              <Accordion
+                type="multiple"
+                defaultValue={questionGroups.map((g: any) => g.id)}
+                className="space-y-4"
+              >
+                {questionGroups.map((group: any) => (
                   <AccordionItem
                     key={group.id}
                     value={group.id}
                     className="border rounded-lg px-4"
                   >
-                    <AccordionTrigger className="hover:no-underline">
-                      <div className="flex items-center gap-3 flex-1">
-                        <GripVertical className="h-4 w-4 text-muted-foreground" />
-                        <div className="flex-1 text-left">
-                          <div className="font-medium">
-                            {section.sectionType === "speaking"
-                              ? group.title || `Phần ${gIndex + 1}`
-                              : group.title || `Nhóm ${gIndex + 1}`}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {group.questions?.length || 0} câu hỏi
+                    <AccordionTrigger className="hover:no-underline py-4">
+                      <div className="flex items-center justify-between w-full pr-4 text-left">
+                        <div className="flex items-center gap-3">
+                          <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div>
+                            <span className="font-bold text-sm">
+                              {group.title || "Nhóm câu hỏi (không tiêu đề)"}
+                            </span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-[10px]">
+                                {group.questions?.length || 0} câu hỏi
+                              </Badge>
+                              <span className="text-[10px] text-muted-foreground font-mono">
+                                #{group.orderIndex}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                        <div
-                          className="flex items-center gap-2"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleOpenGroupDialog(group)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenGroupDialog(group);
+                            }}
                           >
-                            Sửa
+                            <Edit className="h-4 w-4 mr-1" /> Sửa
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             className="text-destructive hover:text-destructive"
-                            onClick={() =>
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setDeleteGroup({
                                 id: group.id,
                                 title: group.title || "Nhóm này",
-                              })
-                            }
+                              });
+                            }}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="pt-4">
+                    <AccordionContent className="pt-4 pb-6 border-t mt-2">
+                      {/* Group Audio (For Listening sections) */}
+                      {group.audioUrl && (
+                        <div className="mb-4 p-3 bg-primary/5 rounded-lg border border-primary/20 flex items-center gap-3">
+                          <Headphones className="h-5 w-5 text-primary" />
+                          <div className="flex-1">
+                            <audio
+                              src={group.audioUrl}
+                              controls
+                              className="h-8 w-full outline-none"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Group Content (Passage or Instructions) */}
                       {group.passage && (
-                        <div className="mb-4 p-4 bg-muted/50 rounded-lg">
-                          <div className="text-sm font-medium mb-2">
-                            Đoạn văn:
+                        <div className="mb-4 p-4 bg-muted/50 rounded-lg prose prose-sm max-w-none">
+                          <div className="text-[10px] uppercase text-muted-foreground font-bold mb-2">
+                            Passage / Nội dung:
                           </div>
                           <div
-                            className="text-sm text-muted-foreground prose prose-sm max-w-none"
                             dangerouslySetInnerHTML={{ __html: group.passage }}
                           />
                         </div>
                       )}
 
                       {group.instructions && (
-                        <div className="mb-4 p-3 bg-accent/30 rounded-lg border border-accent">
-                          <div className="text-sm font-medium mb-1">
+                        <div className="mb-4 p-3 bg-white border-orange-500/50 border rounded-lg text-sm text-black font-semibold shadow-sm">
+                          <div className="text-[10px] uppercase text-orange-600 font-bold mb-1 opacity-70">
                             Hướng dẫn:
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            {group.instructions}
-                          </p>
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html: group.instructions,
+                            }}
+                          />
                         </div>
                       )}
 
-                      <div className="space-y-3">
-                        {(group.questions || []).map(
-                          (q: Question, qIndex: number) => (
+                      {/* Questions List */}
+                      <div className="space-y-3 pl-4 border-l-2 border-primary/10 ml-2">
+                        {(group.questions || [])
+                          .sort(
+                            (a: any, b: any) =>
+                              (a.orderIndex || 0) - (b.orderIndex || 0),
+                          )
+                          .map((q: any, qIndex: number) => (
                             <div
                               key={q.id}
-                              className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors"
+                              className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors bg-card"
                             >
-                              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
-                                {qIndex + 1}
-                              </span>
+                              <div className="flex-shrink-0 flex flex-col items-center gap-1 mt-1">
+                                <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                                  {qIndex + 1}
+                                </span>
+                                <span className="text-[8px] font-mono text-muted-foreground">
+                                  #{q.orderIndex}
+                                </span>
+                              </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium line-clamp-2">
-                                  {q.questionText}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Badge variant="outline" className="text-xs">
+                                <div
+                                  className="font-medium text-sm line-clamp-2 prose prose-sm max-w-none"
+                                  dangerouslySetInnerHTML={{
+                                    __html: q.questionText,
+                                  }}
+                                />
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[10px] px-1.5 h-4"
+                                  >
                                     {ALL_QUESTION_TYPES.find(
                                       (t) => t.value === q.questionType,
                                     )?.label || q.questionType}
                                   </Badge>
-                                  <span className="text-xs text-muted-foreground">
+                                  <span className="text-[10px] text-muted-foreground">
                                     {q.points} điểm
                                   </span>
-                                  {q.correctAnswer && (
-                                    <span className="text-xs text-primary">
-                                      ✓ Có đáp án
-                                    </span>
+                                  {q.audioUrl && (
+                                    <Badge className="bg-blue-500 h-4 px-1.5">
+                                      <Headphones className="h-2 w-2 mr-1" />{" "}
+                                      Audio
+                                    </Badge>
                                   )}
                                 </div>
                               </div>
@@ -728,20 +708,24 @@ export default function AdminSectionEdit() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  className="h-8 w-8 p-0"
                                   onClick={() =>
                                     handleOpenQuestionDialog(group.id, q)
                                   }
                                 >
-                                  Sửa
+                                  <Edit className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="text-destructive hover:text-destructive"
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                                   onClick={() =>
                                     setDeleteQuestion({
                                       id: q.id,
-                                      text: q.questionText,
+                                      text: q.questionText.replace(
+                                        /<[^>]*>/g,
+                                        "",
+                                      ),
                                     })
                                   }
                                 >
@@ -749,37 +733,34 @@ export default function AdminSectionEdit() {
                                 </Button>
                               </div>
                             </div>
-                          ),
-                        )}
+                          ))}
 
-                        {/* Action buttons */}
-                        <div className="flex gap-2">
+                        {/* Question Action buttons */}
+                        <div className="flex gap-2 pt-2">
                           <Button
                             variant="outline"
-                            className="flex-1"
+                            className="flex-1 border-dashed h-9"
                             onClick={() => handleOpenQuestionDialog(group.id)}
                           >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Thêm câu hỏi
+                            <Plus className="mr-2 h-4 w-4" /> Thêm câu hỏi
                           </Button>
                           <Button
                             variant="outline"
-                            className="flex-1"
+                            className="flex-1 border-dashed h-9"
                             onClick={() => {
                               setBulkImportGroupId(group.id);
                               setBulkImportText("");
-                              setBulkImportType("short_answer");
+                              setBulkImportType("fill_blank");
                             }}
                           >
-                            <Zap className="mr-2 h-4 w-4" />
-                            Nhập nhanh
+                            <Zap className="mr-2 h-4 w-4" /> Nhập nhanh
                           </Button>
                         </div>
 
                         {/* Bulk import inline panel */}
                         {bulkImportGroupId === group.id && (
-                          <Card className="border-2 border-primary/30 bg-primary/5">
-                            <CardContent className="p-4 space-y-3">
+                          <Card className="border-2 border-primary/30 bg-primary/5 mt-3">
+                            <CardContent className="p-4 space-y-4">
                               <div className="flex items-center justify-between">
                                 <h4 className="font-semibold text-sm flex items-center gap-2">
                                   <Zap className="h-4 w-4 text-primary" />
@@ -788,27 +769,25 @@ export default function AdminSectionEdit() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  className="h-6 w-6"
                                   onClick={() => setBulkImportGroupId(null)}
                                 >
                                   ✕
                                 </Button>
                               </div>
-                              <p className="text-xs text-muted-foreground">
-                                Mỗi dòng = 1 câu hỏi. Dòng trống sẽ được bỏ qua.
-                              </p>
                               <Textarea
-                                placeholder={`Ví dụ:\nNhiều học sinh cảm thấy căng thẳng trước kỳ thi. (feel stressed)\nSinh viên cần chú ý khi giáo viên giải thích bài. (pay attention to)\nTôi thường dành thời gian cho gia đình vào cuối tuần. (spend time with)`}
+                                placeholder="Paste mỗi dòng là 1 câu hỏi..."
                                 value={bulkImportText}
                                 onChange={(e) =>
                                   setBulkImportText(e.target.value)
                                 }
-                                rows={8}
-                                className="font-mono text-sm"
+                                rows={6}
+                                className="font-mono text-xs"
                               />
                               <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-2 flex-1">
                                   <Label className="text-xs whitespace-nowrap">
-                                    Loại câu hỏi:
+                                    Dạng:
                                   </Label>
                                   <Select
                                     value={bulkImportType}
@@ -831,21 +810,16 @@ export default function AdminSectionEdit() {
                                     </SelectContent>
                                   </Select>
                                 </div>
-                                <Badge variant="secondary" className="text-xs">
-                                  {bulkImportLineCount} câu hỏi
-                                </Badge>
                                 <Button
                                   size="sm"
                                   onClick={handleBulkImport}
                                   disabled={
-                                    bulkImportLineCount === 0 ||
+                                    !bulkImportText ||
                                     bulkImportMutation.isPending
                                   }
                                 >
-                                  {bulkImportMutation.isPending ? (
-                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <Zap className="mr-1 h-3 w-3" />
+                                  {bulkImportMutation.isPending && (
+                                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
                                   )}
                                   Tạo {bulkImportLineCount} câu
                                 </Button>
@@ -860,8 +834,13 @@ export default function AdminSectionEdit() {
               </Accordion>
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              Chưa có nhóm câu hỏi nào. Nhấn "Thêm nhóm" để bắt đầu.
+            <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/20">
+              <p className="text-muted-foreground mb-4">
+                Chưa có nội dung nào trong section này.
+              </p>
+              <Button onClick={() => handleOpenGroupDialog()} className="gap-2">
+                <Plus className="h-4 w-4" /> Thêm nhóm câu hỏi đầu tiên
+              </Button>
             </div>
           )}
         </CardContent>
@@ -869,59 +848,71 @@ export default function AdminSectionEdit() {
 
       {/* Group Dialog */}
       <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingGroup ? "Chỉnh sửa nhóm" : "Thêm nhóm mới"}
+              {editingGroup ? "Cập nhật nhóm" : "Thêm nhóm mới"}
             </DialogTitle>
-            <DialogDescription>
-              Nhóm câu hỏi có thể chứa đoạn văn (passage), hướng dẫn, và nhiều
-              câu hỏi
-            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>
-                {section.sectionType === "speaking"
-                  ? "Tên phần thi (Part)"
-                  : "Tiêu đề nhóm"}
-              </Label>
-              <Input
-                placeholder={
-                  section.sectionType === "speaking"
-                    ? "VD: Part 1 - Introduction"
-                    : "VD: Dịch câu sang tiếng Anh, Nhận diện Subject-Verb, Đọc hiểu..."
-                }
-                value={groupForm.title}
-                onChange={(e) =>
-                  setGroupForm((f) => ({ ...f, title: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Hướng dẫn</Label>
-              <Textarea
-                placeholder="VD: Dịch các câu sau sang câu đơn tiếng Anh, Gạch chân S và in đậm V..."
-                value={groupForm.instructions}
-                onChange={(e) =>
-                  setGroupForm((f) => ({ ...f, instructions: e.target.value }))
-                }
-                rows={3}
-              />
-            </div>
-            {section.sectionType !== "speaking" && (
-              <div className="space-y-2">
-                <Label>Đoạn văn (Passage) — nếu có</Label>
-                <RichTextEditor
-                  value={groupForm.passage}
-                  onChange={(html) =>
-                    setGroupForm((f) => ({ ...f, passage: html }))
+          <div className="space-y-5 py-4">
+            <div className="grid grid-cols-4 gap-4">
+              <div className="col-span-3 space-y-2">
+                <Label>Tiêu đề nhóm (Passage title, Section header...)</Label>
+                <Input
+                  value={groupForm.title}
+                  onChange={(e) =>
+                    setGroupForm((f) => ({ ...f, title: e.target.value }))
                   }
-                  placeholder="Nhập đoạn văn đọc hiểu (nếu nhóm này cần bài đọc kèm theo)..."
-                  minHeight={220}
                 />
               </div>
-            )}
+              <div className="space-y-2">
+                <Label>Thứ tự</Label>
+                <Input
+                  type="number"
+                  value={groupForm.orderIndex}
+                  onChange={(e) =>
+                    setGroupForm((f) => ({
+                      ...f,
+                      orderIndex: parseInt(e.target.value) || 0,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Hướng dẫn nhóm (Instructions)</Label>
+              <RichTextEditor
+                value={groupForm.instructions}
+                onChange={(html) =>
+                  setGroupForm((f) => ({ ...f, instructions: html }))
+                }
+                minHeight={100}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Audio nhóm (Không bắt buộc)</Label>
+              <FileUpload
+                accept="audio/*"
+                currentUrl={groupForm.audioUrl}
+                onUploadComplete={(url) =>
+                  setGroupForm((f) => ({ ...f, audioUrl: url }))
+                }
+                onRemove={() => setGroupForm((f) => ({ ...f, audioUrl: "" }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Nội dung chính / Đoạn văn (Passage)</Label>
+              <RichTextEditor
+                value={groupForm.passage}
+                onChange={(html) =>
+                  setGroupForm((f) => ({ ...f, passage: html }))
+                }
+                minHeight={250}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setGroupDialogOpen(false)}>
@@ -937,72 +928,62 @@ export default function AdminSectionEdit() {
                 updateGroupMutation.isPending) && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              <Save className="mr-2 h-4 w-4" />
-              Lưu
+              Lưu nhóm
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Group Confirmation */}
-      <DeleteConfirmDialog
-        open={!!deleteGroup}
-        onOpenChange={(open) => !open && setDeleteGroup(null)}
-        onConfirm={() =>
-          deleteGroup && deleteGroupMutation.mutate(deleteGroup.id)
-        }
-        loading={deleteGroupMutation.isPending}
-        title="Xóa nhóm câu hỏi?"
-        description={`Bạn có chắc chắn muốn xóa nhóm "${deleteGroup?.title}"? Tất cả câu hỏi trong nhóm sẽ bị xóa vĩnh viễn.`}
-      />
-
-      {/* Delete Question Confirmation */}
-      <DeleteConfirmDialog
-        open={!!deleteQuestion}
-        onOpenChange={(open) => !open && setDeleteQuestion(null)}
-        onConfirm={() =>
-          deleteQuestion && deleteQuestionMutation.mutate(deleteQuestion.id)
-        }
-        loading={deleteQuestionMutation.isPending}
-        title="Xóa câu hỏi?"
-        description="Bạn có chắc chắn muốn xóa câu hỏi này không? Hành động này không thể hoàn tác."
-      />
-
       {/* Question Dialog */}
       <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingQuestion ? "Chỉnh sửa câu hỏi" : "Thêm câu hỏi mới"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            {/* Question type selector */}
-            <div className="space-y-2">
-              <Label>Loại câu hỏi</Label>
-              <Select
-                value={questionForm.questionType}
-                onValueChange={(v) =>
-                  setQuestionForm((f) => ({ ...f, questionType: v }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {getQuestionTypesForSection(section.sectionType).map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
-                      {t.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2 space-y-2">
+                <Label>Dạng câu hỏi</Label>
+                <Select
+                  value={questionForm.questionType}
+                  onValueChange={(v) =>
+                    setQuestionForm((f) => ({ ...f, questionType: v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getQuestionTypesForSection(section.sectionType).map(
+                      (t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                          {t.label}
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Thứ tự</Label>
+                <Input
+                  type="number"
+                  value={questionForm.orderIndex}
+                  onChange={(e) =>
+                    setQuestionForm((f) => ({
+                      ...f,
+                      orderIndex: parseInt(e.target.value) || 0,
+                    }))
+                  }
+                />
+              </div>
             </div>
 
-            {/* Specialized form per question type */}
             <QuestionFormRenderer
               questionType={questionForm.questionType}
-              form={questionForm}
+              form={questionForm as any}
               onChange={(updates) =>
                 setQuestionForm((f) => ({ ...f, ...updates }))
               }
@@ -1018,9 +999,6 @@ export default function AdminSectionEdit() {
             <Button
               onClick={handleSaveQuestion}
               disabled={
-                !questionForm.questionText ||
-                (questionForm.questionType === "listening" &&
-                  !questionForm.audioUrl) ||
                 createQuestionMutation.isPending ||
                 updateQuestionMutation.isPending
               }
@@ -1029,29 +1007,33 @@ export default function AdminSectionEdit() {
                 updateQuestionMutation.isPending) && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              <Save className="mr-2 h-4 w-4" />
-              Lưu
+              Lưu câu hỏi
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Admin Sticky Audio Player for Listening Sections */}
-      {section.sectionType === "listening" && section.audioUrl && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-background/95 backdrop-blur shadow-2xl rounded-full border border-primary/20 p-2 pl-4 pr-4 transition-all hover:scale-105 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Headphones className="w-4 h-4 text-primary animate-pulse" />
-            <span className="text-sm font-semibold text-primary">
-              Audio Section
-            </span>
-          </div>
-          <audio
-            controls
-            src={section.audioUrl}
-            className="h-10 outline-none w-[350px]"
-          />
-        </div>
-      )}
+      <DeleteConfirmDialog
+        open={!!deleteGroup}
+        onOpenChange={(open) => !open && setDeleteGroup(null)}
+        onConfirm={() =>
+          deleteGroup && deleteGroupMutation.mutate(deleteGroup.id)
+        }
+        title="Xóa nhóm?"
+        description={`Bạn có chắc muốn xóa nhóm "${deleteGroup?.title}"?`}
+        isLoading={deleteGroupMutation.isPending}
+      />
+
+      <DeleteConfirmDialog
+        open={!!deleteQuestion}
+        onOpenChange={(open) => !open && setDeleteQuestion(null)}
+        onConfirm={() =>
+          deleteQuestion && deleteQuestionMutation.mutate(deleteQuestion.id)
+        }
+        title="Xóa câu hỏi?"
+        description="Câu hỏi này sẽ bị xóa khỏi hệ thống."
+        isLoading={deleteQuestionMutation.isPending}
+      />
     </div>
   );
 }

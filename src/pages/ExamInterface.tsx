@@ -28,6 +28,7 @@ import { GrammarSection } from "@/components/exam/GrammarSection";
 import { ExamTimer } from "@/components/exam/ExamTimer";
 import { QuestionPagination } from "@/components/exam/QuestionPagination";
 import { ExamReviewDialog } from "@/components/exam/ExamReviewDialog";
+import { SEO } from "@/components/common/SEO";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -345,6 +346,12 @@ export default function ExamInterface() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {/* SEO */}
+      <SEO
+        title={exam?.title || "Đang tải bài thi..."}
+        description={`Luyện thi IELTS: ${exam?.title}. Nâng band điểm IELTS cùng NextBand.`}
+      />
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center justify-between px-4">

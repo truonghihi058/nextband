@@ -1,9 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { MessageSquare } from "lucide-react";
 import FileUpload from "@/components/admin/FileUpload";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import type { QuestionFormProps } from "./QuestionFormTypes";
 
 export function ShortAnswerForm({ form, onChange }: QuestionFormProps) {
@@ -20,12 +20,11 @@ export function ShortAnswerForm({ form, onChange }: QuestionFormProps) {
           <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Nội dung câu hỏi *
           </Label>
-          <Textarea
+          <RichTextEditor
             placeholder="Nhập câu hỏi..."
             value={form.questionText}
-            onChange={(e) => onChange({ questionText: e.target.value })}
-            rows={3}
-            className="bg-background"
+            onChange={(html) => onChange({ questionText: html })}
+            minHeight={100}
           />
         </div>
 

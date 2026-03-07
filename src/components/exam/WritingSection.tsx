@@ -117,8 +117,8 @@ export function WritingSection({
                   </p>
                 ))}
               {instructions && (
-                <div className="text-sm text-blue-600 font-medium bg-blue-50/50 p-4 rounded-xl border border-blue-100 italic">
-                  {instructions}
+                <div className="p-4 bg-white border-orange-500 border rounded-xl text-black font-medium shadow-sm leading-relaxed">
+                  <div dangerouslySetInnerHTML={{ __html: instructions }} />
                 </div>
               )}
             </CardContent>

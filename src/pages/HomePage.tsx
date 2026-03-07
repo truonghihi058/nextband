@@ -5,6 +5,7 @@ import { CourseCard } from "@/components/courses/CourseCard";
 import { CourseFilters } from "@/components/courses/CourseFilters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen } from "lucide-react";
+import { SEO } from "@/components/common/SEO";
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -24,6 +25,10 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      <SEO
+        title="Trang chủ"
+        description="NextBand - Nền tảng luyện thi IELTS thông minh. Khám phá các khóa học IELTS chất lượng cao, luyện thi Reading, Listening, Writing, Speaking."
+      />
       {/* Hero Section */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-secondary to-primary/5 p-8 md:p-12">
         <div className="relative z-10">
