@@ -2,29 +2,80 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ListChecks, Plus, Trash2, CheckCircle2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  ListChecks,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  CheckSquare,
+} from "lucide-react";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import type { QuestionFormProps } from "./QuestionFormTypes";
 
 export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
+  const currentAnswers = (form.correctAnswer || "")
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const isMultipleAllowed = currentAnswers.length > 1;
+
   const addOption = () => {
     onChange({ options: [...form.options, ""] });
   };
 
   const removeOption = (index: number) => {
     if (form.options.length <= 2) return;
-    const newOpts = form.options.filter((_, i) => i !== index);
-    // If removed option was the correct answer, clear it
     const removedValue = form.options[index];
-    if (form.correctAnswer === removedValue) {
-      onChange({ options: newOpts, correctAnswer: "" });
+    const newOpts = form.options.filter((_, i) => i !== index);
+
+    // Remove from correct answers if it was selected
+    if (currentAnswers.includes(removedValue)) {
+      const newAnswers = currentAnswers.filter((a) => a !== removedValue);
+      onChange({ options: newOpts, correctAnswer: newAnswers.join(" | ") });
     } else {
       onChange({ options: newOpts });
     }
   };
 
-  const selectCorrectAnswer = (optionValue: string) => {
-    onChange({ correctAnswer: optionValue });
+  const toggleCorrectAnswer = (optionValue: string, isMulti: boolean) => {
+    const val = optionValue.trim();
+    if (!val) return;
+
+    if (isMulti) {
+      let newAnswers = [...currentAnswers];
+      if (newAnswers.includes(val)) {
+        newAnswers = newAnswers.filter((a) => a !== val);
+      } else {
+        newAnswers.push(val);
+      }
+      onChange({ correctAnswer: newAnswers.join(" | ") });
+    } else {
+      // Single choice behavior: clicking the same one does not remove it, just stay selected.
+      onChange({ correctAnswer: val });
+    }
+  };
+
+  const updateOptionText = (index: number, newValue: string) => {
+    const newOpts = [...form.options];
+    const oldValue = newOpts[index].trim();
+    newOpts[index] = newValue;
+
+    const valTrimmed = newValue.trim();
+
+    if (oldValue !== "" && currentAnswers.includes(oldValue)) {
+      // Update the answer in the correct answers list
+      let newAnswers = currentAnswers.map((a) =>
+        a === oldValue ? valTrimmed : a,
+      );
+      onChange({
+        options: newOpts,
+        correctAnswer: newAnswers.filter(Boolean).join(" | "),
+      });
+    } else {
+      onChange({ options: newOpts });
+    }
   };
 
   return (
@@ -48,7 +99,7 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
           />
         </div>
 
-        {/* Options with radio select */}
+        {/* Options */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -66,9 +117,21 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
             </Button>
           </div>
 
+          {/* Hint for multiple mode */}
+          <div className="text-xs text-muted-foreground bg-muted p-2 rounded flex items-center gap-2">
+            <CheckSquare className="h-4 w-4 text-primary" />
+            <span>
+              <strong>Mẹo:</strong> Nhấn chọn nhiều đáp án để biến đây thành câu
+              hỏi chọn nhiều lựa chọn (Multiple Answers). Dấu check sẽ được lưu
+              phân cách bằng kí tự `|` để frontend hiển thị dạng Checkbox thay
+              vì Radio.
+            </span>
+          </div>
+
           <div className="grid gap-2">
             {form.options.map((opt, i) => {
-              const isCorrect = opt.trim() !== "" && form.correctAnswer === opt;
+              const isCorrect =
+                opt.trim() !== "" && currentAnswers.includes(opt.trim());
               return (
                 <div
                   key={i}
@@ -77,7 +140,7 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
                       ? "border-green-400 bg-green-50 dark:bg-green-950/20"
                       : "border-border bg-white/50 hover:border-blue-300"
                   }`}
-                  onClick={() => opt.trim() && selectCorrectAnswer(opt)}
+                  onClick={() => opt.trim() && toggleCorrectAnswer(opt, true)}
                 >
                   <div
                     className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
@@ -95,21 +158,13 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
                   <Input
                     placeholder={`Lựa chọn ${String.fromCharCode(65 + i)}`}
                     value={opt}
-                    onChange={(e) => {
-                      const newOpts = [...form.options];
-                      const oldValue = newOpts[i];
-                      newOpts[i] = e.target.value;
-                      // Update correctAnswer if this was the selected one
-                      if (form.correctAnswer === oldValue && oldValue !== "") {
-                        onChange({
-                          options: newOpts,
-                          correctAnswer: e.target.value,
-                        });
-                      } else {
-                        onChange({ options: newOpts });
-                      }
+                    onChange={(e) => updateOptionText(i, e.target.value)}
+                    onClick={(e) => {
+                      e.stopPropagation();
                     }}
-                    onClick={(e) => e.stopPropagation()}
+                    onFocus={(e) => {
+                      // Clicking the input to edit text shouldn't toggle the selection
+                    }}
                     className="bg-transparent border-none shadow-none focus-visible:ring-0 h-8"
                   />
                   {form.options.length > 2 && (
@@ -131,15 +186,23 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
             })}
           </div>
 
-          {form.correctAnswer && (
-            <p className="text-xs text-green-600 flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3" />
-              Đáp án đúng: <strong>{form.correctAnswer}</strong>
-            </p>
+          {currentAnswers.length > 0 && (
+            <div className="text-xs text-green-600 flex items-center gap-1 flex-wrap">
+              <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
+              Đáp án đúng:
+              {currentAnswers.map((ans, idx) => (
+                <span
+                  key={idx}
+                  className="bg-green-100 text-green-800 px-1.5 py-0.5 rounded-sm dark:bg-green-900 dark:text-green-100"
+                >
+                  {ans}
+                </span>
+              ))}
+            </div>
           )}
-          {!form.correctAnswer && (
+          {currentAnswers.length === 0 && (
             <p className="text-xs text-muted-foreground italic">
-              * Click vào một lựa chọn để đặt làm đáp án đúng
+              * Click vào lựa chọn để đặt hoặc bỏ làm đáp án đúng
             </p>
           )}
         </div>
