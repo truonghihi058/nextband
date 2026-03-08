@@ -48,7 +48,7 @@ export function ClientSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { profile } = useAuth();
+  const { user } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -98,7 +98,7 @@ export function ClientSidebar() {
       <SidebarFooter className="border-t p-4">
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={profile?.avatar_url || undefined} />
+            <AvatarImage src={user?.avatarUrl || undefined} />
             <AvatarFallback>
               <User className="h-4 w-4" />
             </AvatarFallback>
@@ -106,10 +106,10 @@ export function ClientSidebar() {
           {!collapsed && (
             <div className="flex flex-col overflow-hidden">
               <span className="text-sm font-medium truncate">
-                {profile?.full_name || "Học viên"}
+                {user?.fullName || "Học viên"}
               </span>
               <span className="text-xs text-muted-foreground truncate">
-                {profile?.email}
+                {user?.email}
               </span>
             </div>
           )}
