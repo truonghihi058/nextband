@@ -11,6 +11,7 @@ import {
   CheckSquare,
 } from "lucide-react";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import FileUpload from "@/components/admin/FileUpload";
 import type { QuestionFormProps } from "./QuestionFormTypes";
 
 export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
@@ -96,6 +97,20 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
             value={form.questionText}
             onChange={(html) => onChange({ questionText: html })}
             minHeight={100}
+          />
+        </div>
+
+        {/* Audio URL */}
+        <div className="space-y-2">
+          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Audio câu hỏi (không bắt buộc)
+          </Label>
+          <FileUpload
+            accept="audio/*"
+            currentUrl={form.audioUrl || undefined}
+            onUploadComplete={(url) => onChange({ audioUrl: url })}
+            onRemove={() => onChange({ audioUrl: "" })}
+            maxSizeMB={20}
           />
         </div>
 

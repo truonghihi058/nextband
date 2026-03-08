@@ -748,9 +748,15 @@ export default function AdminSectionEdit() {
                             variant="outline"
                             className="flex-1 border-dashed h-9"
                             onClick={() => {
+                              const defaultTypeForSection =
+                                section?.sectionType === "speaking"
+                                  ? "speaking"
+                                  : section?.sectionType === "writing"
+                                    ? "essay"
+                                    : "short_answer";
                               setBulkImportGroupId(group.id);
                               setBulkImportText("");
-                              setBulkImportType("fill_blank");
+                              setBulkImportType(defaultTypeForSection);
                             }}
                           >
                             <Zap className="mr-2 h-4 w-4" /> Nhập nhanh
