@@ -103,15 +103,13 @@ export function AdminSidebar() {
     <Sidebar collapsible="icon" className="border-r bg-sidebar">
       <SidebarHeader className="border-b px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <GraduationCap className="h-5 w-5" />
+          <div className="flex h-10 w-full items-center justify-start overflow-hidden">
+            <img
+              src="/logo.png"
+              alt="NextBand Admin Logo"
+              className={`object-contain transition-all ${collapsed ? "w-8" : "max-h-8 w-auto"}`}
+            />
           </div>
-          {!collapsed && (
-            <div className="flex flex-col">
-              <span className="font-semibold text-foreground">Homework</span>
-              <span className="text-xs text-muted-foreground">Admin Panel</span>
-            </div>
-          )}
         </div>
       </SidebarHeader>
 

@@ -1,6 +1,12 @@
-import { useLocation } from 'react-router-dom';
-import { Home, BookOpen, ClipboardList, GraduationCap, User } from 'lucide-react';
-import { NavLink } from '@/components/NavLink';
+import { useLocation } from "react-router-dom";
+import {
+  Home,
+  BookOpen,
+  ClipboardList,
+  GraduationCap,
+  User,
+} from "lucide-react";
+import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
   SidebarContent,
@@ -13,35 +19,35 @@ import {
   SidebarHeader,
   SidebarFooter,
   useSidebar,
-} from '@/components/ui/sidebar';
-import { useAuth } from '@/hooks/useAuth';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+} from "@/components/ui/sidebar";
+import { useAuth } from "@/hooks/useAuth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navigationItems = [
   {
-    title: 'Trang Chủ',
-    url: '/',
+    title: "Trang Chủ",
+    url: "/",
     icon: Home,
-    description: 'Danh sách khóa học',
+    description: "Danh sách khóa học",
   },
   {
-    title: 'Khóa Học Của Tôi',
-    url: '/my-courses',
+    title: "Khóa Học Của Tôi",
+    url: "/my-courses",
     icon: BookOpen,
-    description: 'Khóa học đã đăng ký',
+    description: "Khóa học đã đăng ký",
   },
   {
-    title: 'Bài Đã Làm',
-    url: '/my-submissions',
+    title: "Bài Đã Làm",
+    url: "/my-submissions",
     icon: ClipboardList,
-    description: 'Lịch sử bài thi',
+    description: "Lịch sử bài thi",
   },
 ];
 
 export function ClientSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
-  const collapsed = state === 'collapsed';
+  const collapsed = state === "collapsed";
   const { profile } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
@@ -50,15 +56,13 @@ export function ClientSidebar() {
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="border-b px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <GraduationCap className="h-5 w-5" />
+          <div className="flex h-10 w-full items-center justify-start overflow-hidden">
+            <img
+              src="/logo.png"
+              alt="NextBand Logo"
+              className={`object-contain transition-all ${collapsed ? "w-8" : "max-h-8 w-auto"}`}
+            />
           </div>
-          {!collapsed && (
-            <div className="flex flex-col">
-              <span className="font-semibold text-foreground">Homework</span>
-              <span className="text-xs text-muted-foreground">IELTS Platform</span>
-            </div>
-          )}
         </div>
       </SidebarHeader>
 
@@ -76,7 +80,7 @@ export function ClientSidebar() {
                   >
                     <NavLink
                       to={item.url}
-                      end={item.url === '/'}
+                      end={item.url === "/"}
                       className="flex items-center gap-3"
                       activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
                     >
@@ -102,7 +106,7 @@ export function ClientSidebar() {
           {!collapsed && (
             <div className="flex flex-col overflow-hidden">
               <span className="text-sm font-medium truncate">
-                {profile?.full_name || 'Học viên'}
+                {profile?.full_name || "Học viên"}
               </span>
               <span className="text-xs text-muted-foreground truncate">
                 {profile?.email}
