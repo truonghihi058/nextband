@@ -95,7 +95,10 @@ export function AnswerResultCard({
               </Badge>
               {getScoreBadge()}
             </div>
-            <p className="text-sm whitespace-pre-wrap pl-6">{questionText}</p>
+            <div
+              className="text-sm pl-6 prose prose-sm max-w-none dark:prose-invert"
+              dangerouslySetInnerHTML={{ __html: questionText }}
+            />
           </div>
         </div>
 

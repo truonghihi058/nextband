@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Bold,
@@ -11,6 +11,8 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  ImagePlus,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -20,6 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { uploadsApi } from "@/lib/api";
 
 interface RichTextEditorProps {
   value: string;
@@ -36,7 +40,10 @@ export function RichTextEditor({
   className,
   minHeight = 180,
 }: RichTextEditorProps) {
+  const [uploading, setUploading] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -44,6 +51,60 @@ export function RichTextEditor({
       editorRef.current.innerHTML = value || "";
     }
   }, [value]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Save current selection to restore after upload
+    const selection = window.getSelection();
+    let savedRange: Range | null = null;
+    if (selection && selection.rangeCount > 0) {
+      savedRange = selection.getRangeAt(0);
+    } else if (editorRef.current) {
+      // Create a new range at the end of the editor if no selection exists
+      savedRange = document.createRange();
+      savedRange.selectNodeContents(editorRef.current);
+      savedRange.collapse(false);
+    }
+
+    setUploading(true);
+    try {
+      const result = await uploadsApi.uploadImage(file);
+
+      let fullUrl = result.url;
+      if (fullUrl.startsWith("/uploads")) {
+        const apiUrl =
+          import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
+        const baseUrl = apiUrl.replace("/api/v1", "");
+        fullUrl = `${baseUrl}${fullUrl}`;
+      }
+
+      // Restore selection to ensure image is inserted properly
+      if (editorRef.current) {
+        editorRef.current.focus();
+        if (savedRange && selection) {
+          selection.removeAllRanges();
+          selection.addRange(savedRange);
+        }
+      }
+
+      document.execCommand("insertImage", false, fullUrl);
+
+      if (editorRef.current) {
+        onChange(editorRef.current.innerHTML);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.response?.data?.error || "Không thể tải lên ảnh",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const exec = (command: string) => {
     document.execCommand(command);
@@ -135,6 +196,30 @@ export function RichTextEditor({
         >
           <Eraser className="h-4 w-4" />
         </Button>
+
+        <div className="h-4 w-px bg-border mx-1" />
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          title="Chèn ảnh"
+        >
+          {uploading ? (
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          ) : (
+            <ImagePlus className="h-4 w-4" />
+          )}
+        </Button>
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          ref={fileInputRef}
+          onChange={handleImageUpload}
+        />
 
         <div className="h-4 w-px bg-border mx-1" />
 
