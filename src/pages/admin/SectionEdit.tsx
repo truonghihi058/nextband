@@ -184,27 +184,6 @@ export default function AdminSectionEdit() {
     orderIndex: 0,
   });
 
-  // Local state for auto-saving fields to prevent cursor jumps
-  const [localInstructions, setLocalInstructions] = useState<string | null>(
-    null,
-  );
-
-  useEffect(() => {
-    if (sectionData && localInstructions === null) {
-      setLocalInstructions(sectionData.instructions || "");
-    }
-  }, [sectionData, localInstructions]);
-
-  useEffect(() => {
-    if (localInstructions === null || !sectionData) return;
-    if (localInstructions !== (sectionData.instructions || "")) {
-      const timer = setTimeout(() => {
-        updateSectionMutation.mutate({ instructions: localInstructions });
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [localInstructions, sectionData]);
-
   const { data: sectionData, isLoading: sectionLoading } = useQuery({
     queryKey: ["section-detail", id],
     queryFn: () => sectionsApi.getById(id!),
@@ -332,6 +311,27 @@ export default function AdminSectionEdit() {
       });
     },
   });
+
+  // Local state for auto-saving fields to prevent cursor jumps
+  const [localInstructions, setLocalInstructions] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (sectionData && localInstructions === null) {
+      setLocalInstructions(sectionData.instructions || "");
+    }
+  }, [sectionData, localInstructions]);
+
+  useEffect(() => {
+    if (localInstructions === null || !sectionData) return;
+    if (localInstructions !== (sectionData.instructions || "")) {
+      const timer = setTimeout(() => {
+        updateSectionMutation.mutate({ instructions: localInstructions });
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [localInstructions, sectionData, updateSectionMutation]);
 
   // --- Handlers ---
 
