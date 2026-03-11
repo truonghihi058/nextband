@@ -276,7 +276,8 @@ export function ReadingSection({
             </Card>
           )}
 
-          {questionGroups?.map((group: any, gIdx: number) => (
+          {/* Track cumulative question number across groups */}
+          {(() => { let questionCounter = 0; return questionGroups?.map((group: any, gIdx: number) => (
             <div key={group.id} className="space-y-4">
               {group.title && (
                 <h3 className="font-semibold text-lg text-foreground">
@@ -292,6 +293,7 @@ export function ReadingSection({
               )}
 
               {(group.questions || []).map((question: any, qIndex: number) => {
+                questionCounter++;
                 const isCurrent = question.id === currentQuestionId;
                 const hasPlaceholders = hasFillBlankPlaceholders(
                   question.question_text || "",
@@ -326,7 +328,7 @@ export function ReadingSection({
                     <CardContent className="p-5">
                       <div className="flex items-start gap-4 mb-4">
                         <span className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full bg-[hsl(var(--reading))] text-white text-sm font-bold shadow-sm">
-                          {question.order_index || qIndex + 1}
+                          {questionCounter}
                         </span>
                         <div className="flex-1 space-y-3">
                           {/* Only show question text here if it's NOT a fill_blank-like question */}
@@ -454,7 +456,7 @@ export function ReadingSection({
                 );
               })}
             </div>
-          ))}
+          )); })()}
         </div>
       </ScrollArea>
     </div>

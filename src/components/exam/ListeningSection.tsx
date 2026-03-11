@@ -77,15 +77,26 @@ export function ListeningSection({
   const currentGroup = questionGroups[currentPart];
   const currentQuestions = currentGroup?.questions || [];
 
+  // Calculate cumulative question number offset for each part
+  const questionNumberOffset = questionGroups
+    .slice(0, currentPart)
+    .reduce((acc: number, g: any) => acc + (g.questions?.length || 0), 0);
+
   return (
     <div className="h-full flex flex-col">
-      {/* Sticky Audio Player */}
-      {(section.audio_url || section.audioUrl) && (
+      {/* Sticky Audio Player - show group-level audio if available, else section-level */}
+      {(currentGroup?.audio_url || currentGroup?.audioUrl) ? (
+        <StickyAudioPlayer
+          key={currentGroup.id}
+          audioUrl={currentGroup.audio_url || currentGroup.audioUrl}
+          strictMode={strictMode}
+        />
+      ) : (section.audio_url || section.audioUrl) ? (
         <StickyAudioPlayer
           audioUrl={section.audio_url || section.audioUrl}
           strictMode={strictMode}
         />
-      )}
+      ) : null}
 
       {/* Part Navigation */}
       {questionGroups.length > 1 && (
@@ -185,7 +196,7 @@ export function ListeningSection({
                         <CardContent className="p-5">
                           <div className="flex items-start gap-4 mb-4">
                             <span className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-sm">
-                              {question.order_index || qIndex + 1}
+                              {questionNumberOffset + qIndex + 1}
                             </span>
                             <div className="flex-1 space-y-3">
                               {!(

@@ -95,6 +95,10 @@ export default function SubmissionDetail() {
     return Math.round((answeredCount / allQuestions.length) * 100);
   }, [answeredCount, allQuestions.length]);
 
+  // Auto-graded results from backend
+  const hasAutoGradedResults =
+    submission?.correctAnswers != null && submission?.totalQuestions != null;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -198,7 +202,43 @@ export default function SubmissionDetail() {
             </div>
           </div>
 
-          {/* Score display - only for graded */}
+          {/* Auto-graded result - shown for submitted AND graded */}
+          {hasAutoGradedResults && (
+            <>
+              <Separator />
+              <div className="flex flex-col items-center gap-3 py-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-6 w-6 text-green-500" />
+                  <span className="text-3xl font-bold text-green-600">
+                    {submission.correctAnswers}
+                  </span>
+                  <span className="text-lg text-muted-foreground">
+                    / {submission.totalQuestions} câu đúng
+                  </span>
+                </div>
+                <Progress
+                  value={
+                    submission.totalQuestions > 0
+                      ? (submission.correctAnswers / submission.totalQuestions) * 100
+                      : 0
+                  }
+                  className="w-full max-w-xs h-2"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Đạt{" "}
+                  {submission.totalQuestions > 0
+                    ? Math.round(
+                        (submission.correctAnswers / submission.totalQuestions) *
+                          100,
+                      )
+                    : 0}
+                  % (tự chấm)
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* Score display - only for teacher-graded */}
           {isGraded && submission.totalScore != null && (
             <>
               <Separator />

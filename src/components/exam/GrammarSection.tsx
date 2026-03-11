@@ -99,7 +99,7 @@ export function GrammarSection({
 
           {/* Question Groups */}
           <div className="space-y-8">
-            {questionGroups.map((group: any, gIndex: number) => (
+            {(() => { let questionCounter = 0; return questionGroups.map((group: any, gIndex: number) => (
               <div key={group.id} className="space-y-4">
                 {/* Group Header */}
                 {(group.title || group.instructions) && (
@@ -150,6 +150,7 @@ export function GrammarSection({
                 <div className="space-y-4">
                   {(group.questions || []).map(
                     (question: any, qIndex: number) => {
+                      questionCounter++;
                       const isCurrent = question.id === currentQuestionId;
 
                       return (
@@ -171,7 +172,7 @@ export function GrammarSection({
                           <CardContent className="p-5">
                             <div className="flex items-start gap-4 mb-4">
                               <span className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-sm">
-                                {question.order_index || qIndex + 1}
+                                {questionCounter}
                               </span>
 
                               <div className="flex-1 space-y-3">
@@ -356,7 +357,7 @@ export function GrammarSection({
                   )}
                 </div>
               </div>
-            ))}
+            )); })()}
           </div>
         </div>
       </ScrollArea>

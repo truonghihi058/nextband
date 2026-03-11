@@ -106,6 +106,71 @@ export function RichTextEditor({
     }
   };
 
+  // Shared helper to upload a File and insert the image at caret
+  const uploadAndInsertImage = async (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+
+    setUploading(true);
+    try {
+      const result = await uploadsApi.uploadImage(file);
+
+      let fullUrl = result.url;
+      if (fullUrl.startsWith("/uploads")) {
+        const apiUrl =
+          import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
+        const baseUrl = apiUrl.replace("/api/v1", "");
+        fullUrl = `${baseUrl}${fullUrl}`;
+      }
+
+      if (editorRef.current) {
+        editorRef.current.focus();
+      }
+
+      document.execCommand("insertImage", false, fullUrl);
+
+      if (editorRef.current) {
+        onChange(editorRef.current.innerHTML);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.response?.data?.error || "Không thể tải lên ảnh",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (file) {
+          uploadAndInsertImage(file);
+        }
+        return;
+      }
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      if (files[i].type.startsWith("image/")) {
+        e.preventDefault();
+        uploadAndInsertImage(files[i]);
+        return;
+      }
+    }
+  };
+
   const exec = (command: string) => {
     document.execCommand(command);
     if (editorRef.current) {
@@ -254,6 +319,8 @@ export function RichTextEditor({
         style={{ minHeight }}
         data-placeholder={placeholder}
         onInput={(e) => onChange((e.target as HTMLDivElement).innerHTML)}
+        onPaste={handlePaste}
+        onDrop={handleDrop}
         suppressContentEditableWarning
       />
 
@@ -262,6 +329,12 @@ export function RichTextEditor({
           content: attr(data-placeholder);
           color: hsl(var(--muted-foreground));
           pointer-events: none;
+        }
+        [contenteditable] img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 8px;
+          margin: 8px 0;
         }
       `}</style>
     </div>

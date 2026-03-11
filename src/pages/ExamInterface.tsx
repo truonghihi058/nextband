@@ -272,17 +272,24 @@ export default function ExamInterface() {
               : JSON.stringify(answerText),
         }));
 
-      await submissionsApi.submit(submission.id, answerEntries);
+      const result = await submissionsApi.submit(submission.id, answerEntries);
 
       queryClient.invalidateQueries({ queryKey: ["my-submissions"] });
       queryClient.invalidateQueries({ queryKey: ["my-enrollments"] });
 
+      const correctCount = result?.correctAnswers;
+      const totalCount = result?.totalQuestions;
+      const resultText =
+        correctCount != null && totalCount != null
+          ? ` - Kết quả: ${correctCount}/${totalCount} câu đúng`
+          : "";
+
       toast({
         title: "Nộp bài thành công",
-        description: "Bài thi của bạn đã được ghi nhận",
+        description: `Bài thi của bạn đã được ghi nhận${resultText}`,
       });
 
-      navigate("/my-submissions");
+      navigate(`/submissions/${submission.id}`);
     } catch (error: any) {
       toast({
         title: "Lỗi",
