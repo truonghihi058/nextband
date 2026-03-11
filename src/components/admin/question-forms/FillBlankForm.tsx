@@ -114,6 +114,13 @@ export function FillBlankForm({ form, onChange }: QuestionFormProps) {
                     }}
                     className="bg-background h-9 border-none focus-visible:ring-1 focus-visible:ring-amber-500/30"
                   />
+                  <div className="text-[10px] text-muted-foreground whitespace-nowrap pr-2">
+                    Dùng{" "}
+                    <code className="bg-amber-100 px-1 rounded text-amber-700">
+                      |
+                    </code>{" "}
+                    cho nhiều đáp án
+                  </div>
                 </div>
               ))}
             </div>

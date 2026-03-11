@@ -135,7 +135,7 @@ export function ListeningSection({
           )}
         >
           <div className="p-6">
-            <div className="max-w-3xl mx-auto space-y-6">
+            <div className="w-full space-y-6">
               <div className="flex items-center gap-2 text-[hsl(var(--listening))] mb-6">
                 <Headphones className="h-5 w-5" />
                 <h2 className="text-xl font-semibold">{section.title}</h2>
@@ -296,7 +296,7 @@ export function ListeningSection({
                                         e.target.value,
                                       )
                                     }
-                                    className="max-w-md h-11 bg-background shadow-sm focus-visible:ring-primary/30"
+                                    className="w-full h-11 bg-background shadow-sm focus-visible:ring-primary/30"
                                   />
                                   <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5 opacity-70">
                                     <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />

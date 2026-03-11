@@ -8,6 +8,8 @@ import {
   MessageSquare,
   Clock,
 } from "lucide-react";
+import { FillBlankResultRenderer } from "@/components/exam/FillBlankResultRenderer";
+import { hasFillBlankPlaceholders } from "@/components/exam/FillBlankHtmlRenderer";
 
 interface AnswerResultCardProps {
   questionIndex: number;
@@ -48,6 +50,9 @@ export function AnswerResultCard({
   sectionType,
 }: AnswerResultCardProps) {
   const isManualGradeOnly = ["speaking", "writing"].includes(sectionType || "");
+  const isFillBlankWithPlaceholders =
+    questionType === "fill_blank" && hasFillBlankPlaceholders(questionText);
+
   const getStatusIcon = () => {
     if (isManualGradeOnly && (!isGraded || score == null))
       return <Clock className="h-4 w-4 text-amber-500" />;
@@ -81,6 +86,16 @@ export function AnswerResultCard({
     );
   };
 
+  const parseJsonAnswer = (text: string | null) => {
+    if (!text) return {};
+    try {
+      const parsed = JSON.parse(text);
+      return typeof parsed === "object" && parsed !== null ? parsed : {};
+    } catch {
+      return {};
+    }
+  };
+
   return (
     <Card>
       <CardContent className="pt-4 space-y-3">
@@ -95,32 +110,45 @@ export function AnswerResultCard({
               </Badge>
               {getScoreBadge()}
             </div>
-            <div
-              className="text-sm pl-6 prose prose-sm max-w-none dark:prose-invert"
-              dangerouslySetInnerHTML={{ __html: questionText }}
-            />
+
+            {isFillBlankWithPlaceholders ? (
+              <div className="pl-6 pt-1">
+                <FillBlankResultRenderer
+                  html={questionText}
+                  studentAnswers={parseJsonAnswer(answerText)}
+                  correctAnswersValue={correctAnswer}
+                />
+              </div>
+            ) : (
+              <div
+                className="text-sm pl-6 prose prose-sm max-w-none dark:prose-invert"
+                dangerouslySetInnerHTML={{ __html: questionText }}
+              />
+            )}
           </div>
         </div>
 
         <div className="pl-6 space-y-2">
-          {/* Student answer */}
-          <div className="rounded-md border bg-muted/40 p-3">
-            <Label className="text-xs text-muted-foreground mb-1 block">
-              Câu trả lời của bạn
-            </Label>
-            {answerText ? (
-              <p className="text-sm whitespace-pre-wrap">{answerText}</p>
-            ) : audioUrl ? (
-              <audio controls className="w-full mt-1" src={audioUrl} />
-            ) : (
-              <p className="text-sm text-muted-foreground italic">
-                Chưa trả lời
-              </p>
-            )}
-          </div>
+          {/* Student answer - hide for fill_blank with placeholders as it's already rendered */}
+          {!isFillBlankWithPlaceholders && (
+            <div className="rounded-md border bg-muted/40 p-3">
+              <Label className="text-xs text-muted-foreground mb-1 block">
+                Câu trả lời của bạn
+              </Label>
+              {answerText ? (
+                <p className="text-sm whitespace-pre-wrap">{answerText}</p>
+              ) : audioUrl ? (
+                <audio controls className="w-full mt-1" src={audioUrl} />
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  Chưa trả lời
+                </p>
+              )}
+            </div>
+          )}
 
-          {/* Correct answer - only show when graded */}
-          {isGraded && correctAnswer && (
+          {/* Correct answer - only show when graded and NOT fill_blank with placeholders (it's already handled) */}
+          {isGraded && correctAnswer && !isFillBlankWithPlaceholders && (
             <div className="rounded-md border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900 p-3">
               <Label className="text-xs text-green-700 dark:text-green-400 mb-1 block">
                 Đáp án đúng

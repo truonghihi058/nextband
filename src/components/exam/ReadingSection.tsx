@@ -413,7 +413,7 @@ export function ReadingSection({
                                   onChange={(e) =>
                                     onAnswerChange(question.id, e.target.value)
                                   }
-                                  className="max-w-md h-11"
+                                  className="w-full h-11"
                                 />
                                 <p className="text-[11px] text-muted-foreground font-medium italic">
                                   Gợi ý: ONE WORD ONLY
