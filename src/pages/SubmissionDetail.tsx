@@ -99,6 +99,82 @@ export default function SubmissionDetail() {
   const hasAutoGradedResults =
     submission?.correctAnswers != null && submission?.totalQuestions != null;
 
+  // Frontend-side correct count computation for submissions without backend auto-grading
+  const frontendComputedResults = useMemo(() => {
+    if (hasAutoGradedResults) return null; // Backend already has it
+    if (!sections || allQuestions.length === 0) return null;
+
+    const autoGradableTypes = [
+      "multiple_choice", "true_false_not_given", "yes_no_not_given",
+      "short_answer", "fill_blank", "listening",
+    ];
+
+    let correctCount = 0;
+    let gradableCount = 0;
+
+    // Build a section map for question -> sectionType
+    const questionSectionMap: Record<string, string> = {};
+    sections.forEach((sec: any) => {
+      (sec.questionGroups || []).forEach((g: any) => {
+        (g.questions || []).forEach((q: any) => {
+          questionSectionMap[q.id] = sec.sectionType;
+        });
+      });
+    });
+
+    for (const question of allQuestions) {
+      const sectionType = questionSectionMap[question.id];
+      const isAutoGradable = ["listening", "reading", "general"].includes(sectionType || "");
+      if (!isAutoGradable || !autoGradableTypes.includes(question.questionType)) continue;
+      if (!question.correctAnswer) continue;
+
+      gradableCount++;
+      const answer = answerMap[question.id];
+      if (!answer?.answerText) continue;
+
+      const studentText = answer.answerText;
+      const correctText = question.correctAnswer.trim();
+
+      // Handle fill_blank with JSON answers
+      if (question.questionType === "fill_blank") {
+        try {
+          const parsedStudent = JSON.parse(studentText);
+          const parsedCorrect = JSON.parse(correctText);
+          if (typeof parsedStudent === "object" && typeof parsedCorrect === "object" &&
+              parsedStudent !== null && parsedCorrect !== null) {
+            let allCorrect = true;
+            for (const key of Object.keys(parsedCorrect)) {
+              const correctVal = String(parsedCorrect[key] || "").trim();
+              const studentVal = String(parsedStudent[key] || "").trim();
+              const alternatives = correctVal.split("|").map((a: string) => a.trim().toLowerCase());
+              if (!alternatives.includes(studentVal.toLowerCase())) {
+                allCorrect = false;
+                break;
+              }
+            }
+            if (allCorrect) correctCount++;
+            continue;
+          }
+        } catch {
+          // Not JSON, fall through
+        }
+      }
+
+      const alternatives = correctText.split("|").map((a: string) => a.trim().toLowerCase());
+      if (alternatives.includes(studentText.trim().toLowerCase())) {
+        correctCount++;
+      }
+    }
+
+    if (gradableCount === 0) return null;
+    return { correctAnswers: correctCount, totalQuestions: gradableCount };
+  }, [hasAutoGradedResults, sections, allQuestions, answerMap]);
+
+  // Unified correct count: prefer backend, fallback to frontend-computed
+  const displayCorrectAnswers = submission?.correctAnswers ?? frontendComputedResults?.correctAnswers ?? null;
+  const displayTotalQuestions = submission?.totalQuestions ?? frontendComputedResults?.totalQuestions ?? null;
+  const hasCorrectResults = displayCorrectAnswers != null && displayTotalQuestions != null;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -203,32 +279,32 @@ export default function SubmissionDetail() {
           </div>
 
           {/* Auto-graded result - shown for submitted AND graded */}
-          {hasAutoGradedResults && (
+          {hasCorrectResults && (
             <>
               <Separator />
               <div className="flex flex-col items-center gap-3 py-2">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-6 w-6 text-green-500" />
                   <span className="text-3xl font-bold text-green-600">
-                    {submission.correctAnswers}
+                    {displayCorrectAnswers}
                   </span>
                   <span className="text-lg text-muted-foreground">
-                    / {submission.totalQuestions} câu đúng
+                    / {displayTotalQuestions} câu đúng
                   </span>
                 </div>
                 <Progress
                   value={
-                    submission.totalQuestions > 0
-                      ? (submission.correctAnswers / submission.totalQuestions) * 100
+                    displayTotalQuestions! > 0
+                      ? (displayCorrectAnswers! / displayTotalQuestions!) * 100
                       : 0
                   }
                   className="w-full max-w-xs h-2"
                 />
                 <p className="text-sm text-muted-foreground">
                   Đạt{" "}
-                  {submission.totalQuestions > 0
+                  {displayTotalQuestions! > 0
                     ? Math.round(
-                        (submission.correctAnswers / submission.totalQuestions) *
+                        (displayCorrectAnswers! / displayTotalQuestions!) *
                           100,
                       )
                     : 0}

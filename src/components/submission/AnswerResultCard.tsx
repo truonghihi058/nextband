@@ -50,20 +50,66 @@ export function AnswerResultCard({
   sectionType,
 }: AnswerResultCardProps) {
   const isManualGradeOnly = ["speaking", "writing"].includes(sectionType || "");
-  const isAutoGraded = ["listening", "reading", "general"].includes(sectionType || "");
-  const canShowResult = isGraded || (isAutoGraded && score != null);
+  const isAutoGradable = ["listening", "reading", "general"].includes(sectionType || "");
   const isFillBlankWithPlaceholders =
     questionType === "fill_blank" && hasFillBlankPlaceholders(questionText);
+
+  // Frontend-side auto-comparison for auto-gradable sections when score is null
+  const computedCorrect = (() => {
+    // If backend already provided a score, use it
+    if (score != null) return score > 0;
+    // If not auto-gradable or no correct answer, we can't determine
+    if (!isAutoGradable || !correctAnswer || !answerText) return null;
+
+    const autoGradableTypes = [
+      "multiple_choice", "true_false_not_given", "yes_no_not_given",
+      "short_answer", "fill_blank", "listening",
+    ];
+    if (!autoGradableTypes.includes(questionType)) return null;
+
+    // Handle fill_blank with JSON answers
+    if (questionType === "fill_blank") {
+      try {
+        const parsedStudent = JSON.parse(answerText);
+        const parsedCorrect = JSON.parse(correctAnswer);
+        if (
+          typeof parsedStudent === "object" && typeof parsedCorrect === "object" &&
+          parsedStudent !== null && parsedCorrect !== null
+        ) {
+          for (const key of Object.keys(parsedCorrect)) {
+            const correctVal = String(parsedCorrect[key] || "").trim();
+            const studentVal = String(parsedStudent[key] || "").trim();
+            const alternatives = correctVal.split("|").map((a: string) => a.trim().toLowerCase());
+            if (!alternatives.includes(studentVal.toLowerCase())) return false;
+          }
+          return true;
+        }
+      } catch {
+        // Not JSON, fall through to string comparison
+      }
+    }
+
+    // Simple string comparison with pipe-delimited alternatives
+    const alternatives = correctAnswer.trim().split("|").map((a: string) => a.trim().toLowerCase());
+    return alternatives.includes(answerText.trim().toLowerCase());
+  })();
+
+  const canShowResult = isGraded || (isAutoGradable && (score != null || computedCorrect != null));
 
   const getStatusIcon = () => {
     if (isManualGradeOnly && (!isGraded || score == null))
       return <Clock className="h-4 w-4 text-amber-500" />;
     if (!canShowResult)
       return <Minus className="h-4 w-4 text-muted-foreground" />;
-    if (score != null && score >= points)
-      return <CheckCircle className="h-4 w-4 text-green-600" />;
-    if (score === 0) return <XCircle className="h-4 w-4 text-destructive" />;
-    return <Minus className="h-4 w-4 text-yellow-600" />;
+    // Use score if available, otherwise use computedCorrect
+    if (score != null) {
+      if (score >= points) return <CheckCircle className="h-4 w-4 text-green-600" />;
+      if (score === 0) return <XCircle className="h-4 w-4 text-destructive" />;
+      return <Minus className="h-4 w-4 text-yellow-600" />;
+    }
+    if (computedCorrect === true) return <CheckCircle className="h-4 w-4 text-green-600" />;
+    if (computedCorrect === false) return <XCircle className="h-4 w-4 text-destructive" />;
+    return <Minus className="h-4 w-4 text-muted-foreground" />;
   };
 
   const getScoreBadge = () => {
@@ -78,14 +124,25 @@ export function AnswerResultCard({
       );
     }
     if (!canShowResult) return null;
-    const ratio = (score ?? 0) / points;
-    const variant =
-      ratio >= 1 ? "default" : ratio > 0 ? "secondary" : "destructive";
-    return (
-      <Badge variant={variant} className="text-xs">
-        {score}/{points}
-      </Badge>
-    );
+    // If backend score is available, use it
+    if (score != null) {
+      const ratio = score / points;
+      const variant =
+        ratio >= 1 ? "default" : ratio > 0 ? "secondary" : "destructive";
+      return (
+        <Badge variant={variant} className="text-xs">
+          {score}/{points}
+        </Badge>
+      );
+    }
+    // Use frontend-computed result
+    if (computedCorrect === true) {
+      return <Badge variant="default" className="text-xs">Đúng</Badge>;
+    }
+    if (computedCorrect === false) {
+      return <Badge variant="destructive" className="text-xs">Sai</Badge>;
+    }
+    return null;
   };
 
   const parseJsonAnswer = (text: string | null) => {
@@ -149,7 +206,7 @@ export function AnswerResultCard({
             </div>
           )}
 
-          {/* Correct answer - only show when graded and NOT fill_blank with placeholders (it's already handled) */}
+          {/* Correct answer - show for auto-gradable or graded */}
           {canShowResult && correctAnswer && !isFillBlankWithPlaceholders && (
             <div className="rounded-md border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900 p-3">
               <Label className="text-xs text-green-700 dark:text-green-400 mb-1 block">
