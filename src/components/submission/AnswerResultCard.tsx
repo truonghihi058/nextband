@@ -22,6 +22,7 @@ interface AnswerResultCardProps {
   score: number | null;
   feedback: string | null;
   isGraded: boolean;
+  isSubmitted?: boolean;
   sectionType?: string;
 }
 
@@ -47,12 +48,16 @@ export function AnswerResultCard({
   score,
   feedback,
   isGraded,
+  isSubmitted = false,
   sectionType,
 }: AnswerResultCardProps) {
   const isManualGradeOnly = ["speaking", "writing"].includes(sectionType || "");
   const isAutoGradable = ["listening", "reading", "general"].includes(sectionType || "");
   const isFillBlankWithPlaceholders =
     questionType === "fill_blank" && hasFillBlankPlaceholders(questionText);
+
+  // For auto-gradable sections that have been submitted, always show results
+  const shouldShowAutoResult = isAutoGradable && (isSubmitted || isGraded);
 
   // Frontend-side auto-comparison for auto-gradable sections when score is null
   const computedCorrect = (() => {
@@ -94,7 +99,8 @@ export function AnswerResultCard({
     return alternatives.includes(answerText.trim().toLowerCase());
   })();
 
-  const canShowResult = isGraded || (isAutoGradable && (score != null || computedCorrect != null));
+  // Can show result: graded, or auto-gradable section that's been submitted
+  const canShowResult = isGraded || shouldShowAutoResult;
 
   const getStatusIcon = () => {
     if (isManualGradeOnly && (!isGraded || score == null))
@@ -109,6 +115,8 @@ export function AnswerResultCard({
     }
     if (computedCorrect === true) return <CheckCircle className="h-4 w-4 text-green-600" />;
     if (computedCorrect === false) return <XCircle className="h-4 w-4 text-destructive" />;
+    // No answer provided - show neutral
+    if (!answerText) return <XCircle className="h-4 w-4 text-destructive" />;
     return <Minus className="h-4 w-4 text-muted-foreground" />;
   };
 
@@ -141,6 +149,10 @@ export function AnswerResultCard({
     }
     if (computedCorrect === false) {
       return <Badge variant="destructive" className="text-xs">Sai</Badge>;
+    }
+    // No answer
+    if (!answerText && shouldShowAutoResult) {
+      return <Badge variant="destructive" className="text-xs">Chưa trả lời</Badge>;
     }
     return null;
   };

@@ -402,6 +402,7 @@ export default function SubmissionDetail() {
                           score={answer?.score ?? null}
                           feedback={answer?.feedback ?? null}
                           isGraded={isGraded}
+                          isSubmitted={submission?.status === "submitted" || submission?.status === "graded"}
                           sectionType={section.sectionType}
                         />
                       );

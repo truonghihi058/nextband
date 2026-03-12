@@ -493,14 +493,18 @@ export const uploadsApi = {
   uploadImage: async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    const { data } = await api.post("/uploads/image", formData);
+    const { data } = await api.post("/uploads/image", formData, {
+      headers: { "Content-Type": undefined },
+    });
     return data;
   },
 
   uploadAudio: async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    const { data } = await api.post("/uploads/audio", formData);
+    const { data } = await api.post("/uploads/audio", formData, {
+      headers: { "Content-Type": undefined },
+    });
     return data;
   },
 
