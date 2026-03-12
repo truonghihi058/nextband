@@ -50,15 +50,17 @@ export function AnswerResultCard({
   sectionType,
 }: AnswerResultCardProps) {
   const isManualGradeOnly = ["speaking", "writing"].includes(sectionType || "");
+  const isAutoGraded = ["listening", "reading", "general"].includes(sectionType || "");
+  const canShowResult = isGraded || (isAutoGraded && score != null);
   const isFillBlankWithPlaceholders =
     questionType === "fill_blank" && hasFillBlankPlaceholders(questionText);
 
   const getStatusIcon = () => {
     if (isManualGradeOnly && (!isGraded || score == null))
       return <Clock className="h-4 w-4 text-amber-500" />;
-    if (!isGraded || score == null)
+    if (!canShowResult)
       return <Minus className="h-4 w-4 text-muted-foreground" />;
-    if (score >= points)
+    if (score != null && score >= points)
       return <CheckCircle className="h-4 w-4 text-green-600" />;
     if (score === 0) return <XCircle className="h-4 w-4 text-destructive" />;
     return <Minus className="h-4 w-4 text-yellow-600" />;
@@ -75,8 +77,8 @@ export function AnswerResultCard({
         </Badge>
       );
     }
-    if (!isGraded || score == null) return null;
-    const ratio = score / points;
+    if (!canShowResult) return null;
+    const ratio = (score ?? 0) / points;
     const variant =
       ratio >= 1 ? "default" : ratio > 0 ? "secondary" : "destructive";
     return (
@@ -148,7 +150,7 @@ export function AnswerResultCard({
           )}
 
           {/* Correct answer - only show when graded and NOT fill_blank with placeholders (it's already handled) */}
-          {isGraded && correctAnswer && !isFillBlankWithPlaceholders && (
+          {canShowResult && correctAnswer && !isFillBlankWithPlaceholders && (
             <div className="rounded-md border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900 p-3">
               <Label className="text-xs text-green-700 dark:text-green-400 mb-1 block">
                 Đáp án đúng

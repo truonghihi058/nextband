@@ -146,7 +146,7 @@ export function ListeningSection({
           )}
         >
           <div className="p-6">
-            <div className="w-full space-y-6">
+            <div className={cn("w-full space-y-6", !currentGroup?.passage && "max-w-3xl mx-auto")}>
               <div className="flex items-center gap-2 text-[hsl(var(--listening))] mb-6">
                 <Headphones className="h-5 w-5" />
                 <h2 className="text-xl font-semibold">{section.title}</h2>
