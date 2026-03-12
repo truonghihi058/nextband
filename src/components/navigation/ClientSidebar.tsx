@@ -42,6 +42,12 @@ const navigationItems = [
     icon: ClipboardList,
     description: "Lịch sử bài thi",
   },
+  {
+    title: "Cá Nhân",
+    url: "/profile",
+    icon: User,
+    description: "Thông tin cá nhân",
+  },
 ];
 
 export function ClientSidebar() {

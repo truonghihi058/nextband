@@ -19,6 +19,7 @@ import MySubmissions from "@/pages/MySubmissions";
 import CourseDetail from "@/pages/CourseDetail";
 import SubmissionDetail from "@/pages/SubmissionDetail";
 import ExamInterface from "@/pages/ExamInterface";
+import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
 
 // Admin Pages
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="/my-submissions" element={<MySubmissions />} />
               <Route path="/course/:slug" element={<CourseDetail />} />
               <Route path="/submissions/:id" element={<SubmissionDetail />} />
+              <Route path="/profile" element={<Profile />} />
             </Route>
 
             {/* Exam Interface - Minimal Layout */}
