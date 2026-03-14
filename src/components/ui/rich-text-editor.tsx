@@ -91,6 +91,14 @@ export function RichTextEditor({
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
     }
+
+    if (fullUrl) {
+      window.dispatchEvent(
+        new CustomEvent("rich-text-image-uploaded", {
+          detail: { url: fullUrl },
+        })
+      );
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

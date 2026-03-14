@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { sectionsApi, questionsApi } from "@/lib/api";
+import { sectionsApi, questionsApi, uploadsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -166,6 +166,30 @@ export default function AdminSectionEdit() {
   const [editingGroup, setEditingGroup] = useState<QuestionGroup | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
+  // Image Cleanup Tracking
+  const pendingImagesRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const customEvent = e as CustomEvent<{ url: string }>;
+      pendingImagesRef.current.push(customEvent.detail.url);
+    };
+    window.addEventListener("rich-text-image-uploaded", handler);
+    return () => window.removeEventListener("rich-text-image-uploaded", handler);
+  }, []);
+
+  const cleanupImages = useCallback((retainedHtmlStrings: (string | undefined | null)[]) => {
+    if (pendingImagesRef.current.length === 0) return;
+    const combinedHtml = retainedHtmlStrings.filter(Boolean).join(" ");
+    
+    const orphans = pendingImagesRef.current.filter(url => !combinedHtml.includes(url));
+    orphans.forEach(url => {
+      uploadsApi.deleteFile(url).catch(console.error);
+    });
+    
+    pendingImagesRef.current = [];
+  }, []);
+
   // Bulk import states
   const [bulkImportGroupId, setBulkImportGroupId] = useState<string | null>(
     null,
@@ -218,7 +242,7 @@ export default function AdminSectionEdit() {
       questionsApi.createGroup({ ...data, sectionId: id! }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
-      setGroupDialogOpen(false);
+      closeGroupDialog(true);
       toast({ title: "Đã thêm nhóm câu hỏi" });
     },
     onError: (error: any) => {
@@ -235,7 +259,7 @@ export default function AdminSectionEdit() {
       questionsApi.updateGroup(groupId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
-      setGroupDialogOpen(false);
+      closeGroupDialog(true);
       toast({ title: "Đã cập nhật nhóm câu hỏi" });
     },
     onError: (error: any) => {
@@ -275,7 +299,7 @@ export default function AdminSectionEdit() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
-      setQuestionDialogOpen(false);
+      closeQuestionDialog(true);
       toast({ title: "Đã thêm câu hỏi" });
     },
     onError: (error: any) => {
@@ -299,7 +323,7 @@ export default function AdminSectionEdit() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
-      setQuestionDialogOpen(false);
+      closeQuestionDialog(true);
       toast({ title: "Đã cập nhật câu hỏi" });
     },
     onError: (error: any) => {
@@ -395,7 +419,26 @@ export default function AdminSectionEdit() {
 
   // --- Handlers ---
 
+  const closeGroupDialog = (saved: boolean) => {
+    setGroupDialogOpen(false);
+    if (saved) {
+      cleanupImages([groupForm.passage, groupForm.instructions]);
+    } else {
+      cleanupImages([editingGroup?.passage, editingGroup?.instructions]);
+    }
+  };
+
+  const closeQuestionDialog = (saved: boolean) => {
+    setQuestionDialogOpen(false);
+    if (saved) {
+      cleanupImages([questionForm.questionText]);
+    } else {
+      cleanupImages([editingQuestion?.questionText]);
+    }
+  };
+
   const handleOpenGroupDialog = (group?: QuestionGroup) => {
+    pendingImagesRef.current = [];
     if (group) {
       setEditingGroup(group);
       setGroupForm({
@@ -419,6 +462,7 @@ export default function AdminSectionEdit() {
   };
 
   const handleOpenQuestionDialog = (groupId: string, question?: Question) => {
+    pendingImagesRef.current = [];
     setSelectedGroupId(groupId);
     if (question) {
       setEditingQuestion(question);
@@ -936,7 +980,7 @@ export default function AdminSectionEdit() {
       </Card>
 
       {/* Group Dialog */}
-      <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
+      <Dialog open={groupDialogOpen} onOpenChange={(open) => !open && closeGroupDialog(false)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -1004,7 +1048,7 @@ export default function AdminSectionEdit() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setGroupDialogOpen(false)}>
+            <Button variant="outline" onClick={() => closeGroupDialog(false)}>
               Hủy
             </Button>
             <Button
@@ -1024,7 +1068,7 @@ export default function AdminSectionEdit() {
       </Dialog>
 
       {/* Question Dialog */}
-      <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
+      <Dialog open={questionDialogOpen} onOpenChange={(open) => !open && closeQuestionDialog(false)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -1081,7 +1125,7 @@ export default function AdminSectionEdit() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setQuestionDialogOpen(false)}
+              onClick={() => closeQuestionDialog(false)}
             >
               Hủy
             </Button>
