@@ -161,18 +161,25 @@ export default function ExamInterface() {
     return groups.some((g: any) => g.questions && g.questions.length > 0);
   }, [currentSection]);
 
-  // Get all questions for pagination
+  // Get all questions for pagination — must be sorted identically to how section components render them
   const currentSectionQuestions = useMemo(() => {
     if (!currentSection || !sectionHasQuestions) return [];
-    return (
-      (
-        currentSection.questionGroups || currentSection.question_groups
-      )?.flatMap((g: any) =>
-        (g.questions || []).map((q: any) => ({
-          ...q,
-          groupId: g.id,
-        })),
-      ) || []
+
+    const sortedGroups = [...(currentSection.questionGroups || currentSection.question_groups || [])]
+      .sort((a: any, b: any) => {
+        const orderDiff = (a.orderIndex ?? a.order_index ?? 0) - (b.orderIndex ?? b.order_index ?? 0);
+        if (orderDiff !== 0) return orderDiff;
+        return new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime();
+      });
+
+    return sortedGroups.flatMap((g: any) =>
+      [...(g.questions || [])]
+        .sort((a: any, b: any) => {
+          const orderDiff = (a.orderIndex ?? a.order_index ?? 0) - (b.orderIndex ?? b.order_index ?? 0);
+          if (orderDiff !== 0) return orderDiff;
+          return new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime();
+        })
+        .map((q: any) => ({ ...q, groupId: g.id }))
     );
   }, [currentSection, sectionHasQuestions]);
 
