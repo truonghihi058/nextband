@@ -52,6 +52,47 @@ export function RichTextEditor({
     }
   }, [value]);
 
+  const insertImageAtRange = (
+    fullUrl: string,
+    savedRange: Range | null,
+    selection: Selection | null
+  ) => {
+    if (editorRef.current) {
+      editorRef.current.focus();
+      if (savedRange && selection) {
+        selection.removeAllRanges();
+        selection.addRange(savedRange);
+      }
+    }
+
+    try {
+      if (savedRange && selection) {
+        const img = document.createElement("img");
+        img.src = fullUrl;
+        img.style.maxWidth = "100%";
+        img.style.height = "auto";
+        img.className = "rounded-md my-2";
+
+        savedRange.deleteContents();
+        savedRange.insertNode(img);
+
+        // Move caret after the inserted image
+        savedRange.setStartAfter(img);
+        savedRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(savedRange);
+      } else {
+        document.execCommand("insertImage", false, fullUrl);
+      }
+    } catch (e) {
+      document.execCommand("insertImage", false, fullUrl);
+    }
+
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -60,7 +101,7 @@ export function RichTextEditor({
     const selection = window.getSelection();
     let savedRange: Range | null = null;
     if (selection && selection.rangeCount > 0) {
-      savedRange = selection.getRangeAt(0);
+      savedRange = selection.getRangeAt(0).cloneRange();
     } else if (editorRef.current) {
       // Create a new range at the end of the editor if no selection exists
       savedRange = document.createRange();
@@ -80,20 +121,7 @@ export function RichTextEditor({
         fullUrl = `${baseUrl}${fullUrl}`;
       }
 
-      // Restore selection to ensure image is inserted properly
-      if (editorRef.current) {
-        editorRef.current.focus();
-        if (savedRange && selection) {
-          selection.removeAllRanges();
-          selection.addRange(savedRange);
-        }
-      }
-
-      document.execCommand("insertImage", false, fullUrl);
-
-      if (editorRef.current) {
-        onChange(editorRef.current.innerHTML);
-      }
+      insertImageAtRange(fullUrl, savedRange, selection);
     } catch (error: any) {
       toast({
         title: "Lỗi",
@@ -110,6 +138,16 @@ export function RichTextEditor({
   const uploadAndInsertImage = async (file: File) => {
     if (!file.type.startsWith("image/")) return;
 
+    const selection = window.getSelection();
+    let savedRange: Range | null = null;
+    if (selection && selection.rangeCount > 0) {
+      savedRange = selection.getRangeAt(0).cloneRange();
+    } else if (editorRef.current) {
+      savedRange = document.createRange();
+      savedRange.selectNodeContents(editorRef.current);
+      savedRange.collapse(false);
+    }
+
     setUploading(true);
     try {
       const result = await uploadsApi.uploadImage(file);
@@ -122,15 +160,7 @@ export function RichTextEditor({
         fullUrl = `${baseUrl}${fullUrl}`;
       }
 
-      if (editorRef.current) {
-        editorRef.current.focus();
-      }
-
-      document.execCommand("insertImage", false, fullUrl);
-
-      if (editorRef.current) {
-        onChange(editorRef.current.innerHTML);
-      }
+      insertImageAtRange(fullUrl, savedRange, selection);
     } catch (error: any) {
       toast({
         title: "Lỗi",
