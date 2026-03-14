@@ -302,6 +302,7 @@ export const questionsApi = {
     options?: any;
     correctAnswer?: string;
     audioUrl?: string;
+    points?: number;
     orderIndex?: number;
   }) => {
     const { data } = await api.post("/questions", question);

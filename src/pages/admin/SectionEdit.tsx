@@ -136,6 +136,24 @@ interface Question {
   orderIndex: number;
 }
 
+// Helper to extract detailed validation error messages from API response
+function getErrorMessage(error: any, defaultMsg: string) {
+  const data = error?.response?.data;
+  if (!data) return error?.message || defaultMsg;
+  if (data.details) {
+    const messages: string[] = [];
+    for (const key in data.details) {
+      if (Array.isArray(data.details[key])) {
+        messages.push(...data.details[key]);
+      } else if (typeof data.details[key] === "string") {
+        messages.push(data.details[key]);
+      }
+    }
+    if (messages.length > 0) return messages.join(", ");
+  }
+  return data.error || data.message || defaultMsg;
+}
+
 export default function AdminSectionEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -203,6 +221,13 @@ export default function AdminSectionEdit() {
       setGroupDialogOpen(false);
       toast({ title: "Đã thêm nhóm câu hỏi" });
     },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi",
+        description: getErrorMessage(error, "Không thể thêm nhóm câu hỏi"),
+        variant: "destructive",
+      });
+    },
   });
 
   const updateGroupMutation = useMutation({
@@ -213,6 +238,13 @@ export default function AdminSectionEdit() {
       setGroupDialogOpen(false);
       toast({ title: "Đã cập nhật nhóm câu hỏi" });
     },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi",
+        description: getErrorMessage(error, "Không thể cập nhật nhóm câu hỏi"),
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteGroupMutation = useMutation({
@@ -221,6 +253,13 @@ export default function AdminSectionEdit() {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
       setDeleteGroup(null);
       toast({ title: "Đã xóa nhóm câu hỏi" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi",
+        description: getErrorMessage(error, "Không thể xóa nhóm câu hỏi"),
+        variant: "destructive",
+      });
     },
   });
 
@@ -241,8 +280,8 @@ export default function AdminSectionEdit() {
     },
     onError: (error: any) => {
       toast({
-        title: "Lỗi",
-        description: error.response?.data?.message || "Không thể thêm câu hỏi",
+        title: "Lỗi tạo câu hỏi",
+        description: getErrorMessage(error, "Không thể thêm câu hỏi"),
         variant: "destructive",
       });
     },
@@ -263,6 +302,13 @@ export default function AdminSectionEdit() {
       setQuestionDialogOpen(false);
       toast({ title: "Đã cập nhật câu hỏi" });
     },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi cập nhật câu hỏi",
+        description: getErrorMessage(error, "Không thể cập nhật câu hỏi"),
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteQuestionMutation = useMutation({
@@ -272,12 +318,26 @@ export default function AdminSectionEdit() {
       setDeleteQuestion(null);
       toast({ title: "Đã xóa câu hỏi" });
     },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi",
+        description: getErrorMessage(error, "Không thể xóa câu hỏi"),
+        variant: "destructive",
+      });
+    },
   });
 
   const updateSectionMutation = useMutation({
     mutationFn: (data: any) => sectionsApi.update(id!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi",
+        description: getErrorMessage(error, "Không thể cập nhật Section"),
+        variant: "destructive",
+      });
     },
   });
 
@@ -306,7 +366,7 @@ export default function AdminSectionEdit() {
     onError: (error: any) => {
       toast({
         title: "Lỗi nhập liệu",
-        description: "Có lỗi xảy ra khi tạo câu hỏi hàng loạt",
+        description: getErrorMessage(error, "Có lỗi xảy ra khi tạo câu hỏi hàng loạt"),
         variant: "destructive",
       });
     },
@@ -1050,7 +1110,7 @@ export default function AdminSectionEdit() {
         }
         title="Xóa nhóm?"
         description={`Bạn có chắc muốn xóa nhóm "${deleteGroup?.title}"?`}
-        isLoading={deleteGroupMutation.isPending}
+        loading={deleteGroupMutation.isPending}
       />
 
       <DeleteConfirmDialog
@@ -1061,7 +1121,7 @@ export default function AdminSectionEdit() {
         }
         title="Xóa câu hỏi?"
         description="Câu hỏi này sẽ bị xóa khỏi hệ thống."
-        isLoading={deleteQuestionMutation.isPending}
+        loading={deleteQuestionMutation.isPending}
       />
     </div>
   );
