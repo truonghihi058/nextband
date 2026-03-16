@@ -76,7 +76,15 @@ export function MatchingForm({ form, onChange }: QuestionFormProps) {
   useEffect(() => {
     const data = parseMatching(form.correctAnswer);
     if (data.items.length > 0) setItems(data.items);
-    if (data.options.length > 0) setOptions(data.options);
+    if (data.options.length > 0) {
+      const migratedOptions = data.options.map((opt, i) => {
+        if (/^Option [A-Z]$/.test(opt) || /^Lựa chọn [A-Z]$/.test(opt)) {
+          return ""; // Let the placeholder text handle it dynamically
+        }
+        return opt;
+      });
+      setOptions(migratedOptions);
+    }
     setPairs(data.pairs || {});
   }, []);
 
@@ -265,7 +273,7 @@ export function MatchingForm({ form, onChange }: QuestionFormProps) {
                     {toRoman(i + 1)}.
                   </span>
                   <Input
-                    placeholder={`Option ${toRoman(i + 1)}`}
+                    placeholder={`Lựa chọn ${toRoman(i + 1)}`}
                     value={opt}
                     onChange={(e) => updateOption(i, e.target.value)}
                     className="bg-background h-8 text-sm"
