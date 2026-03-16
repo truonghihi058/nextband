@@ -194,7 +194,7 @@ export function ReadingSection({
     ) || [];
 
   return (
-    <div className="h-full grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x relative">
+    <div className="h-full grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x relative">
       {/* Highlight Menu */}
       {showHighlightMenu && (
         <div

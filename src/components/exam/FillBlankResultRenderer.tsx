@@ -39,18 +39,23 @@ export function FillBlankResultRenderer({
       const displayAnswer = hasAnswer ? studentAnswer : "(Trống)";
 
       const statusClass = isCorrect
-        ? "text-green-600 font-bold border-b-2 border-green-600/30 px-1"
-        : hasAnswer
-          ? "text-destructive font-bold border-b-2 border-destructive/30 px-1"
-          : "text-muted-foreground italic border-b-2 border-muted/30 px-1";
+        ? "text-green-600 font-bold border-b-2 border-green-600/30 px-1 inline-flex items-center gap-1 mx-1"
+        : "border-b-2 border-destructive/30 px-1 inline-flex items-center gap-1 mx-1";
 
-      const tooltipContent =
-        !isCorrect && correctAnswerSlot
-          ? ` title="Đáp án đúng: ${correctAnswerSlot}" `
-          : "";
+      const answerClass = isCorrect
+        ? ""
+        : hasAnswer
+          ? "text-destructive font-bold line-through opacity-80"
+          : "text-muted-foreground italic";
+
+      let displayContent = `<span class="${answerClass}">${displayAnswer}</span>`;
+
+      if (!isCorrect && correctAnswerSlot) {
+        displayContent += `<span class="text-green-700 bg-green-100 dark:bg-green-900/40 border border-green-200 dark:border-green-800 text-[11px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap leading-none tracking-wide uppercase">Đúng: ${correctAnswerSlot}</span>`;
+      }
 
       blankCounter++;
-      return `<span class="${statusClass}"${tooltipContent}>${displayAnswer}</span>`;
+      return `<span class="${statusClass}">${displayContent}</span>`;
     });
   }, [html, studentAnswers, correctAnswers]);
 

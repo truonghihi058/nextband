@@ -50,6 +50,23 @@ function stringifyMatching(
   return JSON.stringify({ items, options, pairs });
 }
 
+// Helper to convert number to Roman numeral
+function toRoman(num: number): string {
+  if (num <= 0) return "";
+  const roman = {
+    M: 1000, CM: 900, D: 500, CD: 400,
+    C: 100, XC: 90, L: 50, XL: 40,
+    X: 10, IX: 9, V: 5, IV: 4, I: 1
+  };
+  let str = "";
+  for (const i of Object.keys(roman)) {
+    const q = Math.floor(num / roman[i as keyof typeof roman]);
+    num -= q * roman[i as keyof typeof roman];
+    str += i.repeat(q);
+  }
+  return str;
+}
+
 export function MatchingForm({ form, onChange }: QuestionFormProps) {
   const [items, setItems] = useState<string[]>(["", ""]);
   const [options, setOptions] = useState<string[]>(["", ""]);
@@ -96,16 +113,23 @@ export function MatchingForm({ form, onChange }: QuestionFormProps) {
 
   const removeOption = (idx: number) => {
     if (options.length <= 2) return;
-    const removedOpt = String.fromCharCode(65 + idx);
+    const removedOpt = toRoman(idx + 1);
     const newOptions = options.filter((_, i) => i !== idx);
     // Clear pairs that used this option
     const newPairs: Record<string, string> = {};
     Object.entries(pairs).forEach(([k, v]) => {
       if (v !== removedOpt) {
         // Re-index option letters
-        const oldIdx = v.charCodeAt(0) - 65;
+        // We need to convert from roman back to index to check if it needs shifting
+        const getIndex = (roman: string) => {
+          for (let i = 1; i <= 50; i++) {
+             if (toRoman(i) === roman) return i - 1;
+          }
+           return -1;
+        };
+        const oldIdx = getIndex(v);
         if (oldIdx > idx) {
-          newPairs[k] = String.fromCharCode(64 + oldIdx); // shift down
+          newPairs[k] = toRoman(oldIdx); // shift down (by passing oldIdx directly, since toRoman is 1-based, passing oldIdx is effectively oldIdx - 1 + 1)
         } else {
           newPairs[k] = v;
         }
@@ -194,9 +218,9 @@ export function MatchingForm({ form, onChange }: QuestionFormProps) {
                       {options.map((_, oi) => (
                         <SelectItem
                           key={oi}
-                          value={String.fromCharCode(65 + oi)}
+                          value={toRoman(oi + 1)}
                         >
-                          {String.fromCharCode(65 + oi)}
+                          {toRoman(oi + 1)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -237,11 +261,11 @@ export function MatchingForm({ form, onChange }: QuestionFormProps) {
             <div className="grid gap-2">
               {options.map((opt, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="text-xs font-bold w-5 text-teal-600">
-                    {String.fromCharCode(65 + i)}.
+                  <span className="text-xs font-bold w-8 text-teal-600 text-right pr-2">
+                    {toRoman(i + 1)}.
                   </span>
                   <Input
-                    placeholder={`Option ${String.fromCharCode(65 + i)}`}
+                    placeholder={`Option ${toRoman(i + 1)}`}
                     value={opt}
                     onChange={(e) => updateOption(i, e.target.value)}
                     className="bg-background h-8 text-sm"

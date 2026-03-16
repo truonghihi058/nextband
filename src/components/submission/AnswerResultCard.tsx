@@ -60,9 +60,9 @@ export function AnswerResultCard({
   const shouldShowAutoResult = isAutoGradable && (isSubmitted || isGraded);
 
   // Frontend-side auto-comparison for auto-gradable sections when score is null
-  const computedCorrect = (() => {
+  const computedScore = (() => {
     // If backend already provided a score, use it
-    if (score != null) return score > 0;
+    if (score != null) return score;
     // If not auto-gradable or no correct answer, we can't determine
     if (!isAutoGradable || !correctAnswer || !answerText) return null;
 
@@ -81,13 +81,18 @@ export function AnswerResultCard({
           typeof parsedStudent === "object" && typeof parsedCorrect === "object" &&
           parsedStudent !== null && parsedCorrect !== null
         ) {
-          for (const key of Object.keys(parsedCorrect)) {
+          const keys = Object.keys(parsedCorrect);
+          const blankCount = keys.length;
+          if (blankCount === 0) return 0;
+
+          let correctBlanks = 0;
+          for (const key of keys) {
             const correctVal = String(parsedCorrect[key] || "").trim();
             const studentVal = String(parsedStudent[key] || "").trim();
             const alternatives = correctVal.split("|").map((a: string) => a.trim().toLowerCase());
-            if (!alternatives.includes(studentVal.toLowerCase())) return false;
+            if (alternatives.includes(studentVal.toLowerCase())) correctBlanks++;
           }
-          return true;
+          return (correctBlanks / blankCount) * points;
         }
       } catch {
         // Not JSON, fall through to string comparison
@@ -96,7 +101,7 @@ export function AnswerResultCard({
 
     // Simple string comparison with pipe-delimited alternatives
     const alternatives = correctAnswer.trim().split("|").map((a: string) => a.trim().toLowerCase());
-    return alternatives.includes(answerText.trim().toLowerCase());
+    return alternatives.includes(answerText.trim().toLowerCase()) ? points : 0;
   })();
 
   // Can show result: graded, or auto-gradable section that's been submitted
@@ -107,14 +112,15 @@ export function AnswerResultCard({
       return <Clock className="h-4 w-4 text-amber-500" />;
     if (!canShowResult)
       return <Minus className="h-4 w-4 text-muted-foreground" />;
-    // Use score if available, otherwise use computedCorrect
-    if (score != null) {
-      if (score >= points) return <CheckCircle className="h-4 w-4 text-green-600" />;
-      if (score === 0) return <XCircle className="h-4 w-4 text-destructive" />;
+
+    const effectiveScore = score != null ? score : computedScore;
+    
+    if (effectiveScore != null) {
+      if (effectiveScore >= points) return <CheckCircle className="h-4 w-4 text-green-600" />;
+      if (effectiveScore === 0) return <XCircle className="h-4 w-4 text-destructive" />;
       return <Minus className="h-4 w-4 text-yellow-600" />;
     }
-    if (computedCorrect === true) return <CheckCircle className="h-4 w-4 text-green-600" />;
-    if (computedCorrect === false) return <XCircle className="h-4 w-4 text-destructive" />;
+
     // No answer provided - show neutral
     if (!answerText) return <XCircle className="h-4 w-4 text-destructive" />;
     return <Minus className="h-4 w-4 text-muted-foreground" />;
@@ -132,24 +138,20 @@ export function AnswerResultCard({
       );
     }
     if (!canShowResult) return null;
-    // If backend score is available, use it
-    if (score != null) {
-      const ratio = score / points;
+    
+    const effectiveScore = score != null ? score : computedScore;
+
+    if (effectiveScore != null) {
+      const ratio = effectiveScore / points;
       const variant =
         ratio >= 1 ? "default" : ratio > 0 ? "secondary" : "destructive";
       return (
         <Badge variant={variant} className="text-xs">
-          {score}/{points}
+          {Number(effectiveScore.toFixed(2))}/{points}
         </Badge>
       );
     }
-    // Use frontend-computed result
-    if (computedCorrect === true) {
-      return <Badge variant="default" className="text-xs">Đúng</Badge>;
-    }
-    if (computedCorrect === false) {
-      return <Badge variant="destructive" className="text-xs">Sai</Badge>;
-    }
+
     // No answer
     if (!answerText && shouldShowAutoResult) {
       return <Badge variant="destructive" className="text-xs">Chưa trả lời</Badge>;

@@ -368,10 +368,10 @@ export default function AdminUsers() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Mật khẩu *</Label>
+                    <Label>Mật khẩu</Label>
                     <Input
                       type="password"
-                      placeholder="••••••••"
+                      placeholder="•••••••• (Để trống sẽ tạo ngẫu nhiên)"
                       value={form.password}
                       onChange={(e) =>
                         setForm({ ...form, password: e.target.value })
@@ -489,7 +489,7 @@ export default function AdminUsers() {
             <Button
               onClick={handleSave}
               disabled={
-                (!editingUser && (!form.email || !form.password)) ||
+                (!editingUser && (!form.email)) ||
                 createMutation.isPending ||
                 updateMutation.isPending
               }
