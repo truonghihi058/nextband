@@ -165,27 +165,41 @@ export default function ExamInterface() {
   const currentSectionQuestions = useMemo(() => {
     if (!currentSection || !sectionHasQuestions) return [];
 
-    const sortedGroups = [...(currentSection.questionGroups || currentSection.question_groups || [])]
-      .sort((a: any, b: any) => {
-        const orderDiff = (a.orderIndex ?? a.order_index ?? 0) - (b.orderIndex ?? b.order_index ?? 0);
-        if (orderDiff !== 0) return orderDiff;
-        return new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime();
-      });
+    const sortedGroups = [
+      ...(currentSection.questionGroups ||
+        currentSection.question_groups ||
+        []),
+    ].sort((a: any, b: any) => {
+      const orderDiff =
+        (a.orderIndex ?? a.order_index ?? 0) -
+        (b.orderIndex ?? b.order_index ?? 0);
+      if (orderDiff !== 0) return orderDiff;
+      return (
+        new Date(a.createdAt ?? 0).getTime() -
+        new Date(b.createdAt ?? 0).getTime()
+      );
+    });
 
     return sortedGroups.flatMap((g: any) =>
       [...(g.questions || [])]
         .sort((a: any, b: any) => {
-          const orderDiff = (a.orderIndex ?? a.order_index ?? 0) - (b.orderIndex ?? b.order_index ?? 0);
+          const orderDiff =
+            (a.orderIndex ?? a.order_index ?? 0) -
+            (b.orderIndex ?? b.order_index ?? 0);
           if (orderDiff !== 0) return orderDiff;
-          return new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime();
+          return (
+            new Date(a.createdAt ?? 0).getTime() -
+            new Date(b.createdAt ?? 0).getTime()
+          );
         })
-        .map((q: any) => ({ ...q, groupId: g.id }))
+        .map((q: any) => ({ ...q, groupId: g.id })),
     );
   }, [currentSection, sectionHasQuestions]);
 
   const paginationQuestions = useMemo(() => {
     const list: any[] = [];
-    currentSectionQuestions.forEach(q => {
+    currentSectionQuestions.forEach((q) => {
+      // Split fill_blank into sub-questions  
       if (q.questionType === "fill_blank" && q.correctAnswer) {
         try {
           const parsed = JSON.parse(q.correctAnswer);
@@ -202,6 +216,28 @@ export default function ExamInterface() {
           // fallback
         }
       }
+
+      // Split matching into sub-questions based on items
+      if (q.questionType === "matching" && q.correctAnswer) {
+        try {
+          const parsed = JSON.parse(q.correctAnswer);
+          if (
+            typeof parsed === "object" &&
+            parsed !== null &&
+            Array.isArray(parsed.items)
+          ) {
+            if (parsed.items.length > 0) {
+              parsed.items.forEach((_, idx) => {
+                list.push({ ...q, isSubQuestion: true, subIndex: String(idx) });
+              });
+              return;
+            }
+          }
+        } catch {
+          // fallback
+        }
+      }
+
       list.push(q);
     });
     return list;

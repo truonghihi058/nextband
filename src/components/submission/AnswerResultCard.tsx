@@ -99,6 +99,32 @@ export function AnswerResultCard({
       }
     }
 
+    // Handle matching with JSON answers
+    if (questionType === "matching") {
+      try {
+        const parsedStudent = JSON.parse(answerText);
+        const parsedCorrect = JSON.parse(correctAnswer);
+        if (
+          typeof parsedStudent === "object" && typeof parsedCorrect === "object" &&
+          parsedStudent !== null && parsedCorrect !== null && parsedCorrect.pairs
+        ) {
+          const keys = Object.keys(parsedCorrect.pairs);
+          const pairsCount = keys.length;
+          if (pairsCount === 0) return 0;
+
+          let correctPairs = 0;
+          for (const key of keys) {
+            const correctVal = String(parsedCorrect.pairs[key] || "").trim();
+            const studentVal = String(parsedStudent[key] || "").trim();
+            if (correctVal === studentVal) correctPairs++;
+          }
+          return (correctPairs / pairsCount) * points;
+        }
+      } catch {
+        // Not JSON
+      }
+    }
+
     // Simple string comparison with pipe-delimited alternatives
     const alternatives = correctAnswer.trim().split("|").map((a: string) => a.trim().toLowerCase());
     return alternatives.includes(answerText.trim().toLowerCase()) ? points : 0;
@@ -224,8 +250,54 @@ export function AnswerResultCard({
             </div>
           )}
 
+          {/* Matching result visualizer */}
+          {questionType === "matching" && canShowResult && correctAnswer && (() => {
+            try {
+              const parsedCorrect = JSON.parse(correctAnswer);
+              const items = parsedCorrect.items || [];
+              const pairs = parsedCorrect.pairs || {};
+              const parsedStudent = answerText ? JSON.parse(answerText) : {};
+              
+              return (
+                <div className="space-y-3 mt-4">
+                  <Label className="text-xs text-muted-foreground mb-2 block">Chi tiết ghép nối</Label>
+                  <div className="rounded-md border bg-card divide-y">
+                    {items.map((item: string, idx: number) => {
+                      const correctOpt = pairs[String(idx)];
+                      const studentOpt = parsedStudent[String(idx)];
+                      const isCorrect = correctOpt === studentOpt;
+                      
+                      return (
+                        <div key={idx} className="p-3 flex items-start gap-4">
+                          <div className="flex-1 text-sm pt-0.5">
+                            <span className="font-bold mr-2 text-primary">{idx + 1}.</span>
+                            {item}
+                          </div>
+                          <div className="flex flex-col gap-1 items-end min-w-[100px]">
+                            {studentOpt && !isCorrect && (
+                              <div className="flex items-center gap-1.5 text-xs text-destructive line-through opacity-80 decoration-destructive/50">
+                                <span>{studentOpt}</span>
+                                <XCircle className="w-3 h-3" />
+                              </div>
+                            )}
+                            <div className={isCorrect ? "flex items-center gap-1.5 text-sm font-medium text-green-600 dark:text-green-500" : "flex items-center gap-1.5 text-sm font-medium"}>
+                              <span>{correctOpt || "—"}</span>
+                              {isCorrect && <CheckCircle className="w-4 h-4" />}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            } catch (e) {
+              return null; // Fallback to normal display if parsing fails
+            }
+          })()}
+
           {/* Correct answer - show for auto-gradable or graded */}
-          {canShowResult && correctAnswer && !isFillBlankWithPlaceholders && (
+          {canShowResult && correctAnswer && !isFillBlankWithPlaceholders && questionType !== "matching" && (
             <div className="rounded-md border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900 p-3">
               <Label className="text-xs text-green-700 dark:text-green-400 mb-1 block">
                 Đáp án đúng

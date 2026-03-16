@@ -30,11 +30,11 @@ export function DropdownSelect({
   className,
 }: DropdownSelectProps) {
   return (
-    <div className={cn('relative inline-flex items-center gap-2', className)}>
+    <div className={cn('relative inline-flex items-center gap-2 w-full', className)}>
       <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger
           className={cn(
-            'w-[180px]',
+            'w-full',
             showValidation && isCorrect !== undefined && (isCorrect ? 'border-[hsl(var(--success))]' : 'border-destructive')
           )}
         >
