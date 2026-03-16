@@ -6,6 +6,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 interface Question {
   id: string;
   order_index?: number;
+  isSubQuestion?: boolean;
+  subIndex?: string;
+  displayNumber?: number;
 }
 
 interface QuestionPaginationProps {
@@ -29,14 +32,31 @@ export function QuestionPagination({
 }: QuestionPaginationProps) {
   const getQuestionState = (q: Question) => {
     const value = answers[q.id];
-    const isAnswered =
-      typeof value === 'string'
-        ? value.trim().length > 0
-        : value && typeof value === 'object'
-          ? Object.values(value).some(
-              (item) => typeof item === 'string' && item.trim().length > 0,
-            )
-          : false;
+    let isAnswered = false;
+
+    if (q.isSubQuestion && q.subIndex !== undefined) {
+      if (value && typeof value === 'object') {
+        const subVal = value[q.subIndex];
+        isAnswered = typeof subVal === 'string' && subVal.trim().length > 0;
+      } else if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          const subVal = parsed[q.subIndex];
+          isAnswered = typeof subVal === 'string' && subVal.trim().length > 0;
+        } catch {
+          // fallback
+        }
+      }
+    } else {
+      isAnswered =
+        typeof value === 'string'
+          ? value.trim().length > 0
+          : value && typeof value === 'object'
+            ? Object.values(value).some(
+                (item) => typeof item === 'string' && item.trim().length > 0,
+              )
+            : false;
+    }
 
     const isFlagged = flaggedQuestions.has(q.id);
     const isCurrent = q.id === currentQuestionId;
@@ -48,10 +68,11 @@ export function QuestionPagination({
     <div className={cn('flex flex-wrap items-center gap-1.5', className)}>
       {questions.map((q, index) => {
         const { isAnswered, isFlagged, isCurrent } = getQuestionState(q);
-        const displayNumber = q.order_index ?? index + 1;
+        const displayNumber = q.displayNumber ?? q.order_index ?? index + 1;
+        const uniqueKey = q.isSubQuestion ? `${q.id}-${q.subIndex}` : q.id;
 
         return (
-          <Tooltip key={q.id}>
+          <Tooltip key={uniqueKey}>
             <TooltipTrigger asChild>
               <button
                 onClick={() => onQuestionClick(q.id)}

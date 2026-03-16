@@ -183,6 +183,30 @@ export default function ExamInterface() {
     );
   }, [currentSection, sectionHasQuestions]);
 
+  const paginationQuestions = useMemo(() => {
+    const list: any[] = [];
+    currentSectionQuestions.forEach(q => {
+      if (q.questionType === "fill_blank" && q.correctAnswer) {
+        try {
+          const parsed = JSON.parse(q.correctAnswer);
+          if (typeof parsed === "object" && parsed !== null) {
+            const keys = Object.keys(parsed);
+            if (keys.length > 0) {
+              keys.forEach((key) => {
+                list.push({ ...q, isSubQuestion: true, subIndex: key });
+              });
+              return;
+            }
+          }
+        } catch {
+          // fallback
+        }
+      }
+      list.push(q);
+    });
+    return list;
+  }, [currentSectionQuestions]);
+
   const currentQuestionIndex = useMemo(() => {
     if (!currentQuestionId || currentSectionQuestions.length === 0) return -1;
     return currentSectionQuestions.findIndex(
@@ -497,7 +521,7 @@ export default function ExamInterface() {
       <footer className="border-t bg-background p-4">
         <div className="max-w-6xl mx-auto">
           {/* Pagination Bubbles */}
-          {currentSectionQuestions.length > 0 && (
+          {paginationQuestions.length > 0 && (
             <div className="flex items-center justify-between gap-4">
               <Button
                 variant="outline"
@@ -511,7 +535,7 @@ export default function ExamInterface() {
 
               <div className="flex-1 flex justify-center overflow-x-auto py-2">
                 <QuestionPagination
-                  questions={currentSectionQuestions}
+                  questions={paginationQuestions}
                   answers={answers}
                   flaggedQuestions={flaggedQuestions}
                   currentQuestionId={currentQuestionId}

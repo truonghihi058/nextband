@@ -113,10 +113,12 @@ export function AnswerResultCard({
     if (!canShowResult)
       return <Minus className="h-4 w-4 text-muted-foreground" />;
 
-    const effectiveScore = score != null ? score : computedScore;
+    const rawScore = score != null ? score : computedScore;
     
-    if (effectiveScore != null) {
-      if (effectiveScore >= points) return <CheckCircle className="h-4 w-4 text-green-600" />;
+    if (rawScore != null) {
+      const effectiveScore = Number(rawScore);
+      const numPoints = Number(points);
+      if (effectiveScore >= numPoints) return <CheckCircle className="h-4 w-4 text-green-600" />;
       if (effectiveScore === 0) return <XCircle className="h-4 w-4 text-destructive" />;
       return <Minus className="h-4 w-4 text-yellow-600" />;
     }
@@ -139,15 +141,17 @@ export function AnswerResultCard({
     }
     if (!canShowResult) return null;
     
-    const effectiveScore = score != null ? score : computedScore;
+    const rawScore = score != null ? score : computedScore;
 
-    if (effectiveScore != null) {
-      const ratio = effectiveScore / points;
+    if (rawScore != null) {
+      const effectiveScore = Number(rawScore);
+      const numPoints = Number(points);
+      const ratio = numPoints > 0 ? effectiveScore / numPoints : 0;
       const variant =
         ratio >= 1 ? "default" : ratio > 0 ? "secondary" : "destructive";
       return (
         <Badge variant={variant} className="text-xs">
-          {Number(effectiveScore.toFixed(2))}/{points}
+          {Number(effectiveScore.toFixed(2))}/{numPoints}
         </Badge>
       );
     }
