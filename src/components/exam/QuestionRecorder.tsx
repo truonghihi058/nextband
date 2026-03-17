@@ -5,6 +5,7 @@ import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { AudioWaveform } from "./AudioWaveform";
 import { cn } from "@/lib/utils";
+import { uploadsApi } from "@/lib/api";
 
 interface QuestionRecorderProps {
   questionId: string;
@@ -27,6 +28,7 @@ export function QuestionRecorder({
   const {
     isRecording,
     audioUrl,
+    audioBlob,
     startRecording,
     stopRecording,
     resetRecording,
@@ -37,6 +39,8 @@ export function QuestionRecorder({
 
   const { transcript, startListening, stopListening, resetTranscript } =
     useSpeechRecognition();
+
+  const [isUploading, setIsUploading] = useState(false);
 
   // Recording timer
   useEffect(() => {
@@ -50,11 +54,36 @@ export function QuestionRecorder({
 
   // Handle recorded audio
   useEffect(() => {
-    if (audioUrl && phase === "recording") {
-      onAnswerChange(questionId, audioUrl);
-      setPhase("review");
+    const uploadAudio = async () => {
+      if (audioBlob && phase === "recording") {
+        setIsUploading(true);
+        try {
+          // Add a small delay to ensure mediaRecorder has finished processing the blob
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          const file = new File([audioBlob], `speaking_${questionId}.webm`, { type: 'audio/webm' });
+          const response = await uploadsApi.uploadAudio(file);
+          
+          if (response?.url) {
+            onAnswerChange(questionId, response.url);
+          } else {
+            // Fallback to blob URL if upload fails (though it will be temporary)
+            onAnswerChange(questionId, audioUrl || "");
+          }
+        } catch (error) {
+          console.error("Upload error:", error);
+          onAnswerChange(questionId, audioUrl || "");
+        } finally {
+          setIsUploading(false);
+          setPhase("review");
+        }
+      }
+    };
+
+    if (audioBlob && phase === "recording") {
+      uploadAudio();
     }
-  }, [audioUrl, phase, questionId, onAnswerChange]);
+  }, [audioBlob, phase, questionId, onAnswerChange, audioUrl]);
 
   const handleStartRecording = async () => {
     if (permissionStatus !== "granted") {
@@ -97,13 +126,21 @@ export function QuestionRecorder({
           <Button
             size="sm"
             onClick={handleStartRecording}
+            disabled={isUploading}
             className="bg-[hsl(var(--speaking))] hover:bg-[hsl(var(--speaking))]/90 rounded-full px-6"
           >
             <Mic className="mr-2 h-4 w-4" />
             {answer ? "Ghi âm lại" : "Bắt đầu ghi âm"}
           </Button>
 
-          {answer && (
+          {isUploading && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse">
+              <div className="h-4 w-4 border-2 border-[hsl(var(--speaking))] border-t-transparent rounded-full animate-spin" />
+              Đang tải lên máy chủ...
+            </div>
+          )}
+
+          {answer && !isUploading && (
             <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 overflow-hidden bg-white/60 dark:bg-black/20 p-1.5 rounded-full border">
               <audio src={answer} controls className="h-8 max-w-[200px]" />
               <span className="text-[10px] font-bold text-[hsl(var(--success))] pr-3 uppercase">
