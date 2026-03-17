@@ -238,19 +238,33 @@ export function AnswerResultCard({
               <Label className="text-xs text-muted-foreground mb-1 block">
                 Câu trả lời của bạn
               </Label>
-              {answerText ? (
-                answerText.startsWith("http") || answerText.startsWith("blob:") ? (
-                  <audio controls className="w-full mt-1" src={answerText} />
-                ) : (
-                  <p className="text-sm whitespace-pre-wrap">{answerText}</p>
-                )
-              ) : audioUrl ? (
-                <audio controls className="w-full mt-1" src={audioUrl} />
-              ) : (
-                <p className="text-sm text-muted-foreground italic">
-                  Chưa trả lời
-                </p>
-              )}
+              {(() => {
+                let trimmedAnswer = (answerText || "").trim();
+                // Remove JSON quotes if present
+                if (trimmedAnswer.startsWith('"') && trimmedAnswer.endsWith('"')) {
+                  trimmedAnswer = trimmedAnswer.slice(1, -1);
+                }
+                
+                const isUrl = trimmedAnswer.startsWith("http") || 
+                              trimmedAnswer.startsWith("blob:") || 
+                              trimmedAnswer.startsWith("/") ||
+                              (trimmedAnswer.includes(".") && !trimmedAnswer.includes(" ") && !trimmedAnswer.includes("<"));
+                
+                if (isUrl) {
+                  return <audio controls className="w-full mt-1" src={trimmedAnswer} />;
+                }
+                if (trimmedAnswer) {
+                  return <p className="text-sm whitespace-pre-wrap">{trimmedAnswer}</p>;
+                }
+                if (audioUrl) {
+                  return <audio controls className="w-full mt-1" src={audioUrl} />;
+                }
+                return (
+                  <p className="text-sm text-muted-foreground italic">
+                    Chưa trả lời
+                  </p>
+                );
+              })()}
             </div>
           )}
 
