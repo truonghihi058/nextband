@@ -126,7 +126,79 @@ export function AnswerGradingCard({
               Câu trả lời của học viên
             </Label>
             {answerText ? (
-              <p className="text-sm whitespace-pre-wrap">{answerText}</p>
+              questionType === "matching" ? (
+                (() => {
+                  try {
+                    const parsedStudent = JSON.parse(answerText);
+                    const parsedCorrect = JSON.parse(correctAnswer || "{}");
+                    const items = parsedCorrect.items || [];
+                    const pairs = parsedCorrect.pairs || {};
+                    return (
+                      <div className="space-y-2 mt-2">
+                        <div className="rounded-md border bg-card divide-y overflow-hidden">
+                          {items.map((item: string, idx: number) => {
+                            const studentOpt = parsedStudent[String(idx)];
+                            const correctOpt = pairs[String(idx)];
+                            return (
+                              <div key={idx} className="p-2 flex items-start gap-3 bg-background">
+                                <div className="flex-1 text-xs">
+                                  <span className="font-bold mr-1 text-primary">{idx + 1}.</span>
+                                  {item}
+                                </div>
+                                <div className="text-xs font-semibold">
+                                  {studentOpt ? (
+                                    <span className={studentOpt === correctOpt ? "text-green-600" : "text-destructive"}>
+                                      {studentOpt}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground italic">Trống</span>
+                                  )}
+                                  {studentOpt !== correctOpt && correctOpt && (
+                                    <span className="text-[10px] text-green-600 ml-2">(Đúng: {correctOpt})</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  } catch (e) {
+                    return <p className="text-sm whitespace-pre-wrap">{answerText}</p>;
+                  }
+                })()
+              ) : questionType === "fill_blank" && (answerText.startsWith("{") || answerText.startsWith("[")) ? (
+                (() => {
+                  try {
+                    const parsedStudent = JSON.parse(answerText);
+                    const parsedCorrect = JSON.parse(correctAnswer || "{}");
+                    return (
+                      <div className="space-y-1 mt-2">
+                        {Object.keys(parsedCorrect).map((key, idx) => {
+                          const studentVal = String(parsedStudent[key] || "").trim();
+                          const correctVal = String(parsedCorrect[key] || "").trim();
+                          const isCorrect = correctVal.split("|").map(v => v.trim().toLowerCase()).includes(studentVal.toLowerCase());
+                          return (
+                            <div key={idx} className="flex items-center gap-2 text-xs p-1.5 rounded border bg-background">
+                              <span className="font-bold text-muted-foreground min-w-[50px]">Ô {Number(key) + 1}:</span>
+                              <span className={cn("font-medium", isCorrect ? "text-green-600" : "text-destructive")}>
+                                {studentVal || "(Trống)"}
+                              </span>
+                              {!isCorrect && (
+                                <span className="text-green-600 opacity-80">(Đúng: {correctVal})</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  } catch {
+                    return <p className="text-sm whitespace-pre-wrap">{answerText}</p>;
+                  }
+                })()
+              ) : (
+                <p className="text-sm whitespace-pre-wrap">{answerText}</p>
+              )
             ) : audioUrl ? (
               <audio controls className="w-full mt-1" src={audioUrl} />
             ) : (
@@ -171,8 +243,8 @@ export function AnswerGradingCard({
                   onFeedbackChange(e.target.value);
                 }}
                 placeholder="Nhập nhận xét cho câu trả lời..."
-                rows={2}
-                className="mt-1 resize-none"
+                rows={4}
+                className="mt-1"
                 disabled={readOnly}
               />
             </div>

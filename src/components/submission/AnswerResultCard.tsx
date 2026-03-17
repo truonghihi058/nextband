@@ -239,7 +239,11 @@ export function AnswerResultCard({
                 Câu trả lời của bạn
               </Label>
               {answerText ? (
-                <p className="text-sm whitespace-pre-wrap">{answerText}</p>
+                answerText.startsWith("http") || answerText.startsWith("blob:") ? (
+                  <audio controls className="w-full mt-1" src={answerText} />
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">{answerText}</p>
+                )
               ) : audioUrl ? (
                 <audio controls className="w-full mt-1" src={audioUrl} />
               ) : (

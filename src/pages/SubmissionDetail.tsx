@@ -373,9 +373,10 @@ export default function SubmissionDetail() {
                     <div className="pl-1">
                       <h3 className="font-medium text-sm">{group.title}</h3>
                       {group.instructions && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {group.instructions}
-                        </p>
+                        <div 
+                          className="text-xs text-muted-foreground mt-0.5 prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: group.instructions }}
+                        />
                       )}
                     </div>
                   )}

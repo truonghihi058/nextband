@@ -232,8 +232,15 @@ export function ListeningSection({
                                     {qSubCount > 1 ? `${qStartNum} - ${qEndNum}` : qStartNum}
                                   </span>
                                   <div className="flex-1 space-y-3">
-                                    {!(question.question_type === "fill_blank" && hasFillBlankPlaceholders(question.question_text)) &&
-                                      (/<[^>]+>/.test(question.question_text) ? (
+                                    {hasFillBlankPlaceholders(question.question_text) ? (
+                                      <FillBlankHtmlRenderer 
+                                        html={question.question_text} 
+                                        answers={answers[question.id] || {}} 
+                                        questionId={question.id} 
+                                        onAnswerChange={onAnswerChange} 
+                                      />
+                                    ) : (
+                                      /<[^>]+>/.test(question.question_text) ? (
                                         <div
                                           className="font-semibold text-base leading-snug prose prose-sm max-w-none"
                                           dangerouslySetInnerHTML={{ __html: question.question_text }}
@@ -242,7 +249,8 @@ export function ListeningSection({
                                         <p className="font-semibold text-base leading-snug">
                                           {question.question_text}
                                         </p>
-                                      ))}
+                                      )
+                                    )}
                                     {question.question_audio_url && (
                                       <div className="bg-muted/50 p-3 rounded-xl border border-border/50 flex items-center gap-3">
                                         <audio src={question.question_audio_url} controls className="h-8 w-full max-w-[300px]" />
@@ -252,28 +260,28 @@ export function ListeningSection({
                                 </div>
 
                                 <div className="ml-12 space-y-4">
-                                  {/* Rendering logic exactly as before but ensuring qStartNum use for matching */}
-                                  {question.question_type === "multiple_choice" && question.options?.length > 0 && (
-                                    <RadioGroup
-                                      value={answers[question.id] || ""}
-                                      onValueChange={(val) => onAnswerChange(question.id, val)}
-                                      className="grid gap-2"
-                                    >
-                                      {question.options.map((opt: string, i: number) => (
-                                        <div key={i} className={cn("flex items-center space-x-3 p-3 rounded-xl border", answers[question.id] === opt ? "bg-primary/5 border-primary/30" : "bg-background border-transparent hover:bg-muted/30")}>
-                                          <RadioGroupItem value={opt} id={`${question.id}-${i}`} />
-                                          <Label htmlFor={`${question.id}-${i}`} className="flex-1 cursor-pointer font-medium text-sm">{opt}</Label>
-                                        </div>
-                                      ))}
-                                    </RadioGroup>
-                                  )}
-                                  
-                                  {question.question_type === "fill_blank" && hasFillBlankPlaceholders(question.question_text) && (
-                                    <FillBlankHtmlRenderer html={question.question_text} answers={answers[question.id] || {}} questionId={question.id} onAnswerChange={onAnswerChange} />
-                                  )}
+                                  {/* Render inputs for non-placeholder questions */}
+                                  {!hasFillBlankPlaceholders(question.question_text) && (
+                                    <>
+                                      {question.question_type === "multiple_choice" && question.options?.length > 0 && (
+                                        <RadioGroup
+                                          value={answers[question.id] || ""}
+                                          onValueChange={(val) => onAnswerChange(question.id, val)}
+                                          className="grid gap-2"
+                                        >
+                                          {question.options.map((opt: string, i: number) => (
+                                            <div key={i} className={cn("flex items-center space-x-3 p-3 rounded-xl border", answers[question.id] === opt ? "bg-primary/5 border-primary/30" : "bg-background border-transparent hover:bg-muted/30")}>
+                                              <RadioGroupItem value={opt} id={`${question.id}-${i}`} />
+                                              <Label htmlFor={`${question.id}-${i}`} className="flex-1 cursor-pointer font-medium text-sm">{opt}</Label>
+                                            </div>
+                                          ))}
+                                        </RadioGroup>
+                                      )}
 
-                                  {((question.question_type === "fill_blank" && !hasFillBlankPlaceholders(question.question_text)) || question.question_type === "short_answer") && (
-                                    <Input placeholder="Nhập câu trả lời..." value={answers[question.id] || ""} onChange={(e) => onAnswerChange(question.id, e.target.value)} className="w-full" />
+                                      {((question.question_type === "fill_blank") || question.question_type === "short_answer") && (
+                                        <Input placeholder="Nhập câu trả lời..." value={answers[question.id] || ""} onChange={(e) => onAnswerChange(question.id, e.target.value)} className="w-full" />
+                                      )}
+                                    </>
                                   )}
 
                                   {question.question_type === "matching" && (
@@ -394,14 +402,21 @@ export function ListeningSection({
                                 <span className="shrink-0 inline-flex items-center justify-center min-w-[32px] px-2 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
                                   {qSubCount > 1 ? `${qStartNum} - ${qEndNum}` : qStartNum}
                                 </span>
-                                <div className="flex-1">
-                                  {!(question.question_type === "fill_blank" && hasFillBlankPlaceholders(question.question_text)) && (
-                                    <div className="font-semibold text-base leading-snug" dangerouslySetInnerHTML={{ __html: question.question_text }} />
-                                  )}
-                                  {question.question_audio_url && (
-                                    <audio src={question.question_audio_url} controls className="h-8 mt-2" />
-                                  )}
-                                </div>
+                                  <div className="flex-1">
+                                    {hasFillBlankPlaceholders(question.question_text) ? (
+                                      <FillBlankHtmlRenderer 
+                                        html={question.question_text} 
+                                        answers={answers[question.id] || {}} 
+                                        questionId={question.id} 
+                                        onAnswerChange={onAnswerChange} 
+                                      />
+                                    ) : (
+                                      <div className="font-semibold text-base leading-snug" dangerouslySetInnerHTML={{ __html: question.question_text }} />
+                                    )}
+                                    {question.question_audio_url && (
+                                      <audio src={question.question_audio_url} controls className="h-8 mt-2" />
+                                    )}
+                                  </div>
                               </div>
                               <div className="ml-12 space-y-4">
                                 {question.question_type === "matching" && (
@@ -447,38 +462,39 @@ export function ListeningSection({
                                   </div>
                                 )}
                                 
-                                {question.question_type === "multiple_choice" && question.options?.length > 0 && (
-                                  <RadioGroup
-                                    value={answers[question.id] || ""}
-                                    onValueChange={(val) => onAnswerChange(question.id, val)}
-                                    className="grid gap-2"
-                                  >
-                                    {question.options.map((opt: string, i: number) => (
-                                      <div key={i} className={cn("flex items-center space-x-3 p-3 rounded-xl border", answers[question.id] === opt ? "bg-primary/5 border-primary/30" : "bg-background border-transparent hover:bg-muted/30")}>
-                                        <RadioGroupItem value={opt} id={`c-${question.id}-${i}`} />
-                                        <Label htmlFor={`c-${question.id}-${i}`} className="flex-1 cursor-pointer font-medium text-sm">{opt}</Label>
+                                {/* Render inputs for non-placeholder questions */}
+                                {!hasFillBlankPlaceholders(question.question_text) && (
+                                  <>
+                                    {question.question_type === "multiple_choice" && question.options?.length > 0 && (
+                                      <RadioGroup
+                                        value={answers[question.id] || ""}
+                                        onValueChange={(val) => onAnswerChange(question.id, val)}
+                                        className="grid gap-2"
+                                      >
+                                        {question.options.map((opt: string, i: number) => (
+                                          <div key={i} className={cn("flex items-center space-x-3 p-3 rounded-xl border", answers[question.id] === opt ? "bg-primary/5 border-primary/30" : "bg-background border-transparent hover:bg-muted/30")}>
+                                            <RadioGroupItem value={opt} id={`c-${question.id}-${i}`} />
+                                            <Label htmlFor={`c-${question.id}-${i}`} className="flex-1 cursor-pointer font-medium text-sm">{opt}</Label>
+                                          </div>
+                                        ))}
+                                      </RadioGroup>
+                                    )}
+
+                                    {((question.question_type === "fill_blank") || question.question_type === "short_answer") && (
+                                      <Input placeholder="Nhập câu trả lời..." value={answers[question.id] || ""} onChange={(e) => onAnswerChange(question.id, e.target.value)} className="w-full" />
+                                    )}
+
+                                    {(question.question_type === "true_false_not_given" || question.question_type === "yes_no_not_given") && (
+                                      <div className="max-w-[200px]">
+                                        <DropdownSelect
+                                          value={answers[question.id] || ""}
+                                          onChange={(val) => onAnswerChange(question.id, val)}
+                                          options={question.question_type === "true_false_not_given" ? ["TRUE", "FALSE", "NOT GIVEN"] : ["YES", "NO", "NOT GIVEN"]}
+                                          placeholder="Chọn đáp án..."
+                                        />
                                       </div>
-                                    ))}
-                                  </RadioGroup>
-                                )}
-
-                                {question.question_type === "fill_blank" && hasFillBlankPlaceholders(question.question_text) && (
-                                  <FillBlankHtmlRenderer html={question.question_text} answers={answers[question.id] || {}} questionId={question.id} onAnswerChange={onAnswerChange} />
-                                )}
-
-                                {((question.question_type === "fill_blank" && !hasFillBlankPlaceholders(question.question_text)) || question.question_type === "short_answer") && (
-                                  <Input placeholder="Nhập câu trả lời..." value={answers[question.id] || ""} onChange={(e) => onAnswerChange(question.id, e.target.value)} className="w-full" />
-                                )}
-
-                                {(question.question_type === "true_false_not_given" || question.question_type === "yes_no_not_given") && (
-                                  <div className="max-w-[200px]">
-                                    <DropdownSelect
-                                      value={answers[question.id] || ""}
-                                      onChange={(val) => onAnswerChange(question.id, val)}
-                                      options={question.question_type === "true_false_not_given" ? ["TRUE", "FALSE", "NOT GIVEN"] : ["YES", "NO", "NOT GIVEN"]}
-                                      placeholder="Chọn đáp án..."
-                                    />
-                                  </div>
+                                    )}
+                                  </>
                                 )}
                               </div>
                             </CardContent>

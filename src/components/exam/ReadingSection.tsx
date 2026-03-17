@@ -356,9 +356,15 @@ export function ReadingSection({
                           {subQuestionCount > 1 ? `${startNumber} - ${endNumber}` : startNumber}
                         </span>
                         <div className="flex-1 space-y-3">
-                          {/* Only show question text here if it's NOT a fill_blank-like question */}
-                          {!isFillBlankLike &&
-                            (containsHtml(question.question_text) ? (
+                          {hasFillBlankPlaceholders(question.question_text) ? (
+                            <FillBlankHtmlRenderer 
+                              html={question.question_text} 
+                              answers={answers[question.id] || {}} 
+                              questionId={question.id} 
+                              onAnswerChange={onAnswerChange} 
+                            />
+                          ) : (
+                            containsHtml(question.question_text) ? (
                               <div
                                 className="font-semibold text-base leading-snug prose prose-sm max-w-none"
                                 dangerouslySetInnerHTML={{
@@ -369,7 +375,8 @@ export function ReadingSection({
                               <div className="font-semibold text-base leading-snug">
                                 {question.question_text}
                               </div>
-                            ))}
+                            )
+                          )}
 
                           {question.question_audio_url && (
                             <div className="bg-muted/50 p-3 rounded-xl border border-border/50 flex items-center gap-3">
@@ -384,72 +391,63 @@ export function ReadingSection({
                       </div>
 
                       <div className="ml-12 space-y-4">
-                        {question.question_type === "multiple_choice" &&
-                          question.options &&
-                          question.options.length > 0 && (
-                            <RadioGroup
-                              value={answers[question.id] || ""}
-                              onValueChange={(value) =>
-                                onAnswerChange(question.id, value)
-                              }
-                              className="grid gap-2"
-                            >
-                              {question.options.map(
-                                (option: string, i: number) => (
-                                  <div
-                                    key={i}
-                                    className={cn(
-                                      "flex items-center space-x-3 p-3 rounded-xl border transition-all cursor-pointer",
-                                      answers[question.id] === option
-                                        ? "bg-[hsl(var(--reading))]/5 border-[hsl(var(--reading))]/30 ring-1 ring-[hsl(var(--reading))]/20"
-                                        : "bg-background border-transparent hover:bg-muted/30",
-                                    )}
-                                  >
-                                    <RadioGroupItem
-                                      value={option}
-                                      id={`${question.id}-${i}`}
-                                    />
-                                    <Label
-                                      htmlFor={`${question.id}-${i}`}
-                                      className="flex-1 cursor-pointer font-medium text-sm"
-                                    >
-                                      {option}
-                                    </Label>
-                                  </div>
-                                ),
+                        {!hasFillBlankPlaceholders(question.question_text) && (
+                          <>
+                            {question.question_type === "multiple_choice" &&
+                              question.options &&
+                              question.options.length > 0 && (
+                                <RadioGroup
+                                  value={answers[question.id] || ""}
+                                  onValueChange={(value) =>
+                                    onAnswerChange(question.id, value)
+                                  }
+                                  className="grid gap-2"
+                                >
+                                  {question.options.map(
+                                    (option: string, i: number) => (
+                                      <div
+                                        key={i}
+                                        className={cn(
+                                          "flex items-center space-x-3 p-3 rounded-xl border transition-all cursor-pointer",
+                                          answers[question.id] === option
+                                            ? "bg-[hsl(var(--reading))]/5 border-[hsl(var(--reading))]/30 ring-1 ring-[hsl(var(--reading))]/20"
+                                            : "bg-background border-transparent hover:bg-muted/30",
+                                        )}
+                                      >
+                                        <RadioGroupItem
+                                          value={option}
+                                          id={`${question.id}-${i}`}
+                                        />
+                                        <Label
+                                          htmlFor={`${question.id}-${i}`}
+                                          className="flex-1 cursor-pointer font-medium text-sm"
+                                        >
+                                          {option}
+                                        </Label>
+                                      </div>
+                                    ),
+                                  )}
+                                </RadioGroup>
                               )}
-                            </RadioGroup>
-                          )}
 
-                        {/* Simple text input for listening/short_answer/fill_blank without placeholders */}
-                        {((question.question_type === "fill_blank" &&
-                          !hasFillBlankPlaceholders(
-                            question.question_text,
-                          )) ||
-                          question.question_type === "listening" ||
-                          question.question_type === "short_answer") && (
-                          <div className="space-y-2">
-                            <Input
-                              placeholder="Nhập câu trả lời..."
-                              value={answers[question.id] || ""}
-                              onChange={(e) =>
-                                onAnswerChange(question.id, e.target.value)
-                              }
-                              className="w-full h-11"
-                            />
-                            <p className="text-[11px] text-muted-foreground font-medium italic">
-                              Gợi ý: ONE WORD ONLY
-                            </p>
-                          </div>
-                        )}
-
-                        {question.question_type === "fill_blank" && hasFillBlankPlaceholders(question.question_text) && (
-                          <FillBlankHtmlRenderer 
-                            html={question.question_text} 
-                            answers={answers[question.id] || {}} 
-                            questionId={question.id} 
-                            onAnswerChange={onAnswerChange} 
-                          />
+                            {((question.question_type === "fill_blank") ||
+                              question.question_type === "listening" ||
+                              question.question_type === "short_answer") && (
+                              <div className="space-y-2">
+                                <Input
+                                  placeholder="Nhập câu trả lời..."
+                                  value={answers[question.id] || ""}
+                                  onChange={(e) =>
+                                    onAnswerChange(question.id, e.target.value)
+                                  }
+                                  className="w-full h-11"
+                                />
+                                <p className="text-[11px] text-muted-foreground font-medium italic">
+                                  Gợi ý: ONE WORD ONLY
+                                </p>
+                              </div>
+                            )}
+                          </>
                         )}
 
                         {question.question_type === "matching" && (
