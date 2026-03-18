@@ -7,12 +7,13 @@ import { Label } from "@/components/ui/label";
 import { FileText, BookOpen } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { DropdownSelect } from "./DropdownSelect";
 import { QuestionRecorder } from "./QuestionRecorder";
 import {
   FillBlankHtmlRenderer,
   hasFillBlankPlaceholders,
 } from "./FillBlankHtmlRenderer";
+import { DropdownSelect } from "./DropdownSelect";
+import { MatchingRenderer } from "./MatchingRenderer";
 
 interface GrammarSectionProps {
   section: any;
@@ -332,22 +333,30 @@ export function GrammarSection({
                               {(question.question_type ===
                                 "true_false_not_given" ||
                                 question.question_type ===
-                                  "yes_no_not_given") && (
-                                <div className="max-w-[200px]">
-                                  <DropdownSelect
-                                    value={answers[question.id] || ""}
-                                    onChange={(value) =>
-                                      onAnswerChange(question.id, value)
-                                    }
-                                    options={
-                                      question.question_type ===
-                                      "true_false_not_given"
-                                        ? ["TRUE", "FALSE", "NOT GIVEN"]
-                                        : ["YES", "NO", "NOT GIVEN"]
-                                    }
-                                    placeholder="Chọn đáp án"
-                                  />
-                                </div>
+                                "yes_no_not_given") && (
+                                  <div className="max-w-[200px]">
+                                    <DropdownSelect
+                                      value={answers[question.id] || ""}
+                                      onChange={(value) =>
+                                        onAnswerChange(question.id, value)
+                                      }
+                                      options={
+                                        question.question_type ===
+                                          "true_false_not_given"
+                                          ? ["TRUE", "FALSE", "NOT GIVEN"]
+                                          : ["YES", "NO", "NOT GIVEN"]
+                                      }
+                                      placeholder="Chọn đáp án"
+                                    />
+                                  </div>
+                                )}
+
+                              {question.question_type === "matching" && (
+                                <MatchingRenderer
+                                  question={question}
+                                  answers={answers}
+                                  onAnswerChange={onAnswerChange}
+                                />
                               )}
                             </div>
                           </CardContent>

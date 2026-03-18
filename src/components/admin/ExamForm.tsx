@@ -146,7 +146,9 @@ export default function ExamForm({
           description: values.description || undefined,
           week: values.week,
           durationMinutes: values.durationMinutes,
-        } as any);
+          isPublished: values.isPublished,
+          isActive: values.isActive,
+        });
 
         toast({
           title: "Thành công",
