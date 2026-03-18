@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Plus,
   Search,
@@ -53,6 +54,7 @@ const emptyForm = {
   teacherId: "",
   startDate: "",
   endDate: "",
+  isActive: true,
 };
 
 export default function AdminClasses() {
@@ -114,6 +116,7 @@ export default function AdminClasses() {
         teacherId: body.teacherId || undefined,
         startDate: body.startDate || undefined,
         endDate: body.endDate || undefined,
+        isActive: body.isActive,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-classes"] });
@@ -138,6 +141,7 @@ export default function AdminClasses() {
         teacherId: body.teacherId || null,
         startDate: body.startDate || null,
         endDate: body.endDate || null,
+        isActive: body.isActive,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-classes"] });
@@ -211,6 +215,7 @@ export default function AdminClasses() {
       endDate: cls.endDate
         ? new Date(cls.endDate).toISOString().split("T")[0]
         : "",
+      isActive: cls.isActive ?? true,
     });
     setDialogOpen(true);
   };
@@ -449,6 +454,21 @@ export default function AdminClasses() {
                   }
                 />
               </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label>Kích hoạt</Label>
+                <div className="text-sm text-muted-foreground">
+                  Cho phép truy cập lớp học
+                </div>
+              </div>
+              <Switch
+                checked={form.isActive}
+                onCheckedChange={(checked) =>
+                  setForm({ ...form, isActive: checked })
+                }
+              />
             </div>
           </div>
           <DialogFooter>

@@ -159,6 +159,10 @@ export const coursesApi = {
     description?: string;
     level?: string;
     price?: number;
+    thumbnailUrl?: string;
+    isPublished?: boolean;
+    isActive?: boolean;
+    slug?: string;
   }) => {
     const { data } = await api.post("/courses", course);
     return data;
@@ -170,8 +174,10 @@ export const coursesApi = {
       title: string;
       description: string;
       level: string;
+      thumbnailUrl: string;
       isPublished: boolean;
       isActive: boolean;
+      slug: string;
     }>,
   ) => {
     const { data } = await api.put(`/courses/${id}`, course);
@@ -213,6 +219,8 @@ export const examsApi = {
     description?: string;
     week?: number;
     durationMinutes?: number;
+    isPublished?: boolean;
+    isActive?: boolean;
   }) => {
     const { data } = await api.post("/exams", exam);
     return data;
@@ -552,8 +560,6 @@ export const logsApi = {
   },
 };
 
-export default api;
-
 // =============================================
 // CLASSES API
 // =============================================
@@ -574,6 +580,7 @@ export const classesApi = {
     teacherId?: string;
     startDate?: string;
     endDate?: string;
+    isActive?: boolean;
   }) => {
     const { data } = await api.post("/classes", body);
     return data;
@@ -613,3 +620,5 @@ export const classesApi = {
     return data;
   },
 };
+
+export default api;
