@@ -367,11 +367,15 @@ export default function SubmissionDetail() {
               .sort(
                 (a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0),
               )
-              .map((group: any) => (
+              .map((group: any, gIndex: number) => (
                 <div key={group.id} className="space-y-3">
-                  {group.title && (
-                    <div className="pl-1">
-                      <h3 className="font-medium text-sm">{group.title}</h3>
+                  {(group.title || group.instructions) && (
+                    <div className="pl-1 space-y-2">
+                      {group.title && (
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-sm">{group.title}</h3>
+                        </div>
+                      )}
                       {group.instructions && (
                         <div 
                           className="text-xs text-muted-foreground mt-0.5 prose prose-sm max-w-none"
