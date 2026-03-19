@@ -281,23 +281,21 @@ export function GrammarSection({
                                 </div>
                               )}
 
-                              {/* Short Answer or Listening without Options */}
-                              {(question.question_type === "short_answer" ||
-                                question.question_type === "listening") &&
-                                (!question.options ||
-                                  question.options.length === 0) && (
-                                  <Input
-                                    placeholder="Nhập câu trả lời..."
-                                    value={answers[question.id] || ""}
-                                    onChange={(e) =>
-                                      onAnswerChange(
-                                        question.id,
-                                        e.target.value,
-                                      )
-                                    }
-                                    className="max-w-2xl h-11"
-                                  />
-                                )}
+                              {/* Short Answer */}
+                              {question.question_type === "short_answer" && (
+                                <Input
+                                  placeholder="Nhập câu trả lời..."
+                                  value={answers[question.id] || ""}
+                                  onChange={(e) =>
+                                    onAnswerChange(
+                                      question.id,
+                                      e.target.value,
+                                    )
+                                  }
+                                  className="max-w-2xl h-11"
+                                />
+                              )}
+
 
                               {/* Speaking / Audio Answer */}
                               {question.question_type === "speaking" && (

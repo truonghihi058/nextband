@@ -132,7 +132,7 @@ export function ListeningSection({
         <ScrollArea
           className={cn(
             "h-[calc(100vh-280px)]",
-            !currentGroup?.passage && "lg:col-span-2",
+            (!showTranscript || !currentGroup?.passage) && "lg:col-span-2",
           )}
         >
           <div className="p-6">
@@ -277,34 +277,30 @@ export function ListeningSection({
                                   onAnswerChange={onAnswerChange}
                                 />
                               )}
-
-                            {/* Simple text input for listening/short_answer/fill_blank without placeholders */}
+                            {/* Simple text input for short_answer or fill_blank without placeholders */}
                             {((question.question_type === "fill_blank" &&
                               !hasFillBlankPlaceholders(
                                 question.question_text,
                               )) ||
-                              question.question_type === "listening" ||
-                              question.question_type === "short_answer") &&
-                              (!question.options ||
-                                question.options.length === 0) && (
-                                <div className="space-y-2">
-                                  <Input
-                                    placeholder="Nhập câu trả lời của bạn..."
-                                    value={answers[question.id] || ""}
-                                    onChange={(e) =>
-                                      onAnswerChange(
-                                        question.id,
-                                        e.target.value,
-                                      )
-                                    }
-                                    className="max-w-md h-11 bg-background shadow-sm focus-visible:ring-primary/30"
-                                  />
-                                  <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5 opacity-70">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                                    Gợi ý: Nhập văn bản vào ô trên
-                                  </p>
-                                </div>
-                              )}
+                              question.question_type === "short_answer") && (
+                              <div className="space-y-2">
+                                <Input
+                                  placeholder="Nhập câu trả lời của bạn..."
+                                  value={answers[question.id] || ""}
+                                  onChange={(e) =>
+                                    onAnswerChange(
+                                      question.id,
+                                      e.target.value,
+                                    )
+                                  }
+                                  className="max-w-md h-11 bg-background shadow-sm focus-visible:ring-primary/30"
+                                />
+                                <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5 opacity-70">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                                  Gợi ý: Nhập văn bản vào ô trên
+                                </p>
+                              </div>
+                            )}
 
                             {question.question_type ===
                               "true_false_not_given" && (
