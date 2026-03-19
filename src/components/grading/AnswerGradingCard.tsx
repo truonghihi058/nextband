@@ -116,7 +116,10 @@ export function AnswerGradingCard({
                 ({points} điểm)
               </span>
             </div>
-            <p className="text-sm whitespace-pre-wrap pl-6">{questionText}</p>
+            <div
+              className="text-sm pl-6 prose prose-sm max-w-none dark:prose-invert"
+              dangerouslySetInnerHTML={{ __html: questionText }}
+            />
           </div>
         </div>
 
@@ -209,8 +212,8 @@ export function AnswerGradingCard({
             )}
           </div>
 
-          {/* Correct answer (if available) */}
-          {correctAnswer && (
+          {/* Correct answer (if available) – hide for matching since JSON would show raw */}
+          {correctAnswer && questionType !== "matching" && (
             <div className="rounded-md border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900 p-3">
               <Label className="text-xs text-green-700 dark:text-green-400 mb-1 block">
                 Đáp án đúng

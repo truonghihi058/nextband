@@ -232,8 +232,8 @@ export function AnswerResultCard({
         </div>
 
         <div className="pl-6 space-y-2">
-          {/* Student answer - hide for fill_blank with placeholders as it's already rendered */}
-          {!isFillBlankWithPlaceholders && (
+          {/* Student answer - hide for fill_blank with placeholders or matching (has its own renderer) */}
+          {!isFillBlankWithPlaceholders && questionType !== "matching" && (
             <div className="rounded-md border bg-muted/40 p-3">
               <Label className="text-xs text-muted-foreground mb-1 block">
                 Câu trả lời của bạn
