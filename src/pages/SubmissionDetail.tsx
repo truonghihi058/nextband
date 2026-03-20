@@ -363,6 +363,23 @@ export default function SubmissionDetail() {
               </CardTitle>
             </CardHeader>
 
+            {section.sectionType === "listening" &&
+              section.audioScript &&
+              submission?.status !== "in_progress" && (
+                <Card className="bg-muted/30 border-muted/50">
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-sm font-semibold">
+                      Transcript sau khi nộp
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="prose prose-sm max-w-none text-foreground">
+                    <div
+                      dangerouslySetInnerHTML={{ __html: section.audioScript }}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
             {(section.questionGroups || [])
               .sort(
                 (a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0),

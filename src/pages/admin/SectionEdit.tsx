@@ -105,7 +105,15 @@ const SECTION_QUESTION_TYPES: Record<string, string[]> = {
     "yes_no_not_given",
     "matching",
   ],
-  writing: ["essay"],
+  writing: [
+    "essay",
+    "fill_blank",
+    "short_answer",
+    "multiple_choice",
+    "matching",
+    "true_false_not_given",
+    "yes_no_not_given",
+  ],
   speaking: ["speaking"],
   general: ALL_QUESTION_TYPES.map((t) => t.value),
 };
@@ -400,12 +408,19 @@ export default function AdminSectionEdit() {
   const [localInstructions, setLocalInstructions] = useState<string | null>(
     null,
   );
+  const [localAudioScript, setLocalAudioScript] = useState<string | null>(null);
 
   useEffect(() => {
     if (sectionData && localInstructions === null) {
       setLocalInstructions(sectionData.instructions || "");
     }
   }, [sectionData, localInstructions]);
+
+  useEffect(() => {
+    if (sectionData && localAudioScript === null) {
+      setLocalAudioScript(sectionData.audioScript || "");
+    }
+  }, [sectionData, localAudioScript]);
 
   useEffect(() => {
     if (localInstructions === null || !sectionData) return;
@@ -416,6 +431,16 @@ export default function AdminSectionEdit() {
       return () => clearTimeout(timer);
     }
   }, [localInstructions, sectionData, updateSectionMutation]);
+
+  useEffect(() => {
+    if (localAudioScript === null || !sectionData) return;
+    if (localAudioScript !== (sectionData.audioScript || "")) {
+      const timer = setTimeout(() => {
+        updateSectionMutation.mutate({ audioScript: localAudioScript });
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [localAudioScript, sectionData, updateSectionMutation]);
 
   // --- Handlers ---
 
@@ -614,38 +639,57 @@ export default function AdminSectionEdit() {
         </CardHeader>
         <CardContent className="space-y-4">
           {section.sectionType === "listening" && (
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>File Audio chính (Listening)</Label>
-                <FileUpload
-                  accept="audio/*"
-                  currentUrl={section.audioUrl || undefined}
-                  onUploadComplete={(url) =>
-                    updateSectionMutation.mutate({ audioUrl: url })
-                  }
-                  onRemove={() =>
-                    updateSectionMutation.mutate({ audioUrl: "" })
-                  }
-                  maxSizeMB={20}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Thời gian (phút)</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={section.durationMinutes || ""}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value);
-                      updateSectionMutation.mutate({
-                        durationMinutes: isNaN(val) ? 0 : val,
-                      });
-                    }}
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>File Audio chính (Listening)</Label>
+                  <FileUpload
+                    accept="audio/*"
+                    currentUrl={section.audioUrl || undefined}
+                    onUploadComplete={(url) =>
+                      updateSectionMutation.mutate({ audioUrl: url })
+                    }
+                    onRemove={() =>
+                      updateSectionMutation.mutate({ audioUrl: "" })
+                    }
+                    maxSizeMB={20}
                   />
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">
-                    phút
-                  </span>
                 </div>
+                <div className="space-y-2">
+                  <Label>Thời gian (phút)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={section.durationMinutes || ""}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        updateSectionMutation.mutate({
+                          durationMinutes: isNaN(val) ? 0 : val,
+                        });
+                      }}
+                    />
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">
+                      phút
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Transcript audio (chỉ hiển thị sau khi nộp)</Label>
+                <RichTextEditor
+                  placeholder="Nhập toàn bộ script khớp với audio..."
+                  value={
+                    localAudioScript !== null
+                      ? localAudioScript
+                      : section.audioScript || ""
+                  }
+                  onChange={(html) => setLocalAudioScript(html)}
+                  minHeight={140}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Script chỉ được gửi xuống client sau khi thí sinh nộp bài để xem lại.
+                </p>
               </div>
             </div>
           )}
