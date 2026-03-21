@@ -3,6 +3,7 @@ import {
   useEffect,
   useRef,
   useCallback,
+  useMemo,
   MutableRefObject,
   type MouseEvent,
 } from "react";
@@ -43,6 +44,8 @@ interface ReadingSectionProps {
 }
 
 const containsHtml = (text: string) => /<[^>]+>/.test(text);
+const normalizeText = (text: string) =>
+  text.replace(/\s+/g, " ").replace(/\u00a0/g, " ").trim();
 
 export function ReadingSection({
   section,
@@ -53,6 +56,7 @@ export function ReadingSection({
   onQuestionFocus,
 }: ReadingSectionProps) {
   const passageRef = useRef<HTMLDivElement>(null);
+  const passageContentRef = useRef<HTMLDivElement>(null);
   const [selectedText, setSelectedText] = useState<{
     text: string;
     startIndex: number;
@@ -71,6 +75,7 @@ export function ReadingSection({
     x: 0,
     y: 0,
   });
+  const [passageSourceText, setPassageSourceText] = useState("");
   const [activeHighlightNoteDraft, setActiveHighlightNoteDraft] = useState("");
   const [leftTab, setLeftTab] = useState<"passage" | "highlights">("passage");
   const markRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -125,7 +130,16 @@ export function ReadingSection({
 
   // Get passage text from first question group or section
   const passageText = questionGroups[0]?.passage || section.passage_text || "";
-  const plainPassageText = passageText.replace(/<[^>]*>/g, " ");
+  const passagePlainFromSource = useMemo(() => {
+    if (!passageText) return "";
+    if (!containsHtml(passageText)) return passageText;
+    if (typeof window === "undefined") {
+      return passageText.replace(/<[^>]*>/g, " ");
+    }
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(passageText, "text/html");
+    return doc.body.textContent || "";
+  }, [passageText]);
   const sortedHighlights = [...highlights].sort(
     (a, b) => a.startIndex - b.startIndex,
   );
@@ -138,15 +152,28 @@ export function ReadingSection({
   }, [section.id, loadHighlights]);
 
   useEffect(() => {
+    if (passageContentRef.current) {
+      setPassageSourceText(
+        passageContentRef.current.textContent || passagePlainFromSource || "",
+      );
+      return;
+    }
+    setPassageSourceText(passagePlainFromSource || "");
+  }, [passagePlainFromSource, leftTab, highlights.length]);
+
+  useEffect(() => {
     if (sortedHighlights.length === 0 && leftTab === "highlights") {
       setLeftTab("passage");
     }
   }, [leftTab, sortedHighlights.length]);
 
   const getRangeOffsets = useCallback((range: Range) => {
-    if (!passageRef.current) return null;
+    if (!passageContentRef.current) return null;
+    if (!passageContentRef.current.contains(range.commonAncestorContainer)) {
+      return null;
+    }
     const preRange = range.cloneRange();
-    preRange.selectNodeContents(passageRef.current);
+    preRange.selectNodeContents(passageContentRef.current);
     preRange.setEnd(range.startContainer, range.startOffset);
     const startIndex = preRange.toString().length;
     const selected = range.toString();
@@ -156,7 +183,7 @@ export function ReadingSection({
 
   const handleTextSelection = useCallback(() => {
     const selection = window.getSelection();
-    if (!selection || selection.isCollapsed || !passageRef.current) {
+    if (!selection || selection.isCollapsed || !passageContentRef.current) {
       setShowHighlightMenu(false);
       return;
     }
@@ -196,11 +223,31 @@ export function ReadingSection({
 
   const handleHighlight = async () => {
     if (selectedText) {
+      const sourceText = passageSourceText || passagePlainFromSource;
+      const sourceSlice = sourceText.slice(
+        selectedText.startIndex,
+        selectedText.endIndex,
+      );
+      const normalizedSelected = normalizeText(selectedText.text);
+      const normalizedSlice = normalizeText(sourceSlice);
+
+      if (import.meta.env.DEV) {
+        console.debug("[ReadingSection][highlight save]", {
+          start: selectedText.startIndex,
+          end: selectedText.endIndex,
+          selectedText: selectedText.text,
+          sourceSlice,
+          normalizedSelected,
+          normalizedSlice,
+          exactMatch: normalizedSelected === normalizedSlice,
+        });
+      }
+
       await addHighlight({
         startIndex: selectedText.startIndex,
         endIndex: selectedText.endIndex,
         color: newHighlightColor,
-        highlightText: selectedText.text,
+        highlightText: sourceSlice || selectedText.text,
         meaningOrNote: newHighlightNote.trim() || undefined,
         passageId: questionGroups[0]?.id || section.id,
       });
@@ -232,19 +279,21 @@ export function ReadingSection({
     (highlight: Highlight) => {
       const safeStart = Math.max(0, highlight.startIndex - 24);
       const safeEnd = Math.min(
-        plainPassageText.length,
+        passageSourceText.length,
         highlight.endIndex + 24,
       );
-      const before = plainPassageText.slice(safeStart, highlight.startIndex);
-      const text = plainPassageText.slice(highlight.startIndex, highlight.endIndex);
-      const after = plainPassageText.slice(highlight.endIndex, safeEnd);
+      const before = passageSourceText.slice(safeStart, highlight.startIndex);
+      const text =
+        highlight.highlightText ||
+        passageSourceText.slice(highlight.startIndex, highlight.endIndex);
+      const after = passageSourceText.slice(highlight.endIndex, safeEnd);
       return {
         before: before.replace(/\s+/g, " "),
         text: text.replace(/\s+/g, " "),
         after: after.replace(/\s+/g, " "),
       };
     },
-    [plainPassageText],
+    [passageSourceText],
   );
 
   const jumpToHighlight = useCallback((highlightId: string) => {
@@ -259,7 +308,7 @@ export function ReadingSection({
   }, []);
 
   const renderHighlightedText = () => {
-    const text = passageText;
+    const text = passageSourceText || passagePlainFromSource;
     if (!text) return null;
     if (highlights.length === 0) return text;
 
@@ -366,6 +415,12 @@ export function ReadingSection({
               </Button>
             </div>
           </div>
+          {selectedText?.text && (
+            <div className="text-xs rounded-md border bg-muted/30 px-2 py-1.5">
+              <span className="text-muted-foreground mr-1">Preview:</span>
+              <span className="font-medium">{normalizeText(selectedText.text)}</span>
+            </div>
+          )}
           <Textarea
             value={newHighlightNote}
             onChange={(e) => setNewHighlightNote(e.target.value)}
@@ -528,16 +583,12 @@ export function ReadingSection({
 
           {leftTab === "passage" && passageText && (
             <div className="prose prose-sm max-w-none">
-              {containsHtml(passageText) ? (
-                <div
-                  className="leading-relaxed text-foreground"
-                  dangerouslySetInnerHTML={{ __html: passageText }}
-                />
-              ) : (
-                <p className="whitespace-pre-wrap leading-relaxed text-foreground select-text">
-                  {renderHighlightedText()}
-                </p>
-              )}
+              <div
+                ref={passageContentRef}
+                className="whitespace-pre-wrap leading-relaxed text-foreground select-text"
+              >
+                {renderHighlightedText()}
+              </div>
             </div>
           )}
 
