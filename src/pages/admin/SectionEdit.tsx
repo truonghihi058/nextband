@@ -1025,7 +1025,7 @@ export default function AdminSectionEdit() {
 
       {/* Group Dialog */}
       <Dialog open={groupDialogOpen} onOpenChange={(open) => !open && closeGroupDialog(false)}>
-        <DialogContent className="w-[min(96vw,980px)] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[96vw] sm:max-w-[980px]">
           <DialogHeader>
             <DialogTitle>
               {editingGroup ? "Cập nhật nhóm" : "Thêm nhóm mới"}
@@ -1113,7 +1113,7 @@ export default function AdminSectionEdit() {
 
       {/* Question Dialog */}
       <Dialog open={questionDialogOpen} onOpenChange={(open) => !open && closeQuestionDialog(false)}>
-        <DialogContent className="w-[min(96vw,980px)] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[96vw] sm:max-w-[980px]">
           <DialogHeader>
             <DialogTitle>
               {editingQuestion ? "Chỉnh sửa câu hỏi" : "Thêm câu hỏi mới"}
