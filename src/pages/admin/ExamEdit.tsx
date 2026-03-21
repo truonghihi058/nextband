@@ -324,7 +324,7 @@ export default function AdminExamEdit() {
 
       {/* Create Section Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Thêm Section mới</DialogTitle>
             <DialogDescription>
@@ -403,7 +403,7 @@ export default function AdminExamEdit() {
         onConfirm={() => deleteId && deleteSectionMutation.mutate(deleteId)}
         title="Xóa Section?"
         description="Toàn bộ câu hỏi và dữ liệu trong section này sẽ bị xóa vĩnh viễn."
-        isLoading={deleteSectionMutation.isPending}
+        loading={deleteSectionMutation.isPending}
       />
     </div>
   );
