@@ -55,6 +55,13 @@ export function AnswerResultCard({
   const isAutoGradable = ["listening", "reading", "general"].includes(sectionType || "");
   const isFillBlankWithPlaceholders =
     questionType === "fill_blank" && hasFillBlankPlaceholders(questionText);
+  const isMultiSelectQuestion =
+    (questionType === "multiple_choice" || questionType === "listening") &&
+    !!correctAnswer &&
+    correctAnswer
+      .split("|")
+      .map((item) => item.trim())
+      .filter(Boolean).length > 1;
 
   // For auto-gradable sections that have been submitted, always show results
   const shouldShowAutoResult = isAutoGradable && (isSubmitted || isGraded);
@@ -125,9 +132,43 @@ export function AnswerResultCard({
       }
     }
 
-    // Simple string comparison with pipe-delimited alternatives
-    const alternatives = correctAnswer.trim().split("|").map((a: string) => a.trim().toLowerCase());
-    return alternatives.includes(answerText.trim().toLowerCase()) ? points : 0;
+    const alternatives = correctAnswer
+      .trim()
+      .split("|")
+      .map((a: string) => a.trim())
+      .filter(Boolean);
+
+    if (isMultiSelectQuestion) {
+      let studentSelections: string[] = [];
+      try {
+        const parsed = JSON.parse(answerText);
+        if (Array.isArray(parsed)) {
+          studentSelections = parsed.map((v) => String(v).trim());
+        }
+      } catch {
+        studentSelections = answerText
+          .split("|")
+          .flatMap((part) => part.split(","))
+          .map((v: string) => v.trim())
+          .filter(Boolean);
+      }
+
+      const normalizedStudent = Array.from(
+        new Set(studentSelections.map((v) => v.toLowerCase())),
+      ).sort();
+      const normalizedCorrect = Array.from(
+        new Set(alternatives.map((v) => v.toLowerCase())),
+      ).sort();
+      const isExactMatch =
+        normalizedStudent.length === normalizedCorrect.length &&
+        normalizedStudent.every((value, idx) => value === normalizedCorrect[idx]);
+      return isExactMatch ? points : 0;
+    }
+
+    const normalizedAlternatives = alternatives.map((a) => a.toLowerCase());
+    return normalizedAlternatives.includes(answerText.trim().toLowerCase())
+      ? points
+      : 0;
   })();
 
   // Can show result: graded, or auto-gradable section that's been submitted
@@ -240,6 +281,25 @@ export function AnswerResultCard({
               </Label>
               {(() => {
                 let trimmedAnswer = (answerText || "").trim();
+                let parsedArrayAnswer: string[] = [];
+
+                if (isMultiSelectQuestion) {
+                  try {
+                    const parsed = JSON.parse(trimmedAnswer);
+                    if (Array.isArray(parsed)) {
+                      parsedArrayAnswer = parsed
+                        .map((item) => String(item).trim())
+                        .filter(Boolean);
+                    }
+                  } catch {
+                    parsedArrayAnswer = trimmedAnswer
+                      .split("|")
+                      .flatMap((part) => part.split(","))
+                      .map((item) => item.trim())
+                      .filter(Boolean);
+                  }
+                }
+
                 // Remove JSON quotes if present
                 if (trimmedAnswer.startsWith('"') && trimmedAnswer.endsWith('"')) {
                   trimmedAnswer = trimmedAnswer.slice(1, -1);
@@ -252,6 +312,13 @@ export function AnswerResultCard({
                 
                 if (isUrl) {
                   return <audio controls className="w-full mt-1" src={trimmedAnswer} />;
+                }
+                if (parsedArrayAnswer.length > 0) {
+                  return (
+                    <p className="text-sm whitespace-pre-wrap">
+                      {parsedArrayAnswer.join(", ")}
+                    </p>
+                  );
                 }
                 if (trimmedAnswer) {
                   return <p className="text-sm whitespace-pre-wrap">{trimmedAnswer}</p>;
@@ -320,7 +387,15 @@ export function AnswerResultCard({
               <Label className="text-xs text-green-700 dark:text-green-400 mb-1 block">
                 Đáp án đúng
               </Label>
-              <p className="text-sm whitespace-pre-wrap">{correctAnswer}</p>
+              <p className="text-sm whitespace-pre-wrap">
+                {isMultiSelectQuestion
+                  ? correctAnswer
+                      .split("|")
+                      .map((v) => v.trim())
+                      .filter(Boolean)
+                      .join(", ")
+                  : correctAnswer}
+              </p>
             </div>
           )}
 

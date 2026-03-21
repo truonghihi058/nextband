@@ -34,13 +34,13 @@ export function DropdownSelect({
       <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger
           className={cn(
-            'w-full',
+            'w-full h-9 text-xs',
             showValidation && isCorrect !== undefined && (isCorrect ? 'border-[hsl(var(--success))]' : 'border-destructive')
           )}
         >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="z-[70] max-h-56">
           {options.map((opt) => (
             <SelectItem key={opt} value={opt}>
               {opt}

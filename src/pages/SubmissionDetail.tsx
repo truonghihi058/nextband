@@ -160,9 +160,47 @@ export default function SubmissionDetail() {
         }
       }
 
-      const alternatives = correctText.split("|").map((a: string) => a.trim().toLowerCase());
-      if (alternatives.includes(studentText.trim().toLowerCase())) {
-        correctCount++;
+      const alternatives = correctText
+        .split("|")
+        .map((a: string) => a.trim())
+        .filter(Boolean);
+
+      if (
+        (question.questionType === "multiple_choice" ||
+          question.questionType === "listening") &&
+        alternatives.length > 1
+      ) {
+        let studentSelections: string[] = [];
+        try {
+          const parsed = JSON.parse(studentText);
+          if (Array.isArray(parsed)) {
+            studentSelections = parsed.map((v) => String(v).trim());
+          }
+        } catch {
+          studentSelections = studentText
+            .split("|")
+            .flatMap((part: string) => part.split(","))
+            .map((v: string) => v.trim())
+            .filter(Boolean);
+        }
+
+        const normalizedStudent = Array.from(
+          new Set(studentSelections.map((v) => v.toLowerCase())),
+        ).sort();
+        const normalizedCorrect = Array.from(
+          new Set(alternatives.map((v) => v.toLowerCase())),
+        ).sort();
+        if (
+          normalizedStudent.length === normalizedCorrect.length &&
+          normalizedStudent.every((value, idx) => value === normalizedCorrect[idx])
+        ) {
+          correctCount++;
+        }
+      } else {
+        const normalizedAlternatives = alternatives.map((a) => a.toLowerCase());
+        if (normalizedAlternatives.includes(studentText.trim().toLowerCase())) {
+          correctCount++;
+        }
       }
     }
 

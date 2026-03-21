@@ -4,13 +4,15 @@ import {
   useRef,
   useCallback,
   MutableRefObject,
+  type MouseEvent,
 } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { BookOpen, Highlighter, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { BookOpen, Highlighter, Pencil, Trash2, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTextHighlight, Highlight } from "@/hooks/useTextHighlight";
 import { cn } from "@/lib/utils";
@@ -49,8 +51,20 @@ export function ReadingSection({
   } | null>(null);
   const [showHighlightMenu, setShowHighlightMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-  const { highlights, addHighlight, removeHighlight, loadHighlights } =
-    useTextHighlight(section.id);
+  const [activeHighlightId, setActiveHighlightId] = useState<string | null>(
+    null,
+  );
+  const [activeHighlightMenu, setActiveHighlightMenu] = useState({
+    x: 0,
+    y: 0,
+  });
+  const {
+    highlights,
+    addHighlight,
+    removeHighlight,
+    updateHighlightColor,
+    loadHighlights,
+  } = useTextHighlight(section.id);
 
   // Normalize question groups and their fields from camelCase to snake_case
   const questionGroups = (
@@ -101,6 +115,17 @@ export function ReadingSection({
     }
   }, [section.id, loadHighlights]);
 
+  const getRangeOffsets = useCallback((range: Range) => {
+    if (!passageRef.current) return null;
+    const preRange = range.cloneRange();
+    preRange.selectNodeContents(passageRef.current);
+    preRange.setEnd(range.startContainer, range.startOffset);
+    const startIndex = preRange.toString().length;
+    const selected = range.toString();
+    const endIndex = startIndex + selected.length;
+    return { startIndex, endIndex, text: selected };
+  }, []);
+
   const handleTextSelection = useCallback(() => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !passageRef.current) {
@@ -108,30 +133,36 @@ export function ReadingSection({
       return;
     }
 
-    const text = selection.toString().trim();
+    const rawText = selection.toString();
+    const text = rawText.trim();
     if (!text) {
       setShowHighlightMenu(false);
       return;
     }
 
-    const startIndex = passageText.indexOf(text);
+    const range = selection.getRangeAt(0);
+    const offsets = getRangeOffsets(range);
+    if (!offsets) {
+      setShowHighlightMenu(false);
+      return;
+    }
 
-    if (startIndex >= 0) {
-      const range = selection.getRangeAt(0);
+    if (offsets.endIndex > offsets.startIndex) {
       const rect = range.getBoundingClientRect();
 
       setSelectedText({
-        text,
-        startIndex,
-        endIndex: startIndex + text.length,
+        text: offsets.text,
+        startIndex: offsets.startIndex,
+        endIndex: offsets.endIndex,
       });
       setMenuPosition({
         x: rect.left + rect.width / 2,
         y: rect.top - 10,
       });
+      setActiveHighlightId(null);
       setShowHighlightMenu(true);
     }
-  }, [passageText]);
+  }, [getRangeOffsets]);
 
   const handleHighlight = async (color: "yellow" | "green") => {
     if (selectedText) {
@@ -141,6 +172,21 @@ export function ReadingSection({
       window.getSelection()?.removeAllRanges();
     }
   };
+
+  const openHighlightActions = useCallback(
+    (event: MouseEvent, highlightId: string) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+      setActiveHighlightId((prev) => (prev === highlightId ? null : highlightId));
+      setActiveHighlightMenu({
+        x: rect.left + rect.width / 2,
+        y: rect.top - 6,
+      });
+      setShowHighlightMenu(false);
+    },
+    [],
+  );
 
   const renderHighlightedText = () => {
     const text = passageText;
@@ -166,11 +212,14 @@ export function ReadingSection({
       result.push(
         <mark
           key={highlight.id}
-          className={`${highlightBg} px-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity`}
-          onClick={() => removeHighlight(highlight.id)}
-          title="Click để xóa highlight"
+          className={`${highlightBg} px-0.5 rounded cursor-pointer hover:opacity-90 transition-opacity relative group`}
+          onClick={(event) => openHighlightActions(event, highlight.id)}
+          title="Click để mở tùy chọn highlight"
         >
           {text.slice(highlight.startIndex, highlight.endIndex)}
+          <span className="inline-flex items-center ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Pencil className="h-3 w-3 text-foreground/70" />
+          </span>
         </mark>,
       );
 
@@ -210,6 +259,7 @@ export function ReadingSection({
             size="sm"
             variant="ghost"
             className="h-8 w-8 p-0 bg-yellow-200 hover:bg-yellow-300"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleHighlight("yellow")}
           >
             <Highlighter className="h-4 w-4" />
@@ -218,6 +268,7 @@ export function ReadingSection({
             size="sm"
             variant="ghost"
             className="h-8 w-8 p-0 bg-green-200 hover:bg-green-300"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleHighlight("green")}
           >
             <Highlighter className="h-4 w-4" />
@@ -226,7 +277,60 @@ export function ReadingSection({
             size="sm"
             variant="ghost"
             className="h-8 w-8 p-0"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => setShowHighlightMenu(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {activeHighlightId && (
+        <div
+          className="fixed z-50 bg-card border rounded-lg shadow-lg p-2 flex items-center gap-1"
+          style={{
+            left: activeHighlightMenu.x,
+            top: activeHighlightMenu.y,
+            transform: "translate(-50%, -100%)",
+          }}
+        >
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0 bg-yellow-200 hover:bg-yellow-300"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => updateHighlightColor(activeHighlightId, "yellow")}
+            title="Đổi sang vàng"
+          >
+            <Highlighter className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0 bg-green-200 hover:bg-green-300"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => updateHighlightColor(activeHighlightId, "green")}
+            title="Đổi sang xanh"
+          >
+            <Highlighter className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => removeHighlight(activeHighlightId)}
+            title="Xóa highlight"
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setActiveHighlightId(null)}
+            title="Đóng"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -360,16 +464,73 @@ export function ReadingSection({
                       <div className="ml-12 space-y-4">
                         {question.question_type === "multiple_choice" &&
                           question.options &&
-                          question.options.length > 0 && (
-                            <RadioGroup
-                              value={answers[question.id] || ""}
-                              onValueChange={(value) =>
-                                onAnswerChange(question.id, value)
-                              }
-                              className="grid gap-2"
-                            >
-                              {question.options.map(
-                                (option: string, i: number) => (
+                          question.options.length > 0 &&
+                          (() => {
+                            const selectedRaw = answers[question.id];
+                            const selectedValues = Array.isArray(selectedRaw)
+                              ? selectedRaw
+                              : selectedRaw
+                                ? [selectedRaw]
+                                : [];
+                            const hasMultipleCorrect =
+                              typeof question.correct_answer === "string" &&
+                              question.correct_answer
+                                .split("|")
+                                .map((v: string) => v.trim())
+                                .filter(Boolean).length > 1;
+
+                            if (hasMultipleCorrect) {
+                              return (
+                                <div className="grid gap-2">
+                                  {question.options.map(
+                                    (option: string, i: number) => {
+                                      const checked =
+                                        selectedValues.includes(option);
+                                      return (
+                                        <label
+                                          key={i}
+                                          className={cn(
+                                            "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer",
+                                            checked
+                                              ? "bg-[hsl(var(--reading))]/5 border-[hsl(var(--reading))]/30 ring-1 ring-[hsl(var(--reading))]/20"
+                                              : "bg-background border-transparent hover:bg-muted/30",
+                                          )}
+                                        >
+                                          <Checkbox
+                                            checked={checked}
+                                            onCheckedChange={(next) => {
+                                              const nextValues = new Set(
+                                                selectedValues,
+                                              );
+                                              if (next) nextValues.add(option);
+                                              else nextValues.delete(option);
+                                              onAnswerChange(
+                                                question.id,
+                                                Array.from(nextValues),
+                                              );
+                                            }}
+                                          />
+                                          <span className="font-medium text-sm">
+                                            {option}
+                                          </span>
+                                        </label>
+                                      );
+                                    },
+                                  )}
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <RadioGroup
+                                value={selectedValues[0] || ""}
+                                onValueChange={(value) =>
+                                  onAnswerChange(question.id, value)
+                                }
+                                className="grid gap-2"
+                              >
+                                {question.options.map(
+                                  (option: string, i: number) => (
                                   <div
                                     key={i}
                                     className={cn(
@@ -392,8 +553,9 @@ export function ReadingSection({
                                   </div>
                                 ),
                               )}
-                            </RadioGroup>
-                          )}
+                              </RadioGroup>
+                            );
+                          })()}
 
                         {(isFillBlankLike ||
                           question.question_type === "short_answer") && (

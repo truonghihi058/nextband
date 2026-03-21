@@ -13,6 +13,7 @@ import {
   RadioGroupItem,
 } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   PenTool,
   ZoomIn,
@@ -177,9 +178,53 @@ export function WritingSection({
       question.options &&
       question.options.length > 0
     ) {
+      const selectedValues = Array.isArray(value)
+        ? value
+        : value
+          ? [value]
+          : [];
+      const hasMultipleCorrect =
+        typeof question.correct_answer === "string" &&
+        question.correct_answer
+          .split("|")
+          .map((v: string) => v.trim())
+          .filter(Boolean).length > 1;
+
+      if (hasMultipleCorrect) {
+        return (
+          <div className="grid gap-2">
+            {question.options.map((opt: string, idx: number) => {
+              const checked = selectedValues.includes(opt);
+              return (
+                <label
+                  key={idx}
+                  className={cn(
+                    "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer",
+                    checked
+                      ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
+                      : "bg-background border-transparent hover:bg-muted/30",
+                  )}
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(next) => {
+                      const nextValues = new Set(selectedValues);
+                      if (next) nextValues.add(opt);
+                      else nextValues.delete(opt);
+                      onAnswerChange(question.id, Array.from(nextValues));
+                    }}
+                  />
+                  <span className="font-medium text-sm">{opt}</span>
+                </label>
+              );
+            })}
+          </div>
+        );
+      }
+
       return (
         <RadioGroup
-          value={value || ""}
+          value={selectedValues[0] || ""}
           onValueChange={(v) => onAnswerChange(question.id, v)}
           className="grid gap-2"
         >

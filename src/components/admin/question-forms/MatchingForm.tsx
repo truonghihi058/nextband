@@ -219,10 +219,10 @@ export function MatchingForm({ form, onChange }: QuestionFormProps) {
                     value={pairs[String(i)] || ""}
                     onValueChange={(v) => setPair(i, v)}
                   >
-                    <SelectTrigger className="w-16 h-8 text-xs bg-background">
+                    <SelectTrigger className="w-14 h-8 text-xs bg-background px-2">
                       <SelectValue placeholder="—" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[70] max-h-44">
                       {options.map((_, oi) => (
                         <SelectItem
                           key={oi}

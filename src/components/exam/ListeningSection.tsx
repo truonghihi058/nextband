@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Headphones } from "lucide-react";
 import { StickyAudioPlayer } from "./StickyAudioPlayer";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -77,6 +78,8 @@ export function ListeningSection({
   // Get current part questions
   const currentGroup = questionGroups[currentPart];
   const currentQuestions = currentGroup?.questions || [];
+  const currentGroupAudioUrl =
+    currentGroup?.audioUrl || currentGroup?.audio_url || null;
 
   return (
     <div className="h-full flex flex-col">
@@ -147,6 +150,22 @@ export function ListeningSection({
                   <CardContent className="p-4 text-sm text-black font-medium leading-relaxed">
                     <div
                       dangerouslySetInnerHTML={{ __html: section.instructions }}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {currentGroupAudioUrl && (
+                <Card className="bg-primary/5 border-primary/20 shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-2 text-xs font-semibold uppercase tracking-wide text-primary">
+                      <Headphones className="h-3.5 w-3.5" />
+                      Audio Part {currentPart + 1}
+                    </div>
+                    <audio
+                      src={currentGroupAudioUrl}
+                      controls
+                      className="h-10 w-full"
                     />
                   </CardContent>
                 </Card>
@@ -230,16 +249,77 @@ export function ListeningSection({
                                 question.options &&
                                 question.options.length > 0)) &&
                               question.options &&
-                              question.options.length > 0 && (
-                                <RadioGroup
-                                  value={answers[question.id] || ""}
-                                  onValueChange={(value) =>
-                                    onAnswerChange(question.id, value)
-                                  }
-                                  className="grid gap-2"
-                                >
-                                  {question.options.map(
-                                    (option: string, i: number) => (
+                              question.options.length > 0 &&
+                              (() => {
+                                const selectedRaw = answers[question.id];
+                                const selectedValues = Array.isArray(selectedRaw)
+                                  ? selectedRaw
+                                  : selectedRaw
+                                    ? [selectedRaw]
+                                    : [];
+                                const hasMultipleCorrect =
+                                  typeof question.correct_answer === "string" &&
+                                  question.correct_answer
+                                    .split("|")
+                                    .map((v: string) => v.trim())
+                                    .filter(Boolean).length > 1;
+
+                                if (hasMultipleCorrect) {
+                                  return (
+                                    <div className="grid gap-2">
+                                      {question.options.map(
+                                        (option: string, i: number) => {
+                                          const checked = selectedValues.includes(
+                                            option,
+                                          );
+                                          return (
+                                            <label
+                                              key={i}
+                                              className={cn(
+                                                "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer",
+                                                checked
+                                                  ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
+                                                  : "bg-background border-transparent hover:bg-muted/30",
+                                              )}
+                                            >
+                                              <Checkbox
+                                                checked={checked}
+                                                onCheckedChange={(next) => {
+                                                  const nextValues = new Set(
+                                                    selectedValues,
+                                                  );
+                                                  if (next) {
+                                                    nextValues.add(option);
+                                                  } else {
+                                                    nextValues.delete(option);
+                                                  }
+                                                  onAnswerChange(
+                                                    question.id,
+                                                    Array.from(nextValues),
+                                                  );
+                                                }}
+                                              />
+                                              <span className="font-medium text-sm">
+                                                {option}
+                                              </span>
+                                            </label>
+                                          );
+                                        },
+                                      )}
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <RadioGroup
+                                    value={selectedValues[0] || ""}
+                                    onValueChange={(value) =>
+                                      onAnswerChange(question.id, value)
+                                    }
+                                    className="grid gap-2"
+                                  >
+                                    {question.options.map(
+                                      (option: string, i: number) => (
                                       <div
                                         key={i}
                                         className={cn(
@@ -262,8 +342,9 @@ export function ListeningSection({
                                       </div>
                                     ),
                                   )}
-                                </RadioGroup>
-                              )}
+                                  </RadioGroup>
+                                );
+                              })()}
 
                             {/* Fill Blank with placeholders - HTML rendering support */}
                             {question.question_type === "fill_blank" &&
