@@ -4,23 +4,32 @@ import { useAuth } from "@/hooks/useAuth";
 
 export interface Highlight {
   id: string;
+  passageId?: string | null;
+  highlightText?: string | null;
+  meaningOrNote?: string | null;
   startIndex: number;
   endIndex: number;
   color: "yellow" | "green";
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface UseTextHighlightReturn {
   highlights: Highlight[];
-  addHighlight: (
-    startIndex: number,
-    endIndex: number,
-    color: "yellow" | "green",
-  ) => Promise<void>;
+  addHighlight: (payload: {
+    startIndex: number;
+    endIndex: number;
+    color: "yellow" | "green";
+    highlightText?: string;
+    meaningOrNote?: string;
+    passageId?: string;
+  }) => Promise<void>;
   removeHighlight: (id: string) => Promise<void>;
   updateHighlightColor: (
     id: string,
     color: "yellow" | "green",
   ) => Promise<void>;
+  updateHighlightNote: (id: string, meaningOrNote: string) => Promise<void>;
   loadHighlights: (sectionId: string) => Promise<void>;
 }
 
@@ -67,9 +76,14 @@ export function useTextHighlight(sectionId: string): UseTextHighlightReturn {
         if (data?.data) {
           const normalized = data.data.map((h: any) => ({
               id: h.id,
+              passageId: h.passageId ?? null,
+              highlightText: h.highlightText ?? null,
+              meaningOrNote: h.meaningOrNote ?? null,
               startIndex: h.startIndex,
               endIndex: h.endIndex,
               color: (h.color || "yellow") as "yellow" | "green",
+              createdAt: h.createdAt,
+              updatedAt: h.updatedAt,
             }));
           setHighlights(normalized);
           persistLocalCache(normalized);
@@ -82,7 +96,21 @@ export function useTextHighlight(sectionId: string): UseTextHighlightReturn {
   );
 
   const addHighlight = useCallback(
-    async (startIndex: number, endIndex: number, color: "yellow" | "green") => {
+    async ({
+      startIndex,
+      endIndex,
+      color,
+      highlightText,
+      meaningOrNote,
+      passageId,
+    }: {
+      startIndex: number;
+      endIndex: number;
+      color: "yellow" | "green";
+      highlightText?: string;
+      meaningOrNote?: string;
+      passageId?: string;
+    }) => {
       if (!user) return;
 
       try {
@@ -91,6 +119,9 @@ export function useTextHighlight(sectionId: string): UseTextHighlightReturn {
           startIndex,
           endIndex,
           color,
+          highlightText,
+          meaningOrNote,
+          passageId,
         });
 
         if (data) {
@@ -99,9 +130,14 @@ export function useTextHighlight(sectionId: string): UseTextHighlightReturn {
             ...prev,
             {
               id: data.id,
+              passageId: data.passageId ?? null,
+              highlightText: data.highlightText ?? null,
+              meaningOrNote: data.meaningOrNote ?? null,
               startIndex: data.startIndex,
               endIndex: data.endIndex,
               color: (data.color || "yellow") as "yellow" | "green",
+              createdAt: data.createdAt,
+              updatedAt: data.updatedAt,
             },
             ];
             persistLocalCache(next);
@@ -144,11 +180,30 @@ export function useTextHighlight(sectionId: string): UseTextHighlightReturn {
     [persistLocalCache],
   );
 
+  const updateHighlightNote = useCallback(
+    async (id: string, meaningOrNote: string) => {
+      try {
+        await api.patch(`/highlights/${id}`, { meaningOrNote });
+        setHighlights((prev) => {
+          const next = prev.map((h) =>
+            h.id === id ? { ...h, meaningOrNote } : h,
+          );
+          persistLocalCache(next);
+          return next;
+        });
+      } catch (error) {
+        console.error("Failed to update highlight note:", error);
+      }
+    },
+    [persistLocalCache],
+  );
+
   return {
     highlights,
     addHighlight,
     removeHighlight,
     updateHighlightColor,
+    updateHighlightNote,
     loadHighlights,
   };
 }
