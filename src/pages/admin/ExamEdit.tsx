@@ -324,7 +324,7 @@ export default function AdminExamEdit() {
 
       {/* Create Section Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Thêm Section mới</DialogTitle>
             <DialogDescription>
