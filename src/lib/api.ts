@@ -221,6 +221,8 @@ export const examsApi = {
     durationMinutes?: number;
     isPublished?: boolean;
     isActive?: boolean;
+    isOpen?: boolean;
+    maxParticipants?: number | null;
   }) => {
     const { data } = await api.post("/exams", exam);
     return data;
@@ -235,6 +237,8 @@ export const examsApi = {
       isActive: boolean;
       week: number;
       durationMinutes: number;
+      isOpen: boolean;
+      maxParticipants: number | null;
     }>,
   ) => {
     const { data } = await api.put(`/exams/${id}`, exam);

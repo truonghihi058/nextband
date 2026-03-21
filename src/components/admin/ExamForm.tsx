@@ -60,6 +60,15 @@ const examSchema = z.object({
     .default(60),
   isPublished: z.boolean().default(false),
   isActive: z.boolean().default(true),
+  isOpen: z.boolean().default(false),
+  maxParticipants: z.coerce
+    .number({
+      invalid_type_error: "Số lượng phải là số",
+    })
+    .int()
+    .positive("Số lượng phải lớn hơn 0")
+    .optional()
+    .nullable(),
 });
 
 type ExamFormData = z.infer<typeof examSchema>;
@@ -101,6 +110,8 @@ export default function ExamForm({
       durationMinutes: 60,
       isPublished: false,
       isActive: true,
+      isOpen: false,
+      maxParticipants: null,
     },
   });
 
@@ -123,6 +134,8 @@ export default function ExamForm({
           durationMinutes: data.durationMinutes || 60,
           isPublished: data.isPublished || false,
           isActive: data.isActive ?? true,
+          isOpen: data.isOpen || false,
+          maxParticipants: data.maxParticipants ?? null,
         });
       }
     } catch (error: any) {
@@ -148,6 +161,10 @@ export default function ExamForm({
           durationMinutes: values.durationMinutes,
           isPublished: values.isPublished,
           isActive: values.isActive,
+          isOpen: values.isOpen,
+          maxParticipants: values.isOpen
+            ? values.maxParticipants ?? null
+            : null,
         });
 
         toast({
@@ -163,6 +180,10 @@ export default function ExamForm({
           isActive: values.isActive,
           week: values.week,
           durationMinutes: values.durationMinutes,
+          isOpen: values.isOpen,
+          maxParticipants: values.isOpen
+            ? values.maxParticipants ?? null
+            : null,
         } as any);
 
         toast({
@@ -363,6 +384,64 @@ export default function ExamForm({
                   </FormItem>
                 )}
               />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="isOpen"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel>Open Exam</FormLabel>
+                      <FormDescription>
+                        User đã login có thể làm bài mà không cần enrollment
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={(checked) => {
+                          field.onChange(checked);
+                          if (!checked) {
+                            form.setValue("maxParticipants", null);
+                          }
+                        }}
+                        disabled={isReadOnly}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {form.watch("isOpen") && (
+                <FormField
+                  control={form.control}
+                  name="maxParticipants"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Giới hạn người tham gia</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={1}
+                          placeholder="VD: 50"
+                          value={field.value ?? ""}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            field.onChange(raw === "" ? null : Number(raw));
+                          }}
+                          disabled={isReadOnly}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Để trống nếu không giới hạn số người tham gia.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
           </CardContent>
         </Card>

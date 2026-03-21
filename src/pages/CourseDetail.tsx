@@ -44,6 +44,7 @@ import {
   ArrowUpDown,
   SortAsc,
   SortDesc,
+  Users,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -363,6 +364,12 @@ export default function CourseDetail() {
                 const isSubmitted = examStatus === "submitted";
                 const isInProgress = examStatus === "in_progress";
                 const isDone = isGraded || isSubmitted;
+                const isOpenExam = exam.isOpen === true;
+                const hasSlots =
+                  exam.maxParticipants == null ||
+                  (exam.currentParticipants || 0) < exam.maxParticipants;
+                const canStartWithoutEnrollment = isOpenExam && hasSlots;
+                const canAccessExam = !!enrollment || canStartWithoutEnrollment;
 
                 // Build section type summary string
                 const sectionTypes = (exam.sections || [])
@@ -439,9 +446,20 @@ export default function CourseDetail() {
                         })}
                       </div>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Clock className="mr-1 h-4 w-4" />
-                          {exam.durationMinutes || 60} phút
+                        <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                          <div className="flex items-center">
+                            <Clock className="mr-1 h-4 w-4" />
+                            {exam.durationMinutes || 60} phút
+                          </div>
+                          {isOpenExam && (
+                            <div className="flex items-center text-xs">
+                              <Users className="mr-1 h-3.5 w-3.5" />
+                              {exam.currentParticipants || 0}
+                              {exam.maxParticipants != null
+                                ? `/${exam.maxParticipants} slots`
+                                : " slots"}
+                            </div>
+                          )}
                         </div>
 
                         {/* Trạng thái & nút hành động */}
@@ -452,7 +470,7 @@ export default function CourseDetail() {
                                 <CheckCircle2 className="h-3.5 w-3.5" />
                                 Đã hoàn thành
                               </Badge>
-                              {enrollment && (
+                              {canAccessExam && (
                                 <Button size="sm" variant="outline" asChild>
                                   <Link to={`/exam/${exam.id}`}>
                                     <Play className="mr-1 h-3.5 w-3.5" />
@@ -468,7 +486,7 @@ export default function CourseDetail() {
                                 <ClipboardCheck className="h-3.5 w-3.5" />
                                 Chờ chấm
                               </Badge>
-                              {enrollment && (
+                              {canAccessExam && (
                                 <Button size="sm" variant="outline" asChild>
                                   <Link to={`/exam/${exam.id}`}>
                                     <Play className="mr-1 h-3.5 w-3.5" />
@@ -478,7 +496,7 @@ export default function CourseDetail() {
                               )}
                             </>
                           )}
-                          {isInProgress && enrollment && (
+                          {isInProgress && canAccessExam && (
                             <Button size="sm" variant="default" asChild>
                               <Link to={`/exam/${exam.id}`}>
                                 <Play className="mr-1 h-3.5 w-3.5" />
@@ -486,13 +504,20 @@ export default function CourseDetail() {
                               </Link>
                             </Button>
                           )}
-                          {!examStatus && enrollment && (
-                            <Button size="sm" asChild>
-                              <Link to={`/exam/${exam.id}`}>
+                          {!examStatus && canAccessExam && (
+                            !hasSlots && isOpenExam ? (
+                              <Button size="sm" disabled>
                                 <Play className="mr-1 h-3.5 w-3.5" />
-                                Làm bài
-                              </Link>
-                            </Button>
+                                Đã đủ người
+                              </Button>
+                            ) : (
+                              <Button size="sm" asChild>
+                                <Link to={`/exam/${exam.id}`}>
+                                  <Play className="mr-1 h-3.5 w-3.5" />
+                                  Làm bài
+                                </Link>
+                              </Button>
+                            )
                           )}
                         </div>
                       </div>
