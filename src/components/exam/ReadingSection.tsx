@@ -16,6 +16,7 @@ import {
   BookOpen,
   Highlighter,
   List,
+  Pencil,
   Trash2,
   CheckSquare,
 } from "lucide-react";
@@ -53,6 +54,16 @@ export function ReadingSection({
 }: ReadingSectionProps) {
   const passageRef = useRef<HTMLDivElement>(null);
   const passageContentRef = useRef<HTMLDivElement>(null);
+  const [pendingHighlight, setPendingHighlight] = useState<{
+    text: string;
+    startIndex: number;
+    endIndex: number;
+  } | null>(null);
+  const [showHighlightMenu, setShowHighlightMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const [newHighlightColor, setNewHighlightColor] = useState<"yellow" | "green">(
+    "yellow",
+  );
   const [activeHighlightId, setActiveHighlightId] = useState<string | null>(
     null,
   );
@@ -159,60 +170,84 @@ export function ReadingSection({
     return { startIndex, endIndex, text: selected };
   }, []);
 
-  const handleTextSelection = useCallback(async () => {
+  const handleTextSelection = useCallback(() => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !passageContentRef.current) {
+      setShowHighlightMenu(false);
       return;
     }
 
     const rawText = selection.toString();
     const text = rawText.trim();
     if (!text) {
+      setShowHighlightMenu(false);
       return;
     }
 
     const range = selection.getRangeAt(0);
     const offsets = getRangeOffsets(range);
     if (!offsets) {
+      setShowHighlightMenu(false);
       return;
     }
 
     if (offsets.endIndex > offsets.startIndex) {
-      const sourceText = passageSourceText || passagePlainFromSource;
-      const sourceSlice = sourceText.slice(
-        offsets.startIndex,
-        offsets.endIndex,
-      );
-      const normalizedSelected = normalizeText(offsets.text);
-      const normalizedSlice = normalizeText(sourceSlice);
-
-      if (import.meta.env.DEV) {
-        console.debug("[ReadingSection][highlight save]", {
-          start: offsets.startIndex,
-          end: offsets.endIndex,
-          selectedText: offsets.text,
-          sourceSlice,
-          normalizedSelected,
-          normalizedSlice,
-          exactMatch: normalizedSelected === normalizedSlice,
-        });
-      }
-
-      await addHighlight({
+      const rect = range.getBoundingClientRect();
+      setPendingHighlight({
+        text: offsets.text,
         startIndex: offsets.startIndex,
         endIndex: offsets.endIndex,
-        color: "yellow",
-        highlightText: sourceSlice || offsets.text,
-        passageId: questionGroups[0]?.id || section.id,
       });
-      setActiveHighlightId(null);
-      window.getSelection()?.removeAllRanges();
+      setMenuPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10,
+      });
+      setNewHighlightColor("yellow");
+      setShowHighlightMenu(true);
     }
   }, [
-    addHighlight,
     getRangeOffsets,
+  ]);
+
+  const handleSaveHighlight = useCallback(async () => {
+    if (!pendingHighlight) return;
+    const sourceText = passageSourceText || passagePlainFromSource;
+    const sourceSlice = sourceText.slice(
+      pendingHighlight.startIndex,
+      pendingHighlight.endIndex,
+    );
+    const normalizedSelected = normalizeText(pendingHighlight.text);
+    const normalizedSlice = normalizeText(sourceSlice);
+
+    if (import.meta.env.DEV) {
+      console.debug("[ReadingSection][highlight save]", {
+        start: pendingHighlight.startIndex,
+        end: pendingHighlight.endIndex,
+        selectedText: pendingHighlight.text,
+        sourceSlice,
+        normalizedSelected,
+        normalizedSlice,
+        exactMatch: normalizedSelected === normalizedSlice,
+      });
+    }
+
+    await addHighlight({
+      startIndex: pendingHighlight.startIndex,
+      endIndex: pendingHighlight.endIndex,
+      color: newHighlightColor,
+      highlightText: sourceSlice || pendingHighlight.text,
+      passageId: questionGroups[0]?.id || section.id,
+    });
+    setActiveHighlightId(null);
+    setPendingHighlight(null);
+    setShowHighlightMenu(false);
+    window.getSelection()?.removeAllRanges();
+  }, [
+    addHighlight,
+    newHighlightColor,
     passagePlainFromSource,
     passageSourceText,
+    pendingHighlight,
     questionGroups,
     section.id,
   ]);
@@ -307,6 +342,78 @@ export function ReadingSection({
 
   return (
     <div className="h-full grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x relative">
+      {showHighlightMenu && pendingHighlight && (
+        <div
+          className="fixed z-50 bg-card border rounded-lg shadow-lg p-3 w-[280px] space-y-2"
+          style={{
+            left: menuPosition.x,
+            top: menuPosition.y,
+            transform: "translate(-50%, -100%)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+              <Pencil className="h-3.5 w-3.5" />
+              Chọn màu highlight
+            </span>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                className={cn(
+                  "h-7 w-7 p-0",
+                  newHighlightColor === "yellow"
+                    ? "bg-yellow-200"
+                    : "bg-yellow-100/60",
+                )}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setNewHighlightColor("yellow")}
+              >
+                <Highlighter className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className={cn(
+                  "h-7 w-7 p-0",
+                  newHighlightColor === "green"
+                    ? "bg-green-200"
+                    : "bg-green-100/60",
+                )}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setNewHighlightColor("green")}
+              >
+                <Highlighter className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs rounded-md border bg-muted/30 px-2 py-1.5">
+            {normalizeText(pendingHighlight.text)}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setPendingHighlight(null);
+                setShowHighlightMenu(false);
+                window.getSelection()?.removeAllRanges();
+              }}
+            >
+              Hủy
+            </Button>
+            <Button
+              size="sm"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={handleSaveHighlight}
+            >
+              Lưu
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Left - Passage */}
       <ScrollArea className="h-[calc(100vh-200px)]">
         <div ref={passageRef} className="p-6" onMouseUp={handleTextSelection}>
@@ -318,7 +425,7 @@ export function ReadingSection({
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Highlighter className="h-3 w-3" />
-                <span>Bôi đen văn bản để highlight ngay</span>
+                <span>Bôi đen rồi bấm pencil để chọn màu, sau đó lưu</span>
               </div>
               {sortedHighlights.length > 0 && (
                 <div className="inline-flex items-center rounded-md border bg-background p-0.5">
