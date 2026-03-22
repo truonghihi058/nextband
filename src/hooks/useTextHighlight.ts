@@ -4,7 +4,6 @@ export interface Highlight {
   id: string;
   passageId?: string | null;
   highlightText?: string | null;
-  meaningOrNote?: string | null;
   startIndex: number;
   endIndex: number;
   color: "yellow" | "green";
@@ -19,7 +18,6 @@ interface UseTextHighlightReturn {
     endIndex: number;
     color: "yellow" | "green";
     highlightText?: string;
-    meaningOrNote?: string;
     passageId?: string;
   }) => Promise<void>;
   removeHighlight: (id: string) => Promise<void>;
@@ -27,7 +25,6 @@ interface UseTextHighlightReturn {
     id: string,
     color: "yellow" | "green",
   ) => Promise<void>;
-  updateHighlightNote: (id: string, meaningOrNote: string) => Promise<void>;
   loadHighlights: (_sectionId: string) => Promise<void>;
 }
 
@@ -52,14 +49,12 @@ export function useTextHighlight(_sectionId: string): UseTextHighlightReturn {
       endIndex,
       color,
       highlightText,
-      meaningOrNote,
       passageId,
     }: {
       startIndex: number;
       endIndex: number;
       color: "yellow" | "green";
       highlightText?: string;
-      meaningOrNote?: string;
       passageId?: string;
     }) => {
       setHighlights((prev) => [
@@ -68,7 +63,6 @@ export function useTextHighlight(_sectionId: string): UseTextHighlightReturn {
           id: createClientId(),
           passageId: passageId || null,
           highlightText: highlightText || null,
-          meaningOrNote: meaningOrNote || null,
           startIndex,
           endIndex,
           color,
@@ -95,25 +89,11 @@ export function useTextHighlight(_sectionId: string): UseTextHighlightReturn {
     [],
   );
 
-  const updateHighlightNote = useCallback(
-    async (id: string, meaningOrNote: string) => {
-      setHighlights((prev) =>
-        prev.map((h) =>
-          h.id === id
-            ? { ...h, meaningOrNote, updatedAt: new Date().toISOString() }
-            : h,
-        ),
-      );
-    },
-    [],
-  );
-
   return {
     highlights,
     addHighlight,
     removeHighlight,
     updateHighlightColor,
-    updateHighlightNote,
     loadHighlights,
   };
 }

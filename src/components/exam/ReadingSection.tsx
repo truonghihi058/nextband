@@ -5,12 +5,10 @@ import {
   useCallback,
   useMemo,
   MutableRefObject,
-  type MouseEvent,
 } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,10 +16,7 @@ import {
   BookOpen,
   Highlighter,
   List,
-  MessageSquare,
-  Pencil,
   Trash2,
-  X,
   CheckSquare,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -58,26 +53,10 @@ export function ReadingSection({
 }: ReadingSectionProps) {
   const passageRef = useRef<HTMLDivElement>(null);
   const passageContentRef = useRef<HTMLDivElement>(null);
-  const [selectedText, setSelectedText] = useState<{
-    text: string;
-    startIndex: number;
-    endIndex: number;
-  } | null>(null);
-  const [showHighlightMenu, setShowHighlightMenu] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-  const [newHighlightNote, setNewHighlightNote] = useState("");
-  const [newHighlightColor, setNewHighlightColor] = useState<"yellow" | "green">(
-    "yellow",
-  );
   const [activeHighlightId, setActiveHighlightId] = useState<string | null>(
     null,
   );
-  const [activeHighlightMenu, setActiveHighlightMenu] = useState({
-    x: 0,
-    y: 0,
-  });
   const [passageSourceText, setPassageSourceText] = useState("");
-  const [activeHighlightNoteDraft, setActiveHighlightNoteDraft] = useState("");
   const [leftTab, setLeftTab] = useState<"passage" | "highlights">("passage");
   const markRefs = useRef<Map<string, HTMLElement>>(new Map());
   const {
@@ -85,7 +64,6 @@ export function ReadingSection({
     addHighlight,
     removeHighlight,
     updateHighlightColor,
-    updateHighlightNote,
     loadHighlights,
   } = useTextHighlight(section.id);
 
@@ -144,7 +122,6 @@ export function ReadingSection({
   const sortedHighlights = [...highlights].sort(
     (a, b) => a.startIndex - b.startIndex,
   );
-  const activeHighlight = sortedHighlights.find((h) => h.id === activeHighlightId);
 
   useEffect(() => {
     if (section.id) {
@@ -182,61 +159,38 @@ export function ReadingSection({
     return { startIndex, endIndex, text: selected };
   }, []);
 
-  const handleTextSelection = useCallback(() => {
+  const handleTextSelection = useCallback(async () => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !passageContentRef.current) {
-      setShowHighlightMenu(false);
       return;
     }
 
     const rawText = selection.toString();
     const text = rawText.trim();
     if (!text) {
-      setShowHighlightMenu(false);
       return;
     }
 
     const range = selection.getRangeAt(0);
     const offsets = getRangeOffsets(range);
     if (!offsets) {
-      setShowHighlightMenu(false);
       return;
     }
 
     if (offsets.endIndex > offsets.startIndex) {
-      const rect = range.getBoundingClientRect();
-
-      setSelectedText({
-        text: offsets.text,
-        startIndex: offsets.startIndex,
-        endIndex: offsets.endIndex,
-      });
-      setMenuPosition({
-        x: rect.left + rect.width / 2,
-        y: rect.top - 10,
-      });
-      setActiveHighlightId(null);
-      setNewHighlightColor("yellow");
-      setNewHighlightNote("");
-      setShowHighlightMenu(true);
-    }
-  }, [getRangeOffsets]);
-
-  const handleHighlight = async () => {
-    if (selectedText) {
       const sourceText = passageSourceText || passagePlainFromSource;
       const sourceSlice = sourceText.slice(
-        selectedText.startIndex,
-        selectedText.endIndex,
+        offsets.startIndex,
+        offsets.endIndex,
       );
-      const normalizedSelected = normalizeText(selectedText.text);
+      const normalizedSelected = normalizeText(offsets.text);
       const normalizedSlice = normalizeText(sourceSlice);
 
       if (import.meta.env.DEV) {
         console.debug("[ReadingSection][highlight save]", {
-          start: selectedText.startIndex,
-          end: selectedText.endIndex,
-          selectedText: selectedText.text,
+          start: offsets.startIndex,
+          end: offsets.endIndex,
+          selectedText: offsets.text,
           sourceSlice,
           normalizedSelected,
           normalizedSlice,
@@ -245,36 +199,23 @@ export function ReadingSection({
       }
 
       await addHighlight({
-        startIndex: selectedText.startIndex,
-        endIndex: selectedText.endIndex,
-        color: newHighlightColor,
-        highlightText: sourceSlice || selectedText.text,
-        meaningOrNote: newHighlightNote.trim() || undefined,
+        startIndex: offsets.startIndex,
+        endIndex: offsets.endIndex,
+        color: "yellow",
+        highlightText: sourceSlice || offsets.text,
         passageId: questionGroups[0]?.id || section.id,
       });
-      setShowHighlightMenu(false);
-      setSelectedText(null);
-      setNewHighlightNote("");
+      setActiveHighlightId(null);
       window.getSelection()?.removeAllRanges();
     }
-  };
-
-  const openHighlightActions = useCallback(
-    (highlightId: string, anchorEl: HTMLElement, event?: MouseEvent) => {
-      event?.preventDefault();
-      event?.stopPropagation();
-      const rect = anchorEl.getBoundingClientRect();
-      setActiveHighlightId((prev) => (prev === highlightId ? null : highlightId));
-      setActiveHighlightMenu({
-        x: rect.left + rect.width / 2,
-        y: rect.top - 6,
-      });
-      const selectedHighlight = highlights.find((h) => h.id === highlightId);
-      setActiveHighlightNoteDraft(selectedHighlight?.meaningOrNote || "");
-      setShowHighlightMenu(false);
-    },
-    [highlights],
-  );
+  }, [
+    addHighlight,
+    getRangeOffsets,
+    passagePlainFromSource,
+    passageSourceText,
+    questionGroups,
+    section.id,
+  ]);
 
   const getHighlightPreview = useCallback(
     (highlight: Highlight) => {
@@ -333,19 +274,14 @@ export function ReadingSection({
             if (el) markRefs.current.set(highlight.id, el);
           }}
           className={`${highlightBg} px-0.5 rounded cursor-pointer hover:opacity-90 transition-opacity relative group ${activeHighlightId === highlight.id ? "ring-2 ring-primary/50" : ""}`}
-          onClick={(event) =>
-            openHighlightActions(highlight.id, event.currentTarget, event)
+          onClick={() =>
+            setActiveHighlightId((prev) =>
+              prev === highlight.id ? null : highlight.id,
+            )
           }
-          title={
-            highlight.meaningOrNote
-              ? `Ghi chú: ${highlight.meaningOrNote}`
-              : "Click để thêm ghi chú/tùy chọn highlight"
-          }
+          title="Click để chọn highlight"
         >
           {text.slice(highlight.startIndex, highlight.endIndex)}
-          <span className="inline-flex items-center ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Pencil className="h-3 w-3 text-foreground/70" />
-          </span>
         </mark>,
       );
 
@@ -371,180 +307,6 @@ export function ReadingSection({
 
   return (
     <div className="h-full grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x relative">
-      {/* Highlight Menu */}
-      {showHighlightMenu && (
-        <div
-          className="fixed z-50 bg-card border rounded-lg shadow-lg p-3 w-[320px] space-y-2"
-          style={{
-            left: menuPosition.x,
-            top: menuPosition.y,
-            transform: "translate(-50%, -100%)",
-          }}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-muted-foreground">
-              Tạo highlight
-            </span>
-            <div className="flex items-center gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                className={cn(
-                  "h-7 w-7 p-0",
-                  newHighlightColor === "yellow"
-                    ? "bg-yellow-200"
-                    : "bg-yellow-100/60",
-                )}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setNewHighlightColor("yellow")}
-              >
-                <Highlighter className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className={cn(
-                  "h-7 w-7 p-0",
-                  newHighlightColor === "green"
-                    ? "bg-green-200"
-                    : "bg-green-100/60",
-                )}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setNewHighlightColor("green")}
-              >
-                <Highlighter className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
-          {selectedText?.text && (
-            <div className="text-xs rounded-md border bg-muted/30 px-2 py-1.5">
-              <span className="text-muted-foreground mr-1">Preview:</span>
-              <span className="font-medium">{normalizeText(selectedText.text)}</span>
-            </div>
-          )}
-          <Textarea
-            value={newHighlightNote}
-            onChange={(e) => setNewHighlightNote(e.target.value)}
-            onMouseDown={(e) => e.stopPropagation()}
-            rows={2}
-            placeholder="Nhập nghĩa/ghi chú (optional)..."
-            className="text-xs min-h-[58px]"
-          />
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => setShowHighlightMenu(false)}
-            >
-              Hủy
-            </Button>
-            <Button
-              size="sm"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={handleHighlight}
-            >
-              Lưu
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {activeHighlightId && (
-        <div
-          className="fixed z-50 bg-card border rounded-lg shadow-lg p-3 w-[340px] space-y-2"
-          style={{
-            left: activeHighlightMenu.x,
-            top: activeHighlightMenu.y,
-            transform: "translate(-50%, -100%)",
-          }}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-muted-foreground">
-              Chỉnh highlight
-            </span>
-            <div className="flex items-center gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                className={cn(
-                  "h-7 w-7 p-0",
-                  activeHighlight?.color === "yellow"
-                    ? "bg-yellow-200"
-                    : "bg-yellow-100/60",
-                )}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => updateHighlightColor(activeHighlightId, "yellow")}
-                title="Đổi sang vàng"
-              >
-                <Highlighter className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className={cn(
-                  "h-7 w-7 p-0",
-                  activeHighlight?.color === "green"
-                    ? "bg-green-200"
-                    : "bg-green-100/60",
-                )}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => updateHighlightColor(activeHighlightId, "green")}
-                title="Đổi sang xanh"
-              >
-                <Highlighter className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
-          <Textarea
-            value={activeHighlightNoteDraft}
-            onChange={(e) => setActiveHighlightNoteDraft(e.target.value)}
-            onMouseDown={(e) => e.stopPropagation()}
-            rows={2}
-            placeholder="Nghĩa/Ghi chú..."
-            className="text-xs min-h-[58px]"
-          />
-          <div className="flex items-center justify-between">
-            <Button
-              size="sm"
-              variant="ghost"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                removeHighlight(activeHighlightId);
-                setActiveHighlightId(null);
-              }}
-              title="Xóa highlight"
-            >
-              <Trash2 className="h-4 w-4 text-destructive mr-1" />
-              Xóa
-            </Button>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setActiveHighlightId(null)}
-              >
-                Đóng
-              </Button>
-              <Button
-                size="sm"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={async () => {
-                  await updateHighlightNote(
-                    activeHighlightId,
-                    activeHighlightNoteDraft.trim(),
-                  );
-                  setActiveHighlightId(null);
-                }}
-              >
-                Lưu note
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Left - Passage */}
       <ScrollArea className="h-[calc(100vh-200px)]">
         <div ref={passageRef} className="p-6" onMouseUp={handleTextSelection}>
@@ -556,7 +318,7 @@ export function ReadingSection({
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Highlighter className="h-3 w-3" />
-                <span>Chọn văn bản để highlight</span>
+                <span>Bôi đen văn bản để highlight ngay</span>
               </div>
               {sortedHighlights.length > 0 && (
                 <div className="inline-flex items-center rounded-md border bg-background p-0.5">
@@ -645,22 +407,6 @@ export function ReadingSection({
                           className="h-6 w-6 p-0"
                           onClick={(e) => {
                             e.stopPropagation();
-                            jumpToHighlight(highlight.id);
-                            const markEl = markRefs.current.get(highlight.id);
-                            if (markEl) {
-                              openHighlightActions(highlight.id, markEl);
-                            }
-                          }}
-                          title="Chỉnh sửa note"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 w-6 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
                             removeHighlight(highlight.id);
                             if (activeHighlightId === highlight.id) {
                               setActiveHighlightId(null);
@@ -686,12 +432,6 @@ export function ReadingSection({
                       </span>
                       <span className="text-muted-foreground">{preview.after}</span>
                     </p>
-                    {highlight.meaningOrNote && (
-                      <div className="mt-2 text-xs rounded-md border border-primary/20 bg-primary/5 px-2 py-1.5 text-foreground flex items-start gap-1.5">
-                        <MessageSquare className="h-3.5 w-3.5 mt-0.5 text-primary" />
-                        <span>{highlight.meaningOrNote}</span>
-                      </div>
-                    )}
                   </button>
                 );
               })}
