@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Headphones } from "lucide-react";
+import { Headphones, CheckSquare } from "lucide-react";
 import { StickyAudioPlayer } from "./StickyAudioPlayer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -264,48 +264,61 @@ export function ListeningSection({
                                     .map((v: string) => v.trim())
                                     .filter(Boolean).length > 1;
 
+                                const currentAnswers = typeof question.correct_answer === "string"
+                                  ? question.correct_answer.split("|").map((v: string) => v.trim()).filter(Boolean)
+                                  : [];
                                 if (hasMultipleCorrect) {
+                                  const expectedCount = currentAnswers.length;
                                   return (
-                                    <div className="grid gap-2">
-                                      {question.options.map(
-                                        (option: string, i: number) => {
-                                          const checked = selectedValues.includes(
-                                            option,
-                                          );
-                                          return (
-                                            <label
-                                              key={i}
-                                              className={cn(
-                                                "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer",
-                                                checked
-                                                  ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
-                                                  : "bg-background border-transparent hover:bg-muted/30",
-                                              )}
-                                            >
-                                              <Checkbox
-                                                checked={checked}
-                                                onCheckedChange={(next) => {
-                                                  const nextValues = new Set(
-                                                    selectedValues,
-                                                  );
-                                                  if (next) {
-                                                    nextValues.add(option);
-                                                  } else {
-                                                    nextValues.delete(option);
-                                                  }
-                                                  onAnswerChange(
-                                                    question.id,
-                                                    Array.from(nextValues),
-                                                  );
-                                                }}
-                                              />
-                                              <span className="font-medium text-sm">
-                                                {option}
-                                              </span>
-                                            </label>
-                                          );
-                                        },
-                                      )}
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2 text-xs font-semibold text-primary bg-primary/8 border border-primary/20 rounded-lg px-3 py-1.5">
+                                        <CheckSquare className="h-3.5 w-3.5 flex-shrink-0" />
+                                        <span>Chọn {expectedCount} đáp án phù hợp</span>
+                                        <span className="ml-auto text-muted-foreground font-normal">
+                                          Đã chọn: {selectedValues.length}/{expectedCount}
+                                        </span>
+                                      </div>
+                                      <div className="grid gap-2">
+                                        {question.options.map(
+                                          (option: string, i: number) => {
+                                            const checked = selectedValues.includes(
+                                              option,
+                                            );
+                                            return (
+                                              <label
+                                                key={i}
+                                                className={cn(
+                                                  "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer",
+                                                  checked
+                                                    ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
+                                                    : "bg-background border-transparent hover:bg-muted/30",
+                                                )}
+                                              >
+                                                <Checkbox
+                                                  checked={checked}
+                                                  onCheckedChange={(next) => {
+                                                    const nextValues = new Set(
+                                                      selectedValues,
+                                                    );
+                                                    if (next) {
+                                                      nextValues.add(option);
+                                                    } else {
+                                                      nextValues.delete(option);
+                                                    }
+                                                    onAnswerChange(
+                                                      question.id,
+                                                      Array.from(nextValues),
+                                                    );
+                                                  }}
+                                                />
+                                                <span className="font-medium text-sm">
+                                                  {option}
+                                                </span>
+                                              </label>
+                                            );
+                                          },
+                                        )}
+                                      </div>
                                     </div>
                                   );
                                 }

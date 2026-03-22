@@ -2,13 +2,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   ListChecks,
   Plus,
   Trash2,
   CheckCircle2,
   CheckSquare,
+  ToggleLeft,
 } from "lucide-react";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import FileUpload from "@/components/admin/FileUpload";
@@ -20,7 +22,7 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
     .map((s) => s.trim())
     .filter(Boolean);
 
-  const isMultipleAllowed = currentAnswers.length > 1;
+  const isMultiMode = currentAnswers.length > 1;
 
   const addOption = () => {
     onChange({ options: [...form.options, ""] });
@@ -30,8 +32,6 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
     if (form.options.length <= 2) return;
     const removedValue = form.options[index];
     const newOpts = form.options.filter((_, i) => i !== index);
-
-    // Remove from correct answers if it was selected
     if (currentAnswers.includes(removedValue)) {
       const newAnswers = currentAnswers.filter((a) => a !== removedValue);
       onChange({ options: newOpts, correctAnswer: newAnswers.join(" | ") });
@@ -40,34 +40,30 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
     }
   };
 
-  const toggleCorrectAnswer = (optionValue: string, isMulti: boolean) => {
+  const toggleCorrectAnswer = (optionValue: string) => {
     const val = optionValue.trim();
     if (!val) return;
 
-    if (isMulti) {
-      let newAnswers = [...currentAnswers];
-      if (newAnswers.includes(val)) {
-        newAnswers = newAnswers.filter((a) => a !== val);
-      } else {
-        newAnswers.push(val);
-      }
-      onChange({ correctAnswer: newAnswers.join(" | ") });
+    let newAnswers = [...currentAnswers];
+    if (newAnswers.includes(val)) {
+      newAnswers = newAnswers.filter((a) => a !== val);
     } else {
-      // Single choice behavior: clicking the same one does not remove it, just stay selected.
-      onChange({ correctAnswer: val });
+      newAnswers.push(val);
     }
+    onChange({ correctAnswer: newAnswers.join(" | ") });
+  };
+
+  const handleSingleAnswer = (optionValue: string) => {
+    onChange({ correctAnswer: optionValue.trim() });
   };
 
   const updateOptionText = (index: number, newValue: string) => {
     const newOpts = [...form.options];
     const oldValue = newOpts[index].trim();
     newOpts[index] = newValue;
-
     const valTrimmed = newValue.trim();
-
     if (oldValue !== "" && currentAnswers.includes(oldValue)) {
-      // Update the answer in the correct answers list
-      let newAnswers = currentAnswers.map((a) =>
+      const newAnswers = currentAnswers.map((a) =>
         a === oldValue ? valTrimmed : a,
       );
       onChange({
@@ -79,12 +75,32 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
     }
   };
 
+  // Toggle multi-mode: switch from single → multi keeps existing selection
+  const handleToggleMultiMode = (enabled: boolean) => {
+    if (!enabled) {
+      // Switching to single: keep only first correct answer
+      const first = currentAnswers[0] || "";
+      onChange({ correctAnswer: first });
+    }
+    // Switching to multi: no change needed, admin just clicks multiple options
+  };
+
   return (
     <Card className="border-blue-500/30 bg-blue-500/5">
       <CardContent className="p-4 space-y-5">
-        <div className="flex items-center gap-2 text-sm font-bold text-blue-600 pb-2 border-b border-blue-500/10">
-          <ListChecks className="h-4 w-4" />
-          CÂU HỎI TRẮC NGHIỆM
+        <div className="flex items-center justify-between gap-2 pb-2 border-b border-blue-500/10">
+          <div className="flex items-center gap-2 text-sm font-bold text-blue-600">
+            <ListChecks className="h-4 w-4" />
+            CÂU HỎI TRẮC NGHIỆM
+          </div>
+          <Badge
+            variant={isMultiMode ? "default" : "secondary"}
+            className="text-xs"
+          >
+            {isMultiMode
+              ? `MULTI — ${currentAnswers.length} đáp án đúng`
+              : "SINGLE — 1 đáp án đúng"}
+          </Badge>
         </div>
 
         {/* Question text */}
@@ -114,11 +130,32 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
           />
         </div>
 
+        {/* Multi-answer toggle */}
+        <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800/40 p-3">
+          <div className="flex items-center gap-2">
+            <ToggleLeft className="h-4 w-4 text-blue-600" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">Cho phép nhiều đáp án đúng</p>
+              <p className="text-xs text-muted-foreground">
+                {isMultiMode
+                  ? "Học sinh phải chọn tất cả đáp án đúng (Checkbox)"
+                  : "Học sinh chỉ chọn 1 đáp án (Radio button)"}
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={isMultiMode}
+            onCheckedChange={handleToggleMultiMode}
+          />
+        </div>
+
         {/* Options */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Các lựa chọn (click để chọn đáp án đúng)
+              {isMultiMode
+                ? "Các lựa chọn (click để chọn/bỏ đáp án đúng)"
+                : "Các lựa chọn (click để chọn đáp án đúng)"}
             </Label>
             <Button
               type="button"
@@ -132,16 +169,15 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
             </Button>
           </div>
 
-          {/* Hint for multiple mode */}
-          <div className="text-xs text-muted-foreground bg-muted p-2 rounded flex items-center gap-2">
-            <CheckSquare className="h-4 w-4 text-primary" />
-            <span>
-              <strong>Mẹo:</strong> Nhấn chọn nhiều đáp án để biến đây thành câu
-              hỏi chọn nhiều lựa chọn (Multiple Answers). Dấu check sẽ được lưu
-              phân cách bằng kí tự `|` để frontend hiển thị dạng Checkbox thay
-              vì Radio.
-            </span>
-          </div>
+          {isMultiMode && (
+            <div className="text-xs text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 p-2 rounded flex items-center gap-2">
+              <CheckSquare className="h-4 w-4 flex-shrink-0" />
+              <span>
+                Đang ở chế độ <strong>nhiều đáp án</strong>. Click vào lựa chọn để thêm/bỏ đáp án đúng.
+                Frontend sẽ hiển thị dạng <strong>Checkbox</strong> cho học sinh.
+              </span>
+            </div>
+          )}
 
           <div className="grid gap-2">
             {form.options.map((opt, i) => {
@@ -153,12 +189,19 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
                   className={`flex items-center gap-2 p-2 rounded-lg border transition-colors cursor-pointer ${
                     isCorrect
                       ? "border-green-400 bg-green-50 dark:bg-green-950/20"
-                      : "border-border bg-white/50 hover:border-blue-300"
+                      : "border-border bg-white/50 dark:bg-background/50 hover:border-blue-300"
                   }`}
-                  onClick={() => opt.trim() && toggleCorrectAnswer(opt, true)}
+                  onClick={() => {
+                    if (!opt.trim()) return;
+                    if (isMultiMode) {
+                      toggleCorrectAnswer(opt);
+                    } else {
+                      handleSingleAnswer(opt);
+                    }
+                  }}
                 >
                   <div
-                    className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                    className={`flex-shrink-0 w-7 h-7 rounded-${isMultiMode ? "md" : "full"} flex items-center justify-center text-xs font-bold ${
                       isCorrect
                         ? "bg-green-500 text-white"
                         : "bg-blue-100 text-blue-600 dark:bg-blue-900/30"
@@ -174,12 +217,7 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
                     placeholder={`Lựa chọn ${String.fromCharCode(65 + i)}`}
                     value={opt}
                     onChange={(e) => updateOptionText(i, e.target.value)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                    onFocus={(e) => {
-                      // Clicking the input to edit text shouldn't toggle the selection
-                    }}
+                    onClick={(e) => e.stopPropagation()}
                     className="bg-transparent border-none shadow-none focus-visible:ring-0 h-8"
                   />
                   {form.options.length > 2 && (
@@ -217,7 +255,7 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
           )}
           {currentAnswers.length === 0 && (
             <p className="text-xs text-muted-foreground italic">
-              * Click vào lựa chọn để đặt hoặc bỏ làm đáp án đúng
+              * Click vào lựa chọn để đặt đáp án đúng
             </p>
           )}
         </div>

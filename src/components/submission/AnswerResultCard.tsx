@@ -273,67 +273,98 @@ export function AnswerResultCard({
         </div>
 
         <div className="pl-6 space-y-2">
-          {/* Student answer - hide for fill_blank with placeholders or matching (has its own renderer) */}
-          {!isFillBlankWithPlaceholders && questionType !== "matching" && (
+          {/* Multi-select per-option visual review */}
+          {isMultiSelectQuestion && canShowResult && correctAnswer && !isFillBlankWithPlaceholders && (() => {
+            const correctOptions = correctAnswer.split("|").map((v) => v.trim()).filter(Boolean);
+            let studentSelections: string[] = [];
+            try {
+              const parsed = JSON.parse(answerText || "[]");
+              if (Array.isArray(parsed)) studentSelections = parsed.map((v) => String(v).trim());
+            } catch {
+              studentSelections = (answerText || "").split("|").flatMap((p) => p.split(",")).map((v) => v.trim()).filter(Boolean);
+            }
+
+            // Gather all unique options (correct ∪ student)
+            const allOptions = Array.from(new Set([...correctOptions, ...studentSelections]));
+
+            return (
+              <div className="space-y-2 mt-1">
+                <Label className="text-xs text-muted-foreground block">Chi tiết đáp án</Label>
+                <div className="rounded-md border divide-y overflow-hidden">
+                  {allOptions.map((opt, i) => {
+                    const isCorrect = correctOptions.includes(opt);
+                    const isSelected = studentSelections.includes(opt);
+                    // ✅ correct + selected | ❌ wrong + selected | ⬜ correct but missed
+                    const status = isCorrect && isSelected ? "hit" : !isCorrect && isSelected ? "wrong" : "missed";
+                    return (
+                      <div
+                        key={i}
+                        className={`flex items-center gap-3 px-3 py-2 text-sm ${
+                          status === "hit" ? "bg-green-50 dark:bg-green-950/20" :
+                          status === "wrong" ? "bg-red-50 dark:bg-red-950/20" :
+                          "bg-yellow-50/60 dark:bg-yellow-950/10"
+                        }`}
+                      >
+                        <span className="text-base">
+                          {status === "hit" ? "✅" : status === "wrong" ? "❌" : "⬜"}
+                        </span>
+                        <span className={`flex-1 ${status === "wrong" ? "line-through text-muted-foreground" : ""}`}>
+                          {opt}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {status === "hit" ? "Đúng ✓" : status === "wrong" ? "Sai ✗" : "Bỏ qua"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Student answer (non-multi-select) */}
+          {!isFillBlankWithPlaceholders && questionType !== "matching" && !isMultiSelectQuestion && (
             <div className="rounded-md border bg-muted/40 p-3">
               <Label className="text-xs text-muted-foreground mb-1 block">
                 Câu trả lời của bạn
               </Label>
               {(() => {
                 let trimmedAnswer = (answerText || "").trim();
-                let parsedArrayAnswer: string[] = [];
-
-                if (isMultiSelectQuestion) {
-                  try {
-                    const parsed = JSON.parse(trimmedAnswer);
-                    if (Array.isArray(parsed)) {
-                      parsedArrayAnswer = parsed
-                        .map((item) => String(item).trim())
-                        .filter(Boolean);
-                    }
-                  } catch {
-                    parsedArrayAnswer = trimmedAnswer
-                      .split("|")
-                      .flatMap((part) => part.split(","))
-                      .map((item) => item.trim())
-                      .filter(Boolean);
-                  }
-                }
-
-                // Remove JSON quotes if present
                 if (trimmedAnswer.startsWith('"') && trimmedAnswer.endsWith('"')) {
                   trimmedAnswer = trimmedAnswer.slice(1, -1);
                 }
-                
-                const isUrl = trimmedAnswer.startsWith("http") || 
-                              trimmedAnswer.startsWith("blob:") || 
+                const isUrl = trimmedAnswer.startsWith("http") ||
+                              trimmedAnswer.startsWith("blob:") ||
                               trimmedAnswer.startsWith("/") ||
                               (trimmedAnswer.includes(".") && !trimmedAnswer.includes(" ") && !trimmedAnswer.includes("<"));
-                
-                if (isUrl) {
-                  return <audio controls className="w-full mt-1" src={trimmedAnswer} />;
-                }
-                if (parsedArrayAnswer.length > 0) {
-                  return (
-                    <p className="text-sm whitespace-pre-wrap">
-                      {parsedArrayAnswer.join(", ")}
-                    </p>
-                  );
-                }
-                if (trimmedAnswer) {
-                  return <p className="text-sm whitespace-pre-wrap">{trimmedAnswer}</p>;
-                }
-                if (audioUrl) {
-                  return <audio controls className="w-full mt-1" src={audioUrl} />;
-                }
-                return (
-                  <p className="text-sm text-muted-foreground italic">
-                    Chưa trả lời
-                  </p>
-                );
+                if (isUrl) return <audio controls className="w-full mt-1" src={trimmedAnswer} />;
+                if (trimmedAnswer) return <p className="text-sm whitespace-pre-wrap">{trimmedAnswer}</p>;
+                if (audioUrl) return <audio controls className="w-full mt-1" src={audioUrl} />;
+                return <p className="text-sm text-muted-foreground italic">Chưa trả lời</p>;
               })()}
             </div>
           )}
+
+          {/* Multi-select student answer (non-result mode — show as text) */}
+          {!isFillBlankWithPlaceholders && questionType !== "matching" && isMultiSelectQuestion && !canShowResult && (
+            <div className="rounded-md border bg-muted/40 p-3">
+              <Label className="text-xs text-muted-foreground mb-1 block">Câu trả lời của bạn</Label>
+              {(() => {
+                let parsedArrayAnswer: string[] = [];
+                try {
+                  const parsed = JSON.parse(answerText || "[]");
+                  if (Array.isArray(parsed)) parsedArrayAnswer = parsed.map((v) => String(v).trim()).filter(Boolean);
+                } catch {
+                  parsedArrayAnswer = (answerText || "").split("|").flatMap((p) => p.split(",")).map((v) => v.trim()).filter(Boolean);
+                }
+                return parsedArrayAnswer.length > 0
+                  ? <p className="text-sm">{parsedArrayAnswer.join(", ")}</p>
+                  : <p className="text-sm text-muted-foreground italic">Chưa trả lời</p>;
+              })()}
+            </div>
+          )}
+
+
 
           {/* Matching result visualizer */}
           {questionType === "matching" && canShowResult && correctAnswer && (() => {
