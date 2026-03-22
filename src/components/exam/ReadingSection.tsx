@@ -727,6 +727,17 @@ export function ReadingSection({
                 </div>
               )}
 
+              {(group.audioUrl || group.audio_url) && (
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-2 flex items-center gap-3">
+                  <audio
+                    src={group.audioUrl || group.audio_url}
+                    controls
+                    className="h-10 w-full"
+                  />
+                </div>
+              )}
+
+
               {(group.questions || []).map((question: any, qIndex: number) => {
                 const isCurrent = question.id === currentQuestionId;
                 const hasPlaceholders = hasFillBlankPlaceholders(

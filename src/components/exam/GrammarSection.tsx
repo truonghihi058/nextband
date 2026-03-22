@@ -148,6 +148,19 @@ export function GrammarSection({
                   </Card>
                 )}
 
+                {/* Group Audio */}
+                {(group.audioUrl || group.audio_url) && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-center gap-3">
+                    <audio
+                      src={group.audioUrl || group.audio_url}
+                      controls
+                      className="h-10 w-full"
+                    />
+                  </div>
+                )}
+
+
+
                 {/* Questions */}
                 <div className="space-y-4">
                   {(group.questions || []).map(
