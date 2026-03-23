@@ -44,6 +44,18 @@ interface ReadingSectionProps {
 const containsHtml = (text: string) => /<[^>]+>/.test(text);
 const normalizeText = (text: string) =>
   text.replace(/\s+/g, " ").replace(/\u00a0/g, " ").trim();
+const toPlainTextWithParagraphs = (html: string) => {
+  if (!html) return "";
+  // Preserve line/paragraph boundaries from rich text HTML.
+  const withBreakHints = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|h1|h2|h3|h4|h5|h6|blockquote|pre)>/gi, "\n\n");
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(withBreakHints, "text/html");
+  return (doc.body.textContent || "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\n{3,}/g, "\n\n");
+};
 
 export function ReadingSection({
   section,
@@ -125,11 +137,12 @@ export function ReadingSection({
     if (!passageText) return "";
     if (!containsHtml(passageText)) return passageText;
     if (typeof window === "undefined") {
-      return passageText.replace(/<[^>]*>/g, " ");
+      return passageText
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/(p|div|li|h1|h2|h3|h4|h5|h6|blockquote|pre)>/gi, "\n\n")
+        .replace(/<[^>]*>/g, " ");
     }
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(passageText, "text/html");
-    return doc.body.textContent || "";
+    return toPlainTextWithParagraphs(passageText);
   }, [passageText]);
   const sortedHighlights = [...highlights].sort(
     (a, b) => a.startIndex - b.startIndex,
@@ -144,7 +157,10 @@ export function ReadingSection({
   useEffect(() => {
     if (passageContentRef.current) {
       setPassageSourceText(
-        passageContentRef.current.textContent || passagePlainFromSource || "",
+        passageContentRef.current.innerText ||
+          passageContentRef.current.textContent ||
+          passagePlainFromSource ||
+          "",
       );
       return;
     }
@@ -285,50 +301,73 @@ export function ReadingSection({
     });
   }, []);
 
-  const renderHighlightedText = () => {
+  /**
+   * Render the passage with highlight marks.
+   * We split the plain-text source by newlines to preserve paragraph structure
+   * even though highlights work on flat character offsets.
+   */
+  const renderHighlightedText = (): React.ReactNode => {
     const text = passageSourceText || passagePlainFromSource;
     if (!text) return null;
-    if (highlights.length === 0) return text;
 
-    const result: React.ReactNode[] = [];
-    let lastIndex = 0;
+    // Build flat list of spans from highlight data
+    const buildSpans = (chunk: string, baseOffset: number): React.ReactNode[] => {
+      if (highlights.length === 0) return [chunk];
+      const spans: React.ReactNode[] = [];
+      let cursor = baseOffset;
+      const end = baseOffset + chunk.length;
 
-    sortedHighlights.forEach((highlight) => {
-      if (highlight.startIndex > lastIndex) {
-        result.push(text.slice(lastIndex, highlight.startIndex));
-      }
+      sortedHighlights.forEach((h) => {
+        const hStart = Math.max(h.startIndex, cursor);
+        const hEnd = Math.min(h.endIndex, end);
+        if (hStart >= hEnd) return;
 
-      const highlightBg =
-        highlight.color === "yellow"
-          ? "bg-yellow-200 dark:bg-yellow-900/50"
-          : "bg-green-200 dark:bg-green-900/50";
+        if (hStart > cursor) {
+          spans.push(text.slice(cursor, hStart));
+        }
+        const bg =
+          h.color === "yellow"
+            ? "bg-yellow-200 dark:bg-yellow-900/50"
+            : "bg-green-200 dark:bg-green-900/50";
+        spans.push(
+          <mark
+            key={`${h.id}-${hStart}`}
+            ref={(el) => { if (el) markRefs.current.set(h.id, el); }}
+            className={`${bg} px-0.5 rounded cursor-pointer hover:opacity-90 transition-opacity ${activeHighlightId === h.id ? "ring-2 ring-primary/50" : ""}`}
+            onClick={() => setActiveHighlightId((prev) => (prev === h.id ? null : h.id))}
+            title="Click để chọn highlight"
+          >
+            {text.slice(hStart, hEnd)}
+          </mark>,
+        );
+        cursor = hEnd;
+      });
 
-      result.push(
-        <mark
-          key={highlight.id}
-          ref={(el) => {
-            if (el) markRefs.current.set(highlight.id, el);
-          }}
-          className={`${highlightBg} px-0.5 rounded cursor-pointer hover:opacity-90 transition-opacity relative group ${activeHighlightId === highlight.id ? "ring-2 ring-primary/50" : ""}`}
-          onClick={() =>
-            setActiveHighlightId((prev) =>
-              prev === highlight.id ? null : highlight.id,
-            )
-          }
-          title="Click để chọn highlight"
-        >
-          {text.slice(highlight.startIndex, highlight.endIndex)}
-        </mark>,
-      );
+      if (cursor < end) spans.push(text.slice(cursor, end));
+      return spans;
+    };
 
-      lastIndex = highlight.endIndex;
-    });
-
-    if (lastIndex < text.length) {
-      result.push(text.slice(lastIndex));
+    // Split on double newlines to recover paragraph structure from plain text
+    const paragraphs = text.split(/\n{2,}/).filter(Boolean);
+    if (paragraphs.length <= 1) {
+      // Single-para or no break: render inline
+      return <>{buildSpans(text, 0)}</>;
     }
 
-    return result;
+    let offset = 0;
+    return (
+      <>
+        {paragraphs.map((para, i) => {
+          const spans = buildSpans(para, offset);
+          offset += para.length + 2; // +2 for the \n\n separator
+          return (
+            <p key={i} className="mb-5 last:mb-0 text-justify">
+              {spans}
+            </p>
+          );
+        })}
+      </>
+    );
   };
 
   // Flatten all questions from all groups
@@ -453,13 +492,15 @@ export function ReadingSection({
           </div>
 
           {leftTab === "passage" && passageText && (
-            <div className="prose prose-sm max-w-none">
-              <div
-                ref={passageContentRef}
-                className="whitespace-pre-wrap leading-relaxed text-foreground select-text"
-              >
-                {renderHighlightedText()}
-              </div>
+            <div
+              ref={passageContentRef}
+              className="rich-content rich-content-passage leading-relaxed text-foreground select-text"
+            >
+              {highlights.length === 0 ? (
+                <RichContent html={passageText} variant="passage" />
+              ) : (
+                renderHighlightedText()
+              )}
             </div>
           )}
 

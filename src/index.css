@@ -222,9 +222,19 @@
   }
 
   .rich-content p {
-    margin-bottom: 0.5em;
+    margin-bottom: 1em;
   }
   .rich-content p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Passage variant — IELTS reading style: justified, wider paragraph gaps */
+  .rich-content-passage p {
+    margin-bottom: 1.25em;
+    text-align: justify;
+    text-justify: inter-word;
+  }
+  .rich-content-passage p:last-child {
     margin-bottom: 0;
   }
   .rich-content strong, .rich-content b { font-weight: 700; }
