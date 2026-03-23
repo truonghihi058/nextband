@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { coursesApi } from "@/lib/api";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { CourseFilters } from "@/components/courses/CourseFilters";
@@ -15,27 +15,23 @@ export default function HomePage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["courses", searchQuery],
+    queryKey: ["courses", searchQuery, currentPage],
     queryFn: () =>
       coursesApi.list({
         search: searchQuery || undefined,
-        limit: 200,
+        page: currentPage,
+        limit: PAGE_SIZE,
         sortBy: "createdAt",
         sortOrder: "desc",
       }),
+    placeholderData: keepPreviousData,
   });
 
-  const allCourses = data?.data || [];
-
-  const totalPages = Math.max(1, Math.ceil(allCourses.length / PAGE_SIZE));
-
-  // Reset về trang 1 khi đổi search
-  const safePage = Math.min(currentPage, totalPages);
-
-  const pagedCourses = useMemo(
-    () => allCourses.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
-    [allCourses, safePage],
-  );
+  const result = data as any;
+  const courses = result?.data || [];
+  const meta = result?.meta;
+  const totalPages = meta?.totalPages ?? 1;
+  const total = meta?.total ?? 0;
 
   const handleSearch = (q: string) => {
     setSearchQuery(q);
@@ -48,6 +44,7 @@ export default function HomePage() {
         title="Trang chủ"
         description="NextBand - Nền tảng luyện thi IELTS thông minh. Khám phá các khóa học IELTS chất lượng cao, luyện thi Reading, Listening, Writing, Speaking."
       />
+
       {/* Hero Section */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-secondary to-primary/5 p-8 md:p-12">
         <div className="relative z-10">
@@ -65,10 +62,7 @@ export default function HomePage() {
       </div>
 
       {/* Filters */}
-      <CourseFilters
-        searchQuery={searchQuery}
-        onSearchChange={handleSearch}
-      />
+      <CourseFilters searchQuery={searchQuery} onSearchChange={handleSearch} />
 
       {/* Course Grid */}
       {isLoading ? (
@@ -81,9 +75,9 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-      ) : pagedCourses.length > 0 ? (
+      ) : courses.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {pagedCourses.map((course: any) => (
+          {courses.map((course: any) => (
             <CourseCard key={course.id} course={course} />
           ))}
         </div>
@@ -101,34 +95,47 @@ export default function HomePage() {
 
       {/* Pagination */}
       {!isLoading && totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-2">
+        <div className="flex items-center justify-center gap-2 pt-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={safePage === 1}
+            disabled={currentPage === 1}
             className="h-9 px-3"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
 
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-            const isActive = page === safePage;
-            const isNear =
-              Math.abs(page - safePage) <= 1 || page === 1 || page === totalPages;
-            if (!isNear) {
-              // Dấu ...
-              if (page === 2 && safePage > 3) return <span key={page} className="px-1 text-muted-foreground text-sm">…</span>;
-              if (page === totalPages - 1 && safePage < totalPages - 2) return <span key={page} className="px-1 text-muted-foreground text-sm">…</span>;
+            const isActive = page === currentPage;
+            const show =
+              page === 1 ||
+              page === totalPages ||
+              Math.abs(page - currentPage) <= 1;
+
+            if (!show) {
+              if (page === 2 && currentPage > 3)
+                return (
+                  <span key={page} className="px-1 text-muted-foreground text-sm">
+                    …
+                  </span>
+                );
+              if (page === totalPages - 1 && currentPage < totalPages - 2)
+                return (
+                  <span key={page} className="px-1 text-muted-foreground text-sm">
+                    …
+                  </span>
+                );
               return null;
             }
+
             return (
               <Button
                 key={page}
                 variant={isActive ? "default" : "outline"}
                 size="sm"
                 onClick={() => setCurrentPage(page)}
-                className={`h-9 w-9 p-0 text-sm font-medium ${isActive ? "" : "text-muted-foreground"}`}
+                className="h-9 w-9 p-0 text-sm font-medium"
               >
                 {page}
               </Button>
@@ -139,7 +146,7 @@ export default function HomePage() {
             variant="outline"
             size="sm"
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={safePage === totalPages}
+            disabled={currentPage === totalPages}
             className="h-9 px-3"
           >
             <ChevronRight className="h-4 w-4" />
@@ -148,10 +155,10 @@ export default function HomePage() {
       )}
 
       {/* Info */}
-      {!isLoading && allCourses.length > 0 && (
+      {!isLoading && total > 0 && (
         <p className="text-center text-xs text-muted-foreground -mt-4">
-          Hiển thị {(safePage - 1) * PAGE_SIZE + 1}–
-          {Math.min(safePage * PAGE_SIZE, allCourses.length)} / {allCourses.length} khóa học
+          Hiển thị {(currentPage - 1) * PAGE_SIZE + 1}–
+          {Math.min(currentPage * PAGE_SIZE, total)} / {total} khóa học
         </p>
       )}
     </div>
