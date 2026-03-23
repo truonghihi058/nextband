@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useQueries } from "@tanstack/react-query";
 import {
   coursesApi,
   examsApi,
@@ -40,11 +40,13 @@ import {
   Info,
   CheckCircle2,
   ClipboardCheck,
+  Eye,
   Search,
   ArrowUpDown,
   SortAsc,
   SortDesc,
   Users,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -155,6 +157,33 @@ export default function CourseDetail() {
         map[examId] = sub.status;
       }
     }
+    return map;
+  })();
+
+  const latestReviewQueries = useQueries({
+    queries: exams.map((exam: any) => ({
+      queryKey: ["course-exam-latest-review", user?.id, exam.id],
+      queryFn: () => submissionsApi.getLatestByExam(exam.id),
+      enabled: isAuthenticated && !!user?.id && !!exam?.id,
+      staleTime: 30_000,
+    })),
+  });
+
+  const latestReviewSubmissionMap = (() => {
+    const map: Record<string, any> = {};
+    exams.forEach((exam: any, index: number) => {
+      if (!exam?.id) return;
+      map[exam.id] = latestReviewQueries[index]?.data ?? null;
+    });
+    return map;
+  })();
+
+  const latestReviewLoadingMap = (() => {
+    const map: Record<string, boolean> = {};
+    exams.forEach((exam: any, index: number) => {
+      if (!exam?.id) return;
+      map[exam.id] = !!latestReviewQueries[index]?.isLoading;
+    });
     return map;
   })();
 
@@ -360,6 +389,10 @@ export default function CourseDetail() {
               .filter((e: any) => e.isPublished && e.isActive)
               .map((exam: any) => {
                 const examStatus = submissionStatusMap[exam.id];
+                const latestCompletedSubmission =
+                  latestReviewSubmissionMap[exam.id];
+                const latestReviewLoading = latestReviewLoadingMap[exam.id];
+                const canReviewLatest = !!latestCompletedSubmission?.id;
                 const isGraded = examStatus === "graded";
                 const isSubmitted = examStatus === "submitted";
                 const isInProgress = examStatus === "in_progress";
@@ -478,6 +511,22 @@ export default function CourseDetail() {
                                   </Link>
                                 </Button>
                               )}
+                              {latestReviewLoading && (
+                                <Button size="sm" variant="outline" disabled>
+                                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                                  Đang tải
+                                </Button>
+                              )}
+                              {!latestReviewLoading && canReviewLatest && (
+                                <Button size="sm" variant="secondary" asChild>
+                                  <Link
+                                    to={`/exam/${exam.id}/review?submissionId=${latestCompletedSubmission.id}`}
+                                  >
+                                    <Eye className="mr-1 h-3.5 w-3.5" />
+                                    Xem lại
+                                  </Link>
+                                </Button>
+                              )}
                             </>
                           )}
                           {isSubmitted && (
@@ -494,6 +543,22 @@ export default function CourseDetail() {
                                   </Link>
                                 </Button>
                               )}
+                              {latestReviewLoading && (
+                                <Button size="sm" variant="outline" disabled>
+                                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                                  Đang tải
+                                </Button>
+                              )}
+                              {!latestReviewLoading && canReviewLatest && (
+                                <Button size="sm" variant="secondary" asChild>
+                                  <Link
+                                    to={`/exam/${exam.id}/review?submissionId=${latestCompletedSubmission.id}`}
+                                  >
+                                    <Eye className="mr-1 h-3.5 w-3.5" />
+                                    Xem lại
+                                  </Link>
+                                </Button>
+                              )}
                             </>
                           )}
                           {isInProgress && canAccessExam && (
@@ -504,6 +569,19 @@ export default function CourseDetail() {
                               </Link>
                             </Button>
                           )}
+                          {isInProgress &&
+                            canAccessExam &&
+                            !latestReviewLoading &&
+                            canReviewLatest && (
+                              <Button size="sm" variant="secondary" asChild>
+                                <Link
+                                  to={`/exam/${exam.id}/review?submissionId=${latestCompletedSubmission.id}`}
+                                >
+                                  <Eye className="mr-1 h-3.5 w-3.5" />
+                                  Xem lại
+                                </Link>
+                              </Button>
+                            )}
                           {!examStatus && canAccessExam && (
                             !hasSlots && isOpenExam ? (
                               <Button size="sm" disabled>
