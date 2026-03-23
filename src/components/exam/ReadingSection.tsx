@@ -24,6 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTextHighlight, Highlight } from "@/hooks/useTextHighlight";
 import { cn } from "@/lib/utils";
 import { DropdownSelect } from "./DropdownSelect";
+import { RichContent } from "./RichContent";
 
 import {
   FillBlankHtmlRenderer,
@@ -552,10 +553,8 @@ export function ReadingSection({
         <div className="p-6 space-y-6">
           {section.instructions && (
             <Card className="bg-white border-orange-500 border shadow-sm">
-              <CardContent className="p-4 text-sm text-black font-medium leading-relaxed">
-                <div
-                  dangerouslySetInnerHTML={{ __html: section.instructions }}
-                />
+              <CardContent className="p-4 text-sm text-black font-medium">
+                <RichContent html={section.instructions} />
               </CardContent>
             </Card>
           )}
@@ -569,9 +568,7 @@ export function ReadingSection({
               )}
               {group.instructions && (
                 <div className="p-3 bg-white border-orange-500/50 border rounded-lg text-sm text-black font-semibold shadow-sm mb-4">
-                  <div
-                    dangerouslySetInnerHTML={{ __html: group.instructions }}
-                  />
+                  <RichContent html={group.instructions} />
                 </div>
               )}
 
@@ -625,19 +622,12 @@ export function ReadingSection({
                         </span>
                         <div className="flex-1 space-y-3">
                           {/* Only show question text here if it's NOT a fill_blank-like question */}
-                          {!isFillBlankLike &&
-                            (containsHtml(question.question_text) ? (
-                              <div
-                                className="font-semibold text-base leading-snug prose prose-sm max-w-none"
-                                dangerouslySetInnerHTML={{
-                                  __html: question.question_text,
-                                }}
-                              />
-                            ) : (
-                              <div className="font-semibold text-base leading-snug">
-                                {question.question_text}
-                              </div>
-                            ))}
+                          {!isFillBlankLike && (
+                            <RichContent
+                              html={question.question_text}
+                              className="font-semibold text-base"
+                            />
+                          )}
 
                           {question.question_audio_url && (
                             <div className="bg-muted/50 p-3 rounded-xl border border-border/50 flex items-center gap-3">

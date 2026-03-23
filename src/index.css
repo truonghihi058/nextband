@@ -213,7 +213,67 @@
     @apply bg-clip-text text-transparent;
     background-image: var(--gradient-primary);
   }
+
+  /* Rich text content — WYSIWYG consistency between admin editor and exam interface */
+  .rich-content {
+    line-height: 1.7;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .rich-content p {
+    margin-bottom: 0.5em;
+  }
+  .rich-content p:last-child {
+    margin-bottom: 0;
+  }
+  .rich-content strong, .rich-content b { font-weight: 700; }
+  .rich-content em, .rich-content i { font-style: italic; }
+  .rich-content u { text-decoration: underline; }
+  .rich-content s { text-decoration: line-through; }
+
+  .rich-content h1 { font-size: 1.5em; font-weight: 700; margin-bottom: 0.5em; }
+  .rich-content h2 { font-size: 1.25em; font-weight: 700; margin-bottom: 0.4em; }
+  .rich-content h3 { font-size: 1.1em; font-weight: 600; margin-bottom: 0.3em; }
+
+  .rich-content ul {
+    list-style-type: disc;
+    padding-left: 1.5em;
+    margin-bottom: 0.5em;
+  }
+  .rich-content ol {
+    list-style-type: decimal;
+    padding-left: 1.5em;
+    margin-bottom: 0.5em;
+  }
+  .rich-content li { margin-bottom: 0.25em; }
+
+  .rich-content a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .rich-content code {
+    background-color: hsl(var(--muted));
+    border-radius: 0.25rem;
+    padding: 0.1em 0.35em;
+    font-family: monospace;
+    font-size: 0.9em;
+  }
+  .rich-content blockquote {
+    border-left: 3px solid hsl(var(--border));
+    padding-left: 1em;
+    margin: 0.5em 0;
+    color: hsl(var(--muted-foreground));
+    font-style: italic;
+  }
+  .rich-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+  }
 }
+
 
 @layer utilities {
   /* Hide scrollbar but keep functionality */

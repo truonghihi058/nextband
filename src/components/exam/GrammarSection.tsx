@@ -15,6 +15,7 @@ import {
 } from "./FillBlankHtmlRenderer";
 import { DropdownSelect } from "./DropdownSelect";
 import { MatchingRenderer } from "./MatchingRenderer";
+import { RichContent } from "./RichContent";
 
 interface GrammarSectionProps {
   section: any;
@@ -91,10 +92,8 @@ export function GrammarSection({
 
           {section.instructions && (
             <Card className="bg-white border-orange-500 border shadow-sm">
-              <CardContent className="p-4 text-sm text-black font-medium leading-relaxed">
-                <div
-                  dangerouslySetInnerHTML={{ __html: section.instructions }}
-                />
+              <CardContent className="p-4 text-sm text-black font-medium">
+                <RichContent html={section.instructions} />
               </CardContent>
             </Card>
           )}
@@ -116,11 +115,7 @@ export function GrammarSection({
                     )}
                     {group.instructions && (
                       <div className="p-3 bg-white border-orange-500/50 border rounded-lg text-sm text-black font-semibold shadow-sm mb-4">
-                        <div
-                          dangerouslySetInnerHTML={{
-                            __html: group.instructions,
-                          }}
-                        />
+                        <RichContent html={group.instructions} />
                       </div>
                     )}
                   </div>
@@ -134,16 +129,7 @@ export function GrammarSection({
                         <BookOpen className="h-4 w-4" />
                         Bài đọc
                       </div>
-                      {/<[^>]+>/.test(group.passage) ? (
-                        <div
-                          className="text-sm leading-relaxed prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: group.passage }}
-                        />
-                      ) : (
-                        <div className="text-sm leading-relaxed whitespace-pre-wrap">
-                          {group.passage}
-                        </div>
-                      )}
+                      <RichContent html={group.passage} className="text-sm" />
                     </CardContent>
                   </Card>
                 )}
@@ -196,19 +182,12 @@ export function GrammarSection({
                                   hasFillBlankPlaceholders(
                                     question.question_text,
                                   )
-                                ) &&
-                                  (/<[^>]+>/.test(question.question_text) ? (
-                                    <div
-                                      className="font-semibold text-base leading-snug prose prose-sm max-w-none"
-                                      dangerouslySetInnerHTML={{
-                                        __html: question.question_text,
-                                      }}
-                                    />
-                                  ) : (
-                                    <p className="font-semibold text-base leading-snug">
-                                      {question.question_text}
-                                    </p>
-                                  ))}
+                                ) && (
+                                  <RichContent
+                                    html={question.question_text}
+                                    className="font-semibold text-base"
+                                  />
+                                )}
 
                                 {question.question_audio_url && (
                                   <div className="bg-muted/50 p-3 rounded-xl border border-border/50 flex items-center gap-3 max-w-sm">

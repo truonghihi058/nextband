@@ -9,6 +9,7 @@ import { Headphones, CheckSquare } from "lucide-react";
 import { StickyAudioPlayer } from "./StickyAudioPlayer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { RichContent } from "./RichContent";
 import {
   FillBlankHtmlRenderer,
   hasFillBlankPlaceholders,
@@ -175,11 +176,7 @@ export function ListeningSection({
                 <div className="space-y-4">
                   {currentGroup.instructions && (
                     <div className="p-3 bg-white border-orange-500/50 border rounded-lg text-sm text-black font-semibold shadow-sm mb-4">
-                      <div
-                        dangerouslySetInnerHTML={{
-                          __html: currentGroup.instructions,
-                        }}
-                      />
+                      <RichContent html={currentGroup.instructions} />
                     </div>
                   )}
 
@@ -211,19 +208,14 @@ export function ListeningSection({
                               {!(
                                 question.question_type === "fill_blank" &&
                                 hasFillBlankPlaceholders(question.question_text)
-                              ) &&
-                                (/<[^>]+>/.test(question.question_text) ? (
-                                  <div
-                                    className="font-semibold text-base leading-snug prose prose-sm max-w-none"
-                                    dangerouslySetInnerHTML={{
-                                      __html: question.question_text,
-                                    }}
-                                  />
-                                ) : (
-                                  <p className="font-semibold text-base leading-snug">
-                                    {question.question_text}
-                                  </p>
-                                ))}
+                              ) && (
+                                <RichContent
+                                  html={question.question_text}
+                                  className="font-semibold text-base"
+                                />
+                              )}
+
+
 
                               {question.question_audio_url && (
                                 <div className="bg-muted/50 p-3 rounded-xl border border-border/50 flex items-center gap-3">

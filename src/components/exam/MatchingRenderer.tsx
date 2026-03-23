@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { GripVertical, X, CheckCircle2, Plus } from "lucide-react";
@@ -37,10 +36,8 @@ export const MatchingRenderer = ({
 }: MatchingRendererProps) => {
     const data = useMemo(() => parseMatchingData(question.correctAnswer), [question.correctAnswer]);
 
-    // Local state for dragging (using the option's index or letter as ID)
     const [draggedOptionLetter, setDraggedOptionLetter] = useState<string | null>(null);
 
-    // The answer for a matching question is an object: { "0": "A", "1": "B", ... }
     const currentAnswers = useMemo(() => {
         const ans = answers[question.id];
         if (typeof ans === "string") {
@@ -63,172 +60,138 @@ export const MatchingRenderer = ({
         onAnswerChange(question.id, newAnswers);
     };
 
-    // Find which options are already used (assuming 1-to-1 matching for UI UX, even if backend allows multi)
     const usedOptionLetters = Object.values(currentAnswers) as string[];
+    const availableOptions = data.options.filter(
+        (_, i) => !usedOptionLetters.includes(String.fromCharCode(65 + i)),
+    );
+    const allUsed = data.options.length > 0 && availableOptions.length === 0;
 
     return (
-        <div className="space-y-8 py-6">
-            {/* Pool of Draggable Options (Answers) */}
-            <div className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                    <h4 className="text-sm font-bold text-teal-700 uppercase tracking-widest flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
+        <div className="space-y-6 py-4">
+            {/* Pool of Draggable Options */}
+            <div className="space-y-3">
+                <div className="flex items-center justify-between px-1 flex-wrap gap-2">
+                    <h4 className="text-sm font-bold text-teal-700 uppercase tracking-wide flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-teal-500" />
                         Danh sách lựa chọn
                     </h4>
-                    <span className="text-xs text-muted-foreground">{data.options.length - usedOptionLetters.length} lựa chọn còn lại</span>
+                    <span className="text-xs text-muted-foreground">
+                        {data.options.length - usedOptionLetters.length} lựa chọn còn lại
+                    </span>
                 </div>
 
-                <div className="flex flex-wrap gap-3 p-6 bg-teal-50/50 rounded-2xl border-2 border-dashed border-teal-200/50 min-h-[100px] shadow-inner">
-                    <AnimatePresence mode="popLayout">
-                        {data.options.map((optionText, i) => {
-                            const letter = String.fromCharCode(65 + i);
-                            const isUsed = usedOptionLetters.includes(letter);
-                            if (isUsed) return null;
-
-                            return (
-                                <motion.div
-                                    key={letter}
-                                    layout
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.5 }}
-                                    whileHover={{ scale: 1.05, rotate: 1 }}
-                                    whileTap={{ scale: 0.95, rotate: -1 }}
-                                    draggable
-                                    onDragStart={() => setDraggedOptionLetter(letter)}
-                                    onDragEnd={() => setDraggedOptionLetter(null)}
-                                    className="cursor-grab active:cursor-grabbing"
-                                >
-                                    <div className="bg-white border-2 border-teal-100 hover:border-teal-500 shadow-sm hover:shadow-md px-4 py-3 rounded-xl flex items-center gap-3 group transition-all duration-300">
-                                        <div className="h-7 w-7 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-sm group-hover:bg-teal-500 group-hover:text-white transition-colors">
-                                            {letter}
-                                        </div>
-                                        <span className="font-medium text-slate-700">{optionText}</span>
-                                        <GripVertical className="h-4 w-4 text-slate-300 group-hover:text-teal-400 transition-colors" />
-                                    </div>
-                                </motion.div>
-                            );
-                        })}
-                    </AnimatePresence>
-
-                    {data.options.length > 0 && data.options.every((_, i) => usedOptionLetters.includes(String.fromCharCode(65 + i))) && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="w-full flex flex-col items-center justify-center py-4 text-teal-600/60"
-                        >
-                            <CheckCircle2 className="h-8 w-8 mb-2 opacity-50" />
-                            <p className="text-sm font-medium italic">Tất cả đáp án đã được nối!</p>
-                        </motion.div>
+                <div className="flex flex-wrap gap-2 p-4 bg-teal-50/50 rounded-xl border-2 border-dashed border-teal-200/60 min-h-[72px]">
+                    {data.options.map((optionText, i) => {
+                        const letter = String.fromCharCode(65 + i);
+                        const isUsed = usedOptionLetters.includes(letter);
+                        if (isUsed) return null;
+                        return (
+                            <div
+                                key={letter}
+                                draggable
+                                onDragStart={() => setDraggedOptionLetter(letter)}
+                                onDragEnd={() => setDraggedOptionLetter(null)}
+                                className="cursor-grab active:cursor-grabbing bg-white border-2 border-teal-100 hover:border-teal-400 shadow-sm hover:shadow-md px-3 py-2 rounded-xl flex items-center gap-2 group transition-all duration-200 select-none"
+                            >
+                                <div className="h-6 w-6 rounded-md bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xs group-hover:bg-teal-500 group-hover:text-white transition-colors flex-shrink-0">
+                                    {letter}
+                                </div>
+                                <span className="font-medium text-slate-700 text-sm leading-snug">{optionText}</span>
+                                <GripVertical className="h-3.5 w-3.5 text-slate-300 group-hover:text-teal-400 transition-colors flex-shrink-0" />
+                            </div>
+                        );
+                    })}
+                    {allUsed && (
+                        <div className="w-full flex flex-col items-center justify-center py-3 text-teal-600/60">
+                            <CheckCircle2 className="h-6 w-6 mb-1 opacity-50" />
+                            <p className="text-xs font-medium italic">Tất cả đáp án đã được nối!</p>
+                        </div>
+                    )}
+                    {data.options.length === 0 && (
+                        <p className="text-xs text-muted-foreground italic w-full text-center py-2">
+                            Chưa có lựa chọn nào
+                        </p>
                     )}
                 </div>
             </div>
 
-            {/* Grid of Matchable Items (Questions) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+            {/* Matchable Items — responsive stack */}
+            <div className="flex flex-col gap-3">
                 {data.items.map((itemText, index) => {
                     const itemKey = String(index);
                     const matchedLetter = currentAnswers[itemKey];
                     const matchedOptionIndex = matchedLetter ? matchedLetter.charCodeAt(0) - 65 : -1;
                     const matchedOptionText = matchedOptionIndex >= 0 ? data.options[matchedOptionIndex] : "";
+                    const isDragTarget = draggedOptionLetter && !matchedLetter;
 
                     return (
                         <Card
                             key={itemKey}
                             className={cn(
-                                "relative overflow-hidden transition-all duration-500 border-2 group",
+                                "transition-all duration-200 border-2",
                                 matchedLetter
-                                    ? "border-teal-500 bg-teal-50/30 shadow-lg shadow-teal-500/5 scale-[1.02]"
-                                    : "border-slate-100 bg-white hover:border-teal-200 hover:shadow-xl",
-                                draggedOptionLetter && !matchedLetter && "border-teal-400/50 border-dashed bg-teal-50/10 ring-4 ring-teal-500/5"
+                                    ? "border-teal-500 bg-teal-50/30"
+                                    : "border-slate-100 bg-white hover:border-teal-200",
+                                isDragTarget && "border-teal-400 border-dashed bg-teal-50/10",
                             )}
-                            onDragOver={(e) => {
-                                e.preventDefault();
-                                e.currentTarget.classList.add("ring-8", "ring-teal-500/10", "border-teal-500");
-                            }}
-                            onDragLeave={(e) => {
-                                e.currentTarget.classList.remove("ring-8", "ring-teal-500/10", "border-teal-500");
-                            }}
+                            onDragOver={(e) => e.preventDefault()}
                             onDrop={(e) => {
                                 e.preventDefault();
-                                e.currentTarget.classList.remove("ring-8", "ring-teal-500/10", "border-teal-500");
-                                if (draggedOptionLetter) {
-                                    handleMatch(itemKey, draggedOptionLetter);
-                                }
+                                if (draggedOptionLetter) handleMatch(itemKey, draggedOptionLetter);
                             }}
                         >
-                            <CardContent className="p-6 flex flex-col gap-5">
-                                <div className="flex items-start justify-between">
-                                    <div className="space-y-2 flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="px-2 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-tighter">
-                                                CÂU HỎI {index + 1}
-                                            </span>
-                                            {matchedLetter && (
-                                                <motion.span
-                                                    initial={{ scale: 0 }}
-                                                    animate={{ scale: 1 }}
-                                                    className="flex items-center gap-1 text-[10px] font-semibold text-teal-600"
-                                                >
-                                                    <CheckCircle2 className="h-3 w-3" /> ĐÃ NỐI
-                                                </motion.span>
-                                            )}
-                                        </div>
-                                        <p className="text-slate-800 font-medium leading-relaxed italic">{itemText}</p>
-                                    </div>
+                            <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                                {/* Question label */}
+                                <div className="flex-1 min-w-0">
+                                    <span className="inline-block px-2 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-tighter mb-2">
+                                        Câu hỏi {index + 1}
+                                    </span>
+                                    <p className="text-slate-800 font-medium leading-relaxed text-sm">{itemText}</p>
                                 </div>
 
-                                {/* Drop Zone / Result Zone */}
+                                {/* Arrow */}
+                                <div className="hidden sm:flex items-center text-slate-300 flex-shrink-0">
+                                    <span className="text-xl">→</span>
+                                </div>
+
+                                {/* Drop slot */}
                                 <div
                                     className={cn(
-                                        "relative min-h-[64px] rounded-2xl border-2 border-dashed flex items-center justify-center transition-all px-4 py-3 group/slot",
+                                        "flex-shrink-0 sm:w-48 min-h-[52px] rounded-xl border-2 border-dashed flex items-center px-3 py-2 transition-all",
                                         matchedLetter
-                                            ? "border-teal-500 bg-white shadow-inner"
-                                            : "border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-teal-300"
+                                            ? "border-teal-500 bg-white"
+                                            : "border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-teal-300",
+                                        isDragTarget && "border-teal-400 bg-teal-50/20",
                                     )}
                                 >
                                     {matchedLetter ? (
-                                        <motion.div
-                                            key={matchedLetter}
-                                            initial={{ y: 20, opacity: 0 }}
-                                            animate={{ y: 0, opacity: 1 }}
-                                            className="flex items-center justify-between w-full"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="h-10 w-10 rounded-xl bg-teal-500 text-white flex items-center justify-center font-bold text-lg shadow-sm shadow-teal-200">
-                                                    {matchedLetter}
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Đáp án đã chọn</span>
-                                                    <span className="text-sm font-bold text-slate-700">{matchedOptionText}</span>
-                                                </div>
+                                        <div className="flex items-center gap-2 w-full">
+                                            <div className="h-8 w-8 rounded-lg bg-teal-500 text-white flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0">
+                                                {matchedLetter}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase leading-none block">
+                                                    Đã chọn
+                                                </span>
+                                                <span className="text-sm font-semibold text-slate-700 leading-tight line-clamp-2">
+                                                    {matchedOptionText}
+                                                </span>
                                             </div>
                                             <button
                                                 onClick={() => handleMatch(itemKey, null)}
-                                                className="h-8 w-8 rounded-full hover:bg-red-50 text-slate-300 hover:text-red-500 flex items-center justify-center transition-all duration-300 hover:rotate-90"
+                                                className="h-7 w-7 rounded-full hover:bg-red-50 text-slate-300 hover:text-red-500 flex items-center justify-center transition-all flex-shrink-0"
                                                 title="Gỡ đáp án"
                                             >
-                                                <X className="h-4 w-4" />
+                                                <X className="h-3.5 w-3.5" />
                                             </button>
-                                        </motion.div>
-                                    ) : (
-                                        <div className="flex flex-col items-center gap-1 opacity-40 group-hover/slot:opacity-100 transition-opacity">
-                                            <div className="h-8 w-8 rounded-xl bg-slate-200 border-2 border-slate-300 border-dashed flex items-center justify-center">
-                                                <Plus className="h-4 w-4 text-slate-400" />
-                                            </div>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter uppercase leading-none">
-                                                Kéo đáp án vào
-                                            </span>
                                         </div>
-                                    )}
-
-                                    {/* Visual Drop Indicator */}
-                                    {!matchedLetter && draggedOptionLetter && (
-                                        <motion.div
-                                            animate={{ opacity: [0.3, 0.6, 0.3] }}
-                                            transition={{ repeat: Infinity, duration: 1.5 }}
-                                            className="absolute inset-0 rounded-2xl bg-teal-500/5 border-2 border-teal-500"
-                                        />
+                                    ) : (
+                                        <div className="flex items-center gap-2 text-slate-400 w-full justify-center">
+                                            <div className="h-7 w-7 rounded-lg bg-slate-100 border border-slate-200 border-dashed flex items-center justify-center flex-shrink-0">
+                                                <Plus className="h-3.5 w-3.5" />
+                                            </div>
+                                            <span className="text-xs font-medium">Kéo đáp án vào đây</span>
+                                        </div>
                                     )}
                                 </div>
                             </CardContent>
@@ -237,14 +200,16 @@ export const MatchingRenderer = ({
                 })}
             </div>
 
-            <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
-                <div className="h-5 w-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-xs font-bold">!</span>
+            {data.items.length > 0 && (
+                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 flex items-start gap-2">
+                    <div className="h-5 w-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-xs font-bold">!</span>
+                    </div>
+                    <p className="text-xs text-blue-600/80 leading-relaxed">
+                        <strong>Mẹo:</strong> Kéo các thẻ chữ cái ở trên vào ô bên phải. Nhấn X để gỡ đáp án đã chọn.
+                    </p>
                 </div>
-                <p className="text-xs text-blue-600/80 leading-relaxed">
-                    <strong>Mẹo:</strong> Bạn có thể kéo các thẻ chữ cái ở trên vào ô trống ở mỗi câu hỏi. Để chọn lại, hãy nhấn vào dấu X bên cạnh đáp án đã chọn.
-                </p>
-            </div>
+            )}
         </div>
     );
 };

@@ -265,7 +265,7 @@ export function AnswerResultCard({
               </div>
             ) : (
               <div
-                className="text-sm pl-6 prose prose-sm max-w-none dark:prose-invert"
+                className="text-sm pl-6 rich-content"
                 dangerouslySetInnerHTML={{ __html: questionText }}
               />
             )}

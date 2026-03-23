@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,12 +18,17 @@ import FileUpload from "@/components/admin/FileUpload";
 import type { QuestionFormProps } from "./QuestionFormTypes";
 
 export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
-  const currentAnswers = (form.correctAnswer || "")
-    .split("|")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const currentAnswers = useMemo(
+    () =>
+      (form.correctAnswer || "")
+        .split("|")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    [form.correctAnswer],
+  );
 
-  const isMultiMode = currentAnswers.length > 1;
+  // Explicit state for multi-mode so toggle is always controllable
+  const [isMultiMode, setIsMultiMode] = useState(() => currentAnswers.length > 1);
 
   const addOption = () => {
     onChange({ options: [...form.options, ""] });
@@ -43,7 +49,6 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
   const toggleCorrectAnswer = (optionValue: string) => {
     const val = optionValue.trim();
     if (!val) return;
-
     let newAnswers = [...currentAnswers];
     if (newAnswers.includes(val)) {
       newAnswers = newAnswers.filter((a) => a !== val);
@@ -75,14 +80,14 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
     }
   };
 
-  // Toggle multi-mode: switch from single → multi keeps existing selection
   const handleToggleMultiMode = (enabled: boolean) => {
+    setIsMultiMode(enabled);
     if (!enabled) {
       // Switching to single: keep only first correct answer
       const first = currentAnswers[0] || "";
       onChange({ correctAnswer: first });
     }
-    // Switching to multi: no change needed, admin just clicks multiple options
+    // Switching to multi: no change needed, admin clicks multiple options
   };
 
   return (
@@ -131,10 +136,10 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
         </div>
 
         {/* Multi-answer toggle */}
-        <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800/40 p-3">
-          <div className="flex items-center gap-2">
-            <ToggleLeft className="h-4 w-4 text-blue-600" />
-            <div>
+        <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800/40 p-3 gap-4">
+          <div className="flex items-center gap-2 min-w-0">
+            <ToggleLeft className="h-4 w-4 text-blue-600 flex-shrink-0" />
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground">Cho phép nhiều đáp án đúng</p>
               <p className="text-xs text-muted-foreground">
                 {isMultiMode
@@ -154,8 +159,8 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
           <div className="flex items-center justify-between">
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {isMultiMode
-                ? "Các lựa chọn (click để chọn/bỏ đáp án đúng)"
-                : "Các lựa chọn (click để chọn đáp án đúng)"}
+                ? "Lựa chọn (click để bật/tắt đáp án đúng)"
+                : "Lựa chọn (click để chọn đáp án đúng)"}
             </Label>
             <Button
               type="button"
@@ -170,8 +175,8 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
           </div>
 
           {isMultiMode && (
-            <div className="text-xs text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 p-2 rounded flex items-center gap-2">
-              <CheckSquare className="h-4 w-4 flex-shrink-0" />
+            <div className="text-xs text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 p-2 rounded flex items-start gap-2">
+              <CheckSquare className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <span>
                 Đang ở chế độ <strong>nhiều đáp án</strong>. Click vào lựa chọn để thêm/bỏ đáp án đúng.
                 Frontend sẽ hiển thị dạng <strong>Checkbox</strong> cho học sinh.
@@ -179,7 +184,7 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
             </div>
           )}
 
-          <div className="grid gap-2">
+          <div className="flex flex-col gap-2">
             {form.options.map((opt, i) => {
               const isCorrect =
                 opt.trim() !== "" && currentAnswers.includes(opt.trim());
@@ -201,7 +206,7 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
                   }}
                 >
                   <div
-                    className={`flex-shrink-0 w-7 h-7 rounded-${isMultiMode ? "md" : "full"} flex items-center justify-center text-xs font-bold ${
+                    className={`flex-shrink-0 w-7 h-7 ${isMultiMode ? "rounded-md" : "rounded-full"} flex items-center justify-center text-xs font-bold ${
                       isCorrect
                         ? "bg-green-500 text-white"
                         : "bg-blue-100 text-blue-600 dark:bg-blue-900/30"
@@ -218,14 +223,14 @@ export function MultipleChoiceForm({ form, onChange }: QuestionFormProps) {
                     value={opt}
                     onChange={(e) => updateOptionText(i, e.target.value)}
                     onClick={(e) => e.stopPropagation()}
-                    className="bg-transparent border-none shadow-none focus-visible:ring-0 h-8"
+                    className="bg-transparent border-none shadow-none focus-visible:ring-0 h-8 flex-1 min-w-0"
                   />
                   {form.options.length > 2 && (
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive flex-shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         removeOption(i);
