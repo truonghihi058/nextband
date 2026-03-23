@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { submissionsApi, sectionsApi } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,13 +40,15 @@ const statusConfig: Record<
 
 export default function SubmissionDetail() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const submissionId = id || searchParams.get("submissionId") || undefined;
 
   const { data: submission, isLoading } = useQuery({
-    queryKey: ["student-submission", id],
-    queryFn: () => submissionsApi.getById(id!),
-    enabled: !!id && isAuthenticated,
+    queryKey: ["student-submission", submissionId],
+    queryFn: () => submissionsApi.getById(submissionId!),
+    enabled: !!submissionId && isAuthenticated,
   });
 
   const sections = submission?.exam?.sections || [];

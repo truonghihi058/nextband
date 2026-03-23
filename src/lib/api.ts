@@ -357,6 +357,11 @@ export const submissionsApi = {
     return data;
   },
 
+  getLatestByExam: async (examId: string) => {
+    const { data } = await api.get(`/submissions/latest/${examId}`);
+    return data?.data ?? null;
+  },
+
   start: async (examId: string) => {
     const { data } = await api.post("/submissions", { examId });
     return data;

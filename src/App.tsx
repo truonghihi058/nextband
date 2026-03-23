@@ -65,6 +65,10 @@ const App = () => (
               <Route path="/my-submissions" element={<MySubmissions />} />
               <Route path="/course/:slug" element={<CourseDetail />} />
               <Route path="/submissions/:id" element={<SubmissionDetail />} />
+              <Route
+                path="/exam/:examId/review"
+                element={<SubmissionDetail />}
+              />
               <Route path="/profile" element={<Profile />} />
             </Route>
 

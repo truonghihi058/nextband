@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { submissionsApi } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Eye,
+  Loader2,
   Search,
   X,
 } from "lucide-react";
@@ -111,6 +112,51 @@ export default function MySubmissions() {
       })
     : submissions;
 
+  const examIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          filteredSubmissions
+            .map((submission: any) => submission.examId)
+            .filter(Boolean),
+        ),
+      ),
+    [filteredSubmissions],
+  );
+
+  const latestSubmissionQueries = useQueries({
+    queries: examIds.map((examId) => ({
+      queryKey: ["latest-submission-by-exam", examId],
+      queryFn: () => submissionsApi.getLatestByExam(examId),
+      enabled: isAuthenticated && !!examId,
+      staleTime: 30_000,
+    })),
+  });
+
+  const latestSubmissionByExam = useMemo(() => {
+    const result: Record<string, any | null> = {};
+    examIds.forEach((examId, index) => {
+      result[examId] = latestSubmissionQueries[index]?.data ?? null;
+    });
+    return result;
+  }, [examIds, latestSubmissionQueries]);
+
+  const latestSubmissionLoadingByExam = useMemo(() => {
+    const result: Record<string, boolean> = {};
+    examIds.forEach((examId, index) => {
+      result[examId] = !!latestSubmissionQueries[index]?.isLoading;
+    });
+    return result;
+  }, [examIds, latestSubmissionQueries]);
+
+  const latestSubmissionErrorByExam = useMemo(() => {
+    const result: Record<string, boolean> = {};
+    examIds.forEach((examId, index) => {
+      result[examId] = !!latestSubmissionQueries[index]?.isError;
+    });
+    return result;
+  }, [examIds, latestSubmissionQueries]);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -179,6 +225,18 @@ export default function MySubmissions() {
                   const status =
                     statusConfig[submission.status || "in_progress"];
                   const StatusIcon = status.icon;
+                  const latestReviewSubmission = submission.examId
+                    ? latestSubmissionByExam[submission.examId]
+                    : null;
+                  const latestReviewLoading = submission.examId
+                    ? latestSubmissionLoadingByExam[submission.examId]
+                    : false;
+                  const latestReviewError = submission.examId
+                    ? latestSubmissionErrorByExam[submission.examId]
+                    : false;
+                  const latestReviewLink = latestReviewSubmission
+                    ? `/exam/${submission.examId}/review?submissionId=${latestReviewSubmission.id}`
+                    : null;
 
                   return (
                     <TableRow key={submission.id}>
@@ -224,22 +282,47 @@ export default function MySubmissions() {
                           : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        {submission.status === "in_progress" ? (
-                          <Button size="sm" asChild>
-                            <Link to={`/exam/${submission.examId}`}>
-                              Tiếp tục
-                            </Link>
-                          </Button>
-                        ) : (
-                          <Button size="sm" variant="outline" asChild>
-                            <Link to={`/submissions/${submission.id}`}>
-                              <Eye className="mr-1 h-3.5 w-3.5" />
-                              {submission.status === "graded"
-                                ? "Xem kết quả"
-                                : "Xem chi tiết"}
-                            </Link>
-                          </Button>
-                        )}
+                        <div className="flex items-center justify-end gap-2">
+                          {submission.status === "in_progress" ? (
+                            <Button size="sm" asChild>
+                              <Link to={`/exam/${submission.examId}`}>
+                                Tiếp tục
+                              </Link>
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" asChild>
+                              <Link to={`/submissions/${submission.id}`}>
+                                <Eye className="mr-1 h-3.5 w-3.5" />
+                                {submission.status === "graded"
+                                  ? "Xem kết quả"
+                                  : "Xem chi tiết"}
+                              </Link>
+                            </Button>
+                          )}
+
+                          {latestReviewLoading && (
+                            <Button size="sm" variant="outline" disabled>
+                              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                              Đang tải
+                            </Button>
+                          )}
+
+                          {!latestReviewLoading && latestReviewLink && (
+                            <Button size="sm" variant="secondary" asChild>
+                              <Link to={latestReviewLink}>
+                                Xem lại lần làm gần nhất
+                              </Link>
+                            </Button>
+                          )}
+
+                          {!latestReviewLoading &&
+                            !latestReviewLink &&
+                            latestReviewError && (
+                              <Button size="sm" variant="outline" disabled>
+                                Không tải được review
+                              </Button>
+                            )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
