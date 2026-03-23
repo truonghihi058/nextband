@@ -310,7 +310,7 @@ export default function MySubmissions() {
                           {!latestReviewLoading && latestReviewLink && (
                             <Button size="sm" variant="secondary" asChild>
                               <Link to={latestReviewLink}>
-                                Xem lại lần làm gần nhất
+                                Xem lại
                               </Link>
                             </Button>
                           )}
