@@ -74,7 +74,10 @@ export default function AdminCourses() {
     mutationFn: async (id: string) => coursesApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
-      toast({ title: "Đã xóa", description: "Khóa học đã được xóa" });
+      toast({
+        title: "Đã chuyển trạng thái",
+        description: "Khóa học đã được ngừng hoạt động",
+      });
       setDeleteCourse(null);
     },
     onError: (err: any) => {
