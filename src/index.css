@@ -219,6 +219,7 @@
     line-height: 1.7;
     word-break: break-word;
     overflow-wrap: break-word;
+    width: 100%;
   }
 
   .rich-content p {
@@ -233,9 +234,35 @@
     margin-bottom: 1.25em;
     text-align: justify;
     text-justify: inter-word;
+    hyphens: auto;
   }
   .rich-content-passage p:last-child {
     margin-bottom: 0;
+  }
+  .rich-content [style*="text-align: justify"],
+  .rich-content .is-text-align-justify {
+    text-align: justify;
+    text-justify: inter-word;
+  }
+  .rich-content [style*="text-align: center"],
+  .rich-content .is-text-align-center {
+    text-align: center;
+  }
+  .rich-content [style*="text-align: right"],
+  .rich-content .is-text-align-right {
+    text-align: right;
+  }
+  .rich-content [style*="text-align: left"],
+  .rich-content .is-text-align-left {
+    text-align: left;
+  }
+
+  @media (max-width: 640px) {
+    .rich-content-passage p,
+    .rich-content [style*="text-align: justify"],
+    .rich-content .is-text-align-justify {
+      text-align: left;
+    }
   }
   .rich-content strong, .rich-content b { font-weight: 700; }
   .rich-content em, .rich-content i { font-style: italic; }

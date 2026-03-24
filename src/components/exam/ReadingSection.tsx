@@ -28,6 +28,7 @@ import { RichContent } from "./RichContent";
 
 import {
   FillBlankHtmlRenderer,
+  FILL_BLANK_PLACEHOLDER_REGEX,
   hasFillBlankPlaceholders,
 } from "./FillBlankHtmlRenderer";
 import { MatchingRenderer } from "./MatchingRenderer";
@@ -44,6 +45,41 @@ interface ReadingSectionProps {
 const containsHtml = (text: string) => /<[^>]+>/.test(text);
 const normalizeText = (text: string) =>
   text.replace(/\s+/g, " ").replace(/\u00a0/g, " ").trim();
+const stripHtml = (text: string) => (text || "").replace(/<[^>]*>/g, " ");
+const normalizeForCompare = (text: string) =>
+  stripHtml(text)
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+const isLikelyDuplicateWithPassage = (questionText: string, passage: string) => {
+  const q = normalizeForCompare(questionText);
+  const p = normalizeForCompare(passage);
+  if (!q || !p) return false;
+  if (q.length < 40 || p.length < 40) return false;
+  return q === p || q.includes(p) || p.includes(q);
+};
+const getBlankKeysFromQuestionText = (text: string): string[] => {
+  if (!text) return [];
+  const plain = stripHtml(text);
+  const regex = new RegExp(FILL_BLANK_PLACEHOLDER_REGEX.source, "g");
+  const matches = Array.from(plain.matchAll(regex));
+  const keys: string[] = [];
+  let implicitIndex = 0;
+
+  matches.forEach((match) => {
+    const raw = match[0] || "";
+    const indexMatch = raw.match(/^\[BLANK_(\d+)\]$/);
+    if (indexMatch) {
+      keys.push(String(Math.max(0, Number(indexMatch[1]) - 1)));
+      return;
+    }
+    keys.push(String(implicitIndex));
+    implicitIndex++;
+  });
+
+  return Array.from(new Set(keys));
+};
 const toPlainTextWithParagraphs = (html: string) => {
   if (!html) return "";
   // Preserve line/paragraph boundaries from rich text HTML.
@@ -494,7 +530,7 @@ export function ReadingSection({
           {leftTab === "passage" && passageText && (
             <div
               ref={passageContentRef}
-              className="rich-content rich-content-passage leading-relaxed text-foreground select-text"
+              className="rich-content rich-content-passage w-full leading-relaxed text-foreground select-text"
             >
               {highlights.length === 0 ? (
                 <RichContent html={passageText} variant="passage" />
@@ -626,17 +662,27 @@ export function ReadingSection({
 
               {(group.questions || []).map((question: any, qIndex: number) => {
                 const isCurrent = question.id === currentQuestionId;
+                const questionText = question.question_text || "";
+                const groupPassageText = group.passage || passageText || "";
+                const isDuplicatePassageQuestion = isLikelyDuplicateWithPassage(
+                  questionText,
+                  groupPassageText,
+                );
                 const hasPlaceholders = hasFillBlankPlaceholders(
-                  question.question_text || "",
+                  questionText,
                 );
                 const isFillBlankLike =
                   question.question_type === "fill_blank" || hasPlaceholders;
+                const compactBlankKeys = isFillBlankLike
+                  ? getBlankKeysFromQuestionText(questionText)
+                  : [];
 
                 if (import.meta.env.DEV && hasPlaceholders && question.id) {
                   console.debug("[ReadingSection][fill_blank debug]", {
                     id: question.id,
                     question_type: question.question_type,
-                    question_text: question.question_text,
+                    question_text: questionText,
+                    isDuplicatePassageQuestion,
                   });
                 }
 
@@ -663,11 +709,16 @@ export function ReadingSection({
                         </span>
                         <div className="flex-1 space-y-3">
                           {/* Only show question text here if it's NOT a fill_blank-like question */}
-                          {!isFillBlankLike && (
+                          {!isFillBlankLike && !isDuplicatePassageQuestion && (
                             <RichContent
-                              html={question.question_text}
+                              html={questionText}
                               className="font-semibold text-base"
                             />
+                          )}
+                          {!isFillBlankLike && isDuplicatePassageQuestion && (
+                            <p className="text-xs font-medium text-muted-foreground italic">
+                              Câu hỏi tham chiếu nội dung passage bên trái.
+                            </p>
                           )}
 
                           {question.question_audio_url && (
@@ -795,12 +846,48 @@ export function ReadingSection({
                           question.question_type === "short_answer") && (
                             <div className="space-y-2">
                               {isFillBlankLike ? (
-                                <FillBlankHtmlRenderer
-                                  html={question.question_text}
-                                  answers={answers[question.id] || {}}
-                                  questionId={question.id}
-                                  onAnswerChange={onAnswerChange as any}
-                                />
+                                isDuplicatePassageQuestion ? (
+                                  <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+                                    <p className="text-xs text-muted-foreground font-medium">
+                                      Nội dung passage đã hiển thị bên trái.
+                                      Nhập đáp án theo thứ tự các ô trống:
+                                    </p>
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                      {compactBlankKeys.map((blankKey, idx) => (
+                                        <div
+                                          key={`${question.id}-${blankKey}`}
+                                          className="space-y-1"
+                                        >
+                                          <Label className="text-xs text-muted-foreground">
+                                            Blank {idx + 1}
+                                          </Label>
+                                          <Input
+                                            placeholder={`Đáp án #${idx + 1}`}
+                                            value={
+                                              (answers[question.id] || {})[
+                                                blankKey
+                                              ] || ""
+                                            }
+                                            onChange={(e) =>
+                                              onAnswerChange(question.id, {
+                                                ...(answers[question.id] || {}),
+                                                [blankKey]: e.target.value,
+                                              })
+                                            }
+                                            className="h-10"
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <FillBlankHtmlRenderer
+                                    html={questionText}
+                                    answers={answers[question.id] || {}}
+                                    questionId={question.id}
+                                    onAnswerChange={onAnswerChange as any}
+                                  />
+                                )
                               ) : (
                                 /* Standard rendering for short_answer or fill_blank without placeholders */
                                 <div className="space-y-2">

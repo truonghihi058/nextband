@@ -48,6 +48,7 @@ import {
 import FileUpload from "@/components/admin/FileUpload";
 import DeleteConfirmDialog from "@/components/admin/DeleteConfirmDialog";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { RichContent } from "@/components/exam/RichContent";
 import {
   QuestionFormRenderer,
   stringifyFillBlankAnswers,
@@ -809,9 +810,7 @@ export default function AdminSectionEdit() {
                           <div className="text-[10px] uppercase text-muted-foreground font-bold mb-2">
                             Passage / Nội dung:
                           </div>
-                          <div
-                            dangerouslySetInnerHTML={{ __html: group.passage }}
-                          />
+                          <RichContent html={group.passage} variant="passage" />
                         </div>
                       )}
 

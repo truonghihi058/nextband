@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Bold,
@@ -11,6 +11,7 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  AlignJustify,
   ImagePlus,
   Loader2,
 } from "lucide-react";
@@ -33,6 +34,8 @@ interface RichTextEditorProps {
   minHeight?: number;
 }
 
+type AlignMode = "left" | "center" | "right" | "justify";
+
 export function RichTextEditor({
   value,
   onChange,
@@ -41,16 +44,40 @@ export function RichTextEditor({
   minHeight = 180,
 }: RichTextEditorProps) {
   const [uploading, setUploading] = useState(false);
+  const [alignMode, setAlignMode] = useState<AlignMode>("left");
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const detectAlignMode = useCallback(() => {
+    if (document.queryCommandState("justifyCenter")) {
+      setAlignMode("center");
+      return;
+    }
+    if (document.queryCommandState("justifyRight")) {
+      setAlignMode("right");
+      return;
+    }
+    if (document.queryCommandState("justifyFull")) {
+      setAlignMode("justify");
+      return;
+    }
+    setAlignMode("left");
+  }, []);
 
   useEffect(() => {
     if (!editorRef.current) return;
     if (editorRef.current.innerHTML !== value) {
       editorRef.current.innerHTML = value || "";
     }
-  }, [value]);
+    detectAlignMode();
+  }, [value, detectAlignMode]);
+
+  useEffect(() => {
+    const syncAlignState = () => detectAlignMode();
+    document.addEventListener("selectionchange", syncAlignState);
+    return () => document.removeEventListener("selectionchange", syncAlignState);
+  }, [detectAlignMode]);
 
   const insertImageAtRange = (
     fullUrl: string,
@@ -215,6 +242,7 @@ export function RichTextEditor({
       onChange(editorRef.current.innerHTML);
       editorRef.current.focus();
     }
+    detectAlignMode();
   };
 
   return (
@@ -268,6 +296,8 @@ export function RichTextEditor({
           variant="ghost"
           size="icon"
           onClick={() => exec("justifyLeft")}
+          className={cn(alignMode === "left" && "bg-muted text-foreground")}
+          title="Căn trái"
         >
           <AlignLeft className="h-4 w-4" />
         </Button>
@@ -276,6 +306,8 @@ export function RichTextEditor({
           variant="ghost"
           size="icon"
           onClick={() => exec("justifyCenter")}
+          className={cn(alignMode === "center" && "bg-muted text-foreground")}
+          title="Căn giữa"
         >
           <AlignCenter className="h-4 w-4" />
         </Button>
@@ -284,8 +316,20 @@ export function RichTextEditor({
           variant="ghost"
           size="icon"
           onClick={() => exec("justifyRight")}
+          className={cn(alignMode === "right" && "bg-muted text-foreground")}
+          title="Căn phải"
         >
           <AlignRight className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => exec("justifyFull")}
+          className={cn(alignMode === "justify" && "bg-muted text-foreground")}
+          title="Căn đều 2 lề"
+        >
+          <AlignJustify className="h-4 w-4" />
         </Button>
 
         <div className="h-4 w-px bg-border mx-1" />
@@ -353,10 +397,12 @@ export function RichTextEditor({
       <div
         ref={editorRef}
         contentEditable
-        className="p-3 text-sm outline-none"
+        className="p-3 text-sm outline-none rich-content w-full"
         style={{ minHeight }}
         data-placeholder={placeholder}
         onInput={(e) => onChange((e.target as HTMLDivElement).innerHTML)}
+        onMouseUp={detectAlignMode}
+        onKeyUp={detectAlignMode}
         onPaste={handlePaste}
         onDrop={handleDrop}
         suppressContentEditableWarning
