@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { submissionsApi, examsApi } from "@/lib/api";
+import { submissionsApi, examsApi, classesApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,13 +32,19 @@ export default function AdminCheckAttempt() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [examFilter, setExamFilter] = useState<string>("all");
+  const [classFilter, setClassFilter] = useState<string>("all");
 
   const { data: examsData } = useQuery({
     queryKey: ["admin-exams-filter"],
     queryFn: () => examsApi.list({ limit: 100 }),
   });
+  const { data: classesData } = useQuery({
+    queryKey: ["admin-classes-filter"],
+    queryFn: () => classesApi.list({ limit: 100 }),
+  });
 
   const exams = examsData?.data || [];
+  const classes = classesData?.data || [];
 
   const { data: submissionsData, isLoading } = useQuery({
     queryKey: [
@@ -47,12 +53,19 @@ export default function AdminCheckAttempt() {
       sortOrder,
       statusFilter,
       examFilter,
+      classFilter,
     ],
     queryFn: () =>
       submissionsApi.list({
+        limit: 100,
         status: statusFilter !== "all" ? statusFilter : undefined,
         examId: examFilter !== "all" ? examFilter : undefined,
+        classId: classFilter !== "all" ? classFilter : undefined,
+        sortBy: "submittedAt",
+        sortOrder: "desc",
       }),
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
   });
 
   const submissions = submissionsData?.data || [];
@@ -148,6 +161,20 @@ export default function AdminCheckAttempt() {
                 {exams?.map((exam: any) => (
                   <SelectItem key={exam.id} value={exam.id}>
                     {exam.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={classFilter} onValueChange={setClassFilter}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Lớp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả lớp</SelectItem>
+                {classes?.map((cls: any) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name}
                   </SelectItem>
                 ))}
               </SelectContent>

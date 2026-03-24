@@ -17,6 +17,25 @@ interface GradeUpdate {
   feedback: string;
 }
 
+const getOrderValue = (item: any) => {
+  const order = item?.orderIndex ?? item?.order_index;
+  return typeof order === "number" ? order : Number.MAX_SAFE_INTEGER;
+};
+
+const getCreatedValue = (item: any) => {
+  const raw = item?.createdAt ?? item?.created_at;
+  const t = raw ? new Date(raw).getTime() : 0;
+  return Number.isFinite(t) ? t : 0;
+};
+
+const compareByDisplayOrder = (a: any, b: any) => {
+  const orderDiff = getOrderValue(a) - getOrderValue(b);
+  if (orderDiff !== 0) return orderDiff;
+  const createdDiff = getCreatedValue(a) - getCreatedValue(b);
+  if (createdDiff !== 0) return createdDiff;
+  return String(a?.id || "").localeCompare(String(b?.id || ""));
+};
+
 export default function SubmissionGrade() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -48,10 +67,10 @@ export default function SubmissionGrade() {
     if (!sections) return [];
     return sections.flatMap((sec: any) =>
       (sec.questionGroups || [])
-        .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
+        .sort(compareByDisplayOrder)
         .flatMap((g: any) =>
           (g.questions || [])
-            .sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
+            .sort(compareByDisplayOrder)
             .map((q: any) => ({ ...q, _sectionType: sec.sectionType })),
         ),
     );
@@ -268,7 +287,7 @@ export default function SubmissionGrade() {
 
       {/* Questions by section */}
       {sections
-        ?.sort((a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0))
+        ?.sort(compareByDisplayOrder)
         .map((section: any) => (
           <div key={section.id} className="space-y-4">
             <CardHeader className="px-0 pb-2">
@@ -281,9 +300,7 @@ export default function SubmissionGrade() {
             </CardHeader>
 
             {(section.questionGroups || [])
-              .sort(
-                (a: any, b: any) => (a.orderIndex || 0) - (b.orderIndex || 0),
-              )
+              .sort(compareByDisplayOrder)
               .map((group: any, gIndex: number) => (
                 <div key={group.id} className="space-y-3">
                   {(group.title || group.instructions) && (
@@ -302,10 +319,7 @@ export default function SubmissionGrade() {
                   )}
 
                   {(group.questions || [])
-                    .sort(
-                      (a: any, b: any) =>
-                        (a.orderIndex || 0) - (b.orderIndex || 0),
-                    )
+                    .sort(compareByDisplayOrder)
                     .map((question: any) => {
                       questionCounter++;
                       const answer = answerMap[question.id];

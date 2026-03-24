@@ -347,6 +347,9 @@ export const submissionsApi = {
     examId?: string;
     studentId?: string;
     status?: string;
+    classId?: string;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
   }) => {
     const { data } = await api.get("/submissions", { params });
     return data;
