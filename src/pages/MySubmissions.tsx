@@ -214,7 +214,6 @@ export default function MySubmissions() {
                   <TableHead>Bài thi</TableHead>
                   <TableHead>Khóa học</TableHead>
                   <TableHead>Trạng thái</TableHead>
-                  <TableHead className="text-center">Kết quả</TableHead>
                   <TableHead className="text-center">Điểm</TableHead>
                   <TableHead>Ngày làm</TableHead>
                   <TableHead className="text-right">Thao tác</TableHead>
@@ -251,16 +250,6 @@ export default function MySubmissions() {
                           <StatusIcon className="h-3 w-3" />
                           {status.label}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {submission.correctAnswers != null &&
-                        submission.totalQuestions != null ? (
-                          <span className="font-semibold text-green-600">
-                            {submission.correctAnswers}/{submission.totalQuestions}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
                       </TableCell>
                       <TableCell className="text-center">
                         {submission.status === "graded" &&
