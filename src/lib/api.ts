@@ -114,6 +114,8 @@ export const authApi = {
     fullName?: string;
     bio?: string;
     avatarUrl?: string;
+    phone?: string;
+    gender?: string;
   }) => {
     const { data } = await api.put("/auth/profile", profile);
     return data;

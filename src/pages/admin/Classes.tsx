@@ -40,6 +40,7 @@ import {
   Loader2,
   Calendar,
   GraduationCap,
+  School,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -221,6 +222,18 @@ export default function AdminClasses() {
   };
 
   const handleSave = () => {
+    if (form.startDate && form.endDate) {
+      const start = new Date(form.startDate).getTime();
+      const end = new Date(form.endDate).getTime();
+      if (Number.isFinite(start) && Number.isFinite(end) && start > end) {
+        toast({
+          title: "Lỗi",
+          description: "Ngày bắt đầu không được lớn hơn ngày kết thúc",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     if (editingClass) {
       updateMutation.mutate({ id: editingClass.id, ...form });
     } else {
@@ -240,7 +253,17 @@ export default function AdminClasses() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Quản lý lớp học</h1>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <School className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Quản lý lớp học</h1>
+            <p className="text-sm text-muted-foreground">
+              {total} lớp học trong hệ thống
+            </p>
+          </div>
+        </div>
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" />
           Thêm lớp học

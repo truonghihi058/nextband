@@ -86,26 +86,83 @@ const App = () => (
             {/* Admin Routes */}
             <Route
               element={
-                <ProtectedRoute requiredRoles={["admin"]}>
+                <ProtectedRoute requiredRoles={["admin", "teacher"]}>
                   <AdminLayout />
                 </ProtectedRoute>
               }
             >
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/courses" element={<AdminCourses />} />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/courses"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminCourses />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/admin/courses/create"
-                element={<AdminCourseCreate />}
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminCourseCreate />
+                  </ProtectedRoute>
+                }
               />
-              <Route path="/admin/courses/:id" element={<AdminCourseEdit />} />
-              <Route path="/admin/exams" element={<AdminExams />} />
-              <Route path="/admin/exams/create" element={<AdminExamCreate />} />
-              <Route path="/admin/exams/:id" element={<AdminExamEdit />} />
+              <Route
+                path="/admin/courses/:id"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminCourseEdit />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/exams"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminExams />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/exams/create"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminExamCreate />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/exams/:id"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminExamEdit />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/admin/sections/:id"
-                element={<AdminSectionEdit />}
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminSectionEdit />
+                  </ProtectedRoute>
+                }
               />
-              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route
+                path="/admin/users"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminUsers />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/admin/check-attempt"
                 element={<AdminCheckAttempt />}
@@ -114,10 +171,38 @@ const App = () => (
                 path="/admin/submissions/:id"
                 element={<AdminSubmissionGrade />}
               />
-              <Route path="/admin/logs" element={<AdminLogViewer />} />
-              <Route path="/admin/classes" element={<AdminClasses />} />
-              <Route path="/admin/classes/:id" element={<AdminClassEdit />} />
-              <Route path="/admin/teachers" element={<AdminTeachers />} />
+              <Route
+                path="/admin/logs"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminLogViewer />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/classes"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminClasses />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/classes/:id"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminClassEdit />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/teachers"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminTeachers />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
 
             {/* Catch-all */}

@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit, Trash2, ArrowUpDown } from "lucide-react";
+import { Plus, Search, Edit, Trash2, ArrowUpDown, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
@@ -77,6 +77,13 @@ export default function AdminCourses() {
       toast({ title: "Đã xóa", description: "Khóa học đã được xóa" });
       setDeleteCourse(null);
     },
+    onError: (err: any) => {
+      toast({
+        title: "Lỗi",
+        description: err.response?.data?.error || "Không thể xóa khóa học",
+        variant: "destructive",
+      });
+    },
   });
 
   const toggleSort = (field: SortField) => {
@@ -115,7 +122,17 @@ export default function AdminCourses() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Quản lý khóa học</h1>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <BookOpen className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Quản lý khóa học</h1>
+            <p className="text-sm text-muted-foreground">
+              {total} khóa học trong hệ thống
+            </p>
+          </div>
+        </div>
         <Button asChild>
           <Link to="/admin/courses/create">
             <Plus className="mr-2 h-4 w-4" />
@@ -194,6 +211,12 @@ export default function AdminCourses() {
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive"
+                      disabled={(course as any)._count?.enrollments > 0}
+                      title={
+                        (course as any)._count?.enrollments > 0
+                          ? `Không thể xóa — còn ${(course as any)._count.enrollments} học viên`
+                          : "Xóa khóa học"
+                      }
                       onClick={() =>
                         setDeleteCourse({ id: course.id, title: course.title })
                       }

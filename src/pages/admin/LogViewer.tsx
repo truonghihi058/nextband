@@ -75,14 +75,16 @@ export default function LogViewer() {
   return (
     <div className="space-y-6 h-[calc(100vh-120px)] flex flex-col">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileText className="h-6 w-6" />
-            System Logs
-          </h1>
-          <p className="text-muted-foreground">
-            Xem nhật ký hệ thống thời gian thực
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <FileText className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">System Logs</h1>
+            <p className="text-muted-foreground">
+              Xem nhật ký hệ thống thời gian thực
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Select value={lines} onValueChange={setLines}>

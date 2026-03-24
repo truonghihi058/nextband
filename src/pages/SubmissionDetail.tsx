@@ -125,7 +125,7 @@ export default function SubmissionDetail() {
 
     const autoGradableTypes = [
       "multiple_choice", "true_false_not_given", "yes_no_not_given",
-      "short_answer", "fill_blank", "listening",
+      "short_answer", "fill_blank", "listening", "matching",
     ];
 
     let correctCount = 0;

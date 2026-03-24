@@ -13,7 +13,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, ArrowUpDown, Search } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  ArrowUpDown,
+  Search,
+  ClipboardList,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
@@ -115,7 +122,17 @@ export default function AdminExams() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Quản lý bài thi</h1>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <ClipboardList className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Quản lý bài thi</h1>
+            <p className="text-sm text-muted-foreground">
+              {total} bài thi trong hệ thống
+            </p>
+          </div>
+        </div>
         <Button asChild>
           <Link to="/admin/exams/create">
             <Plus className="mr-2 h-4 w-4" />

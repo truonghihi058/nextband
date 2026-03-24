@@ -30,7 +30,15 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, User, ArrowUpDown, Plus, Edit, Loader2 } from "lucide-react";
+import {
+  Search,
+  User,
+  Users,
+  ArrowUpDown,
+  Plus,
+  Edit,
+  Loader2,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 
@@ -212,7 +220,17 @@ export default function AdminUsers() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Quản lý người dùng</h1>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <Users className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Quản lý người dùng</h1>
+            <p className="text-sm text-muted-foreground">
+              {total} người dùng trong hệ thống
+            </p>
+          </div>
+        </div>
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" />
           Thêm học viên

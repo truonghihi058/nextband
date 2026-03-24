@@ -15,6 +15,8 @@ interface User {
   fullName: string | null;
   avatarUrl: string | null;
   bio?: string | null;
+  phone?: string | null;
+  gender?: string | null;
   roles: AppRole[];
 }
 
@@ -64,6 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fullName: userData.fullName,
         avatarUrl: userData.avatarUrl,
         bio: userData.bio,
+        phone: userData.phone,
+        gender: userData.gender,
         roles: userData.roles as AppRole[],
       });
     } catch (error) {
@@ -90,6 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: response.user.email,
         fullName: response.user.fullName,
         avatarUrl: response.user.avatarUrl,
+        phone: response.user.phone,
+        gender: response.user.gender,
         roles: response.user.roles as AppRole[],
       });
 
@@ -114,6 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: response.user.email,
         fullName: response.user.fullName,
         avatarUrl: response.user.avatarUrl,
+        phone: response.user.phone,
+        gender: response.user.gender,
         roles: response.user.roles as AppRole[],
       });
 

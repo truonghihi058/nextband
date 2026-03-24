@@ -85,6 +85,7 @@ export default function ExamInterface() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [initialTimeLeft, setInitialTimeLeft] = useState<number | null>(null);
 
   const questionRefs = useRef<Map<string, HTMLElement>>(new Map());
 
@@ -116,6 +117,25 @@ export default function ExamInterface() {
   });
 
   const submission = submissionData;
+
+  useEffect(() => {
+    if (!exam) return;
+    const durationSeconds = (exam.durationMinutes || 60) * 60;
+    if (!submission?.startedAt) {
+      setInitialTimeLeft(durationSeconds);
+      return;
+    }
+    const startedAt = new Date(submission.startedAt).getTime();
+    if (!Number.isFinite(startedAt)) {
+      setInitialTimeLeft(durationSeconds);
+      return;
+    }
+    const elapsedSeconds = Math.max(
+      0,
+      Math.floor((Date.now() - startedAt) / 1000),
+    );
+    setInitialTimeLeft(Math.max(0, durationSeconds - elapsedSeconds));
+  }, [exam, submission?.startedAt]);
 
   // Load existing answers if resuming
   const { data: savedAnswersData } = useQuery({
@@ -447,6 +467,9 @@ export default function ExamInterface() {
           <div className="flex items-center gap-6">
             <ExamTimer
               duration={exam.durationMinutes || 60}
+              initialSeconds={
+                initialTimeLeft ?? (exam.durationMinutes || 60) * 60
+              }
               onTimeUp={handleTimeUp}
               size="large"
             />

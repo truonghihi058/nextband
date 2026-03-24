@@ -9,6 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, User, Camera, Lock, Save } from "lucide-react";
 
 export default function Profile() {
@@ -23,6 +30,8 @@ export default function Profile() {
   const [fullName, setFullName] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState("");
 
   const [passwords, setPasswords] = useState({
     currentPassword: "",
@@ -35,6 +44,8 @@ export default function Profile() {
       setFullName(user.fullName || "");
       setBio(user.bio || "");
       setAvatarUrl(user.avatarUrl || "");
+      setPhone(user.phone || "");
+      setGender(user.gender || "");
     }
   }, [user]);
 
@@ -42,7 +53,7 @@ export default function Profile() {
     e.preventDefault();
     setIsUpdatingInfo(true);
     try {
-      await authApi.updateProfile({ fullName, bio, avatarUrl });
+      await authApi.updateProfile({ fullName, bio, avatarUrl, phone, gender });
       await refreshUser();
       toast({
         title: "Cập nhật thành công",
@@ -184,6 +195,30 @@ export default function Profile() {
                     placeholder="Nhập họ và tên của bạn"
                     required
                   />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Số điện thoại</Label>
+                    <Input
+                      id="phone"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="VD: 09xxxxxxxx"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Giới tính</Label>
+                    <Select value={gender} onValueChange={setGender}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn giới tính" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Nam</SelectItem>
+                        <SelectItem value="female">Nữ</SelectItem>
+                        <SelectItem value="other">Khác</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bio">Giới thiệu</Label>

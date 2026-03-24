@@ -4,12 +4,28 @@ import { cn } from '@/lib/utils';
 
 interface ExamTimerProps {
   duration: number; // in minutes
+  initialSeconds?: number;
   onTimeUp?: () => void;
   size?: 'default' | 'large';
 }
 
-export function ExamTimer({ duration, onTimeUp, size = 'default' }: ExamTimerProps) {
-  const [timeLeft, setTimeLeft] = useState(duration * 60);
+export function ExamTimer({
+  duration,
+  initialSeconds,
+  onTimeUp,
+  size = 'default',
+}: ExamTimerProps) {
+  const [timeLeft, setTimeLeft] = useState(
+    typeof initialSeconds === "number" ? Math.max(0, initialSeconds) : duration * 60,
+  );
+
+  useEffect(() => {
+    if (typeof initialSeconds === "number") {
+      setTimeLeft(Math.max(0, initialSeconds));
+      return;
+    }
+    setTimeLeft(duration * 60);
+  }, [duration, initialSeconds]);
 
   useEffect(() => {
     const interval = setInterval(() => {

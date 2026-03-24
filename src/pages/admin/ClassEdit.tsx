@@ -205,6 +205,18 @@ export default function AdminClassEdit() {
   const currentTeacher = teachers.find((t: any) => t.id === teacherId);
 
   const handleSave = () => {
+    if (startDate && endDate) {
+      const start = new Date(startDate).getTime();
+      const end = new Date(endDate).getTime();
+      if (Number.isFinite(start) && Number.isFinite(end) && start > end) {
+        toast({
+          title: "Lỗi",
+          description: "Ngày bắt đầu không được lớn hơn ngày kết thúc",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     updateMutation.mutate({
       name,
       description,

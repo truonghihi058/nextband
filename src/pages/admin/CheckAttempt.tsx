@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowUpDown, Eye, User, Filter } from "lucide-react";
+import { ArrowUpDown, Eye, User, Filter, ClipboardCheck } from "lucide-react";
 
 type SortField = "submittedAt" | "status";
 type SortOrder = "asc" | "desc";
@@ -126,7 +126,17 @@ export default function AdminCheckAttempt() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Chấm bài thi</h1>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <ClipboardCheck className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Chấm bài thi</h1>
+            <p className="text-sm text-muted-foreground">
+              {sortedSubmissions.length} bài nộp đang hiển thị
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
