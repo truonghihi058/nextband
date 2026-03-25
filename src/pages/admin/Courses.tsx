@@ -205,7 +205,7 @@ export default function AdminCourses() {
                     />
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
                       <Button variant="ghost" size="sm" asChild title="Sửa khóa học">
                         <Link to={`/admin/courses/${course.id}`}>
                           <Edit className="h-4 w-4 mr-1" />
