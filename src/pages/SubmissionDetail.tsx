@@ -31,7 +31,7 @@ const statusConfig: Record<
 > = {
   in_progress: { label: "Đang làm", variant: "secondary", icon: Clock },
   submitted: {
-    label: "Đã nộp - Chờ chấm",
+    label: "Chờ chấm",
     variant: "outline",
     icon: AlertCircle,
   },
@@ -342,11 +342,8 @@ export default function SubmissionDetail() {
               <div className="flex flex-col items-center gap-3 py-2">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-6 w-6 text-green-500" />
-                  <span className="text-3xl font-bold text-green-600">
-                    {displayCorrectAnswers}
-                  </span>
-                  <span className="text-lg text-muted-foreground">
-                    / {displayTotalQuestions} câu đúng
+                  <span className="text-3xl font-bold text-green-600 tabular-nums">
+                    {displayCorrectAnswers}/{displayTotalQuestions}
                   </span>
                 </div>
                 <Progress

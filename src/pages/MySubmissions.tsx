@@ -45,14 +45,14 @@ const statusConfig: Record<
   }
 > = {
   in_progress: { label: "Đang làm", variant: "secondary", icon: Clock },
-  submitted: { label: "Đã nộp", variant: "outline", icon: AlertCircle },
+  submitted: { label: "Chờ chấm", variant: "outline", icon: AlertCircle },
   graded: { label: "Đã chấm", variant: "default", icon: CheckCircle2 },
 };
 
 const STATUS_OPTIONS = [
   { value: "all", label: "Tất cả trạng thái" },
   { value: "in_progress", label: "Đang làm" },
-  { value: "submitted", label: "Đã nộp" },
+  { value: "submitted", label: "Chờ chấm" },
   { value: "graded", label: "Đã chấm" },
 ];
 
@@ -252,8 +252,13 @@ export default function MySubmissions() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
-                        {submission.status === "graded" &&
-                        submission.totalScore != null ? (
+                        {submission.correctAnswers != null &&
+                        submission.totalQuestions != null ? (
+                          <span className="font-semibold text-primary">
+                            {submission.correctAnswers}/{submission.totalQuestions}
+                          </span>
+                        ) : submission.status === "graded" &&
+                          submission.totalScore != null ? (
                           <span className="font-semibold text-primary">
                             {submission.totalScore}
                           </span>

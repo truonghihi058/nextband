@@ -201,28 +201,35 @@ export default function AdminExams() {
                       }
                     />
                   </TableCell>
-                  <TableCell className="space-x-1">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/admin/exams/${exam.id}`}>
-                        <Edit className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      disabled={(exam as any)._count?.submissions > 0}
-                      title={
-                        (exam as any)._count?.submissions > 0
-                          ? `Không thể xóa — đã có ${(exam as any)._count.submissions} bài nộp`
-                          : "Xóa bài thi"
-                      }
-                      onClick={() =>
-                        setDeleteExam({ id: exam.id, title: exam.title })
-                      }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" asChild title="Sửa bài thi">
+                        <Link to={`/admin/exams/${exam.id}`}>
+                          <Edit className="h-4 w-4 mr-1" />
+                          Sửa
+                        </Link>
+                      </Button>
+                      <div className="h-5 w-px bg-border" />
+                      <div className="rounded-md border border-destructive/40 bg-destructive/5 p-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          disabled={(exam as any)._count?.submissions > 0}
+                          title={
+                            (exam as any)._count?.submissions > 0
+                              ? `Không thể xóa — đã có ${(exam as any)._count.submissions} bài nộp`
+                              : "Xóa bài thi"
+                          }
+                          onClick={() =>
+                            setDeleteExam({ id: exam.id, title: exam.title })
+                          }
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Xóa
+                        </Button>
+                      </div>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -249,6 +256,7 @@ export default function AdminExams() {
         loading={deleteMutation.isPending}
         title="Xóa bài thi?"
         description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Hành động này không thể hoàn tác.`}
+        confirmKeyword="XOA"
       />
     </div>
   );

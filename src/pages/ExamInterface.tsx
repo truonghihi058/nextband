@@ -86,6 +86,7 @@ export default function ExamInterface() {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [initialTimeLeft, setInitialTimeLeft] = useState<number | null>(null);
+  const autoSubmitTriggeredRef = useRef(false);
 
   const questionRefs = useRef<Map<string, HTMLElement>>(new Map());
 
@@ -120,6 +121,12 @@ export default function ExamInterface() {
 
   useEffect(() => {
     if (!exam) return;
+
+    if (typeof submission?.remainingSeconds === "number") {
+      setInitialTimeLeft(Math.max(0, submission.remainingSeconds));
+      return;
+    }
+
     const durationSeconds = (exam.durationMinutes || 60) * 60;
     if (!submission?.startedAt) {
       setInitialTimeLeft(durationSeconds);
@@ -135,7 +142,11 @@ export default function ExamInterface() {
       Math.floor((Date.now() - startedAt) / 1000),
     );
     setInitialTimeLeft(Math.max(0, durationSeconds - elapsedSeconds));
-  }, [exam, submission?.startedAt]);
+  }, [exam, submission?.remainingSeconds, submission?.startedAt]);
+
+  useEffect(() => {
+    autoSubmitTriggeredRef.current = false;
+  }, [submission?.id]);
 
   // Load existing answers if resuming
   const { data: savedAnswersData } = useQuery({
@@ -333,7 +344,7 @@ export default function ExamInterface() {
     [],
   );
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!user || !examId || !submission) return;
 
     setIsSubmitting(true);
@@ -387,16 +398,27 @@ export default function ExamInterface() {
       setIsSubmitting(false);
       setShowReviewDialog(false);
     }
-  };
+  }, [
+    answers,
+    examId,
+    navigate,
+    queryClient,
+    sections,
+    submission,
+    toast,
+    user,
+  ]);
 
   const handleTimeUp = useCallback(() => {
+    if (autoSubmitTriggeredRef.current) return;
+    autoSubmitTriggeredRef.current = true;
     toast({
       title: "Hết giờ!",
       description: "Bài thi sẽ được nộp tự động.",
       variant: "destructive",
     });
     handleSubmit();
-  }, []);
+  }, [handleSubmit, toast]);
 
   if (examLoading || submissionLoading) {
     return (

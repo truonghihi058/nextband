@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +15,7 @@ export function ExamTimer({
   onTimeUp,
   size = 'default',
 }: ExamTimerProps) {
+  const timeUpTriggeredRef = useRef(false);
   const [timeLeft, setTimeLeft] = useState(
     typeof initialSeconds === "number" ? Math.max(0, initialSeconds) : duration * 60,
   );
@@ -22,17 +23,30 @@ export function ExamTimer({
   useEffect(() => {
     if (typeof initialSeconds === "number") {
       setTimeLeft(Math.max(0, initialSeconds));
+      timeUpTriggeredRef.current = false;
       return;
     }
     setTimeLeft(duration * 60);
+    timeUpTriggeredRef.current = false;
   }, [duration, initialSeconds]);
 
   useEffect(() => {
+    if (timeLeft <= 0) {
+      if (!timeUpTriggeredRef.current) {
+        timeUpTriggeredRef.current = true;
+        onTimeUp?.();
+      }
+      return;
+    }
+
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          onTimeUp?.();
+          if (!timeUpTriggeredRef.current) {
+            timeUpTriggeredRef.current = true;
+            onTimeUp?.();
+          }
           return 0;
         }
         return prev - 1;
@@ -40,7 +54,7 @@ export function ExamTimer({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [onTimeUp]);
+  }, [onTimeUp, timeLeft]);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;

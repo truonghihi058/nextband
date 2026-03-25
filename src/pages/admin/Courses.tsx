@@ -204,28 +204,35 @@ export default function AdminCourses() {
                       }
                     />
                   </TableCell>
-                  <TableCell className="space-x-1">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/admin/courses/${course.id}`}>
-                        <Edit className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      disabled={(course as any)._count?.enrollments > 0}
-                      title={
-                        (course as any)._count?.enrollments > 0
-                          ? `Không thể xóa — còn ${(course as any)._count.enrollments} học viên`
-                          : "Xóa khóa học"
-                      }
-                      onClick={() =>
-                        setDeleteCourse({ id: course.id, title: course.title })
-                      }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" asChild title="Sửa khóa học">
+                        <Link to={`/admin/courses/${course.id}`}>
+                          <Edit className="h-4 w-4 mr-1" />
+                          Sửa
+                        </Link>
+                      </Button>
+                      <div className="h-5 w-px bg-border" />
+                      <div className="rounded-md border border-destructive/40 bg-destructive/5 p-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          disabled={(course as any)._count?.enrollments > 0}
+                          title={
+                            (course as any)._count?.enrollments > 0
+                              ? `Không thể xóa — còn ${(course as any)._count.enrollments} học viên`
+                              : "Xóa khóa học"
+                          }
+                          onClick={() =>
+                            setDeleteCourse({ id: course.id, title: course.title })
+                          }
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Xóa
+                        </Button>
+                      </div>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -252,6 +259,7 @@ export default function AdminCourses() {
         loading={deleteMutation.isPending}
         title="Xóa khóa học?"
         description={`Bạn có chắc chắn muốn xóa khóa học "${deleteCourse?.title}"? Hành động này không thể hoàn tác.`}
+        confirmKeyword="XOA"
       />
     </div>
   );

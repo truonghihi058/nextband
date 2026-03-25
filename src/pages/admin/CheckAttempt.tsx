@@ -117,7 +117,7 @@ export default function AdminCheckAttempt() {
       case "in_progress":
         return <Badge variant="secondary">Đang làm</Badge>;
       case "submitted":
-        return <Badge variant="outline">Đã nộp</Badge>;
+        return <Badge variant="outline">Chờ chấm</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -157,7 +157,7 @@ export default function AdminCheckAttempt() {
               <SelectContent>
                 <SelectItem value="all">Tất cả trạng thái</SelectItem>
                 <SelectItem value="in_progress">Đang làm</SelectItem>
-                <SelectItem value="submitted">Đã nộp</SelectItem>
+                <SelectItem value="submitted">Chờ chấm</SelectItem>
                 <SelectItem value="graded">Đã chấm</SelectItem>
               </SelectContent>
             </Select>
@@ -202,7 +202,7 @@ export default function AdminCheckAttempt() {
               <TableHead>Bài thi</TableHead>
               <SortHeader field="submittedAt">Ngày nộp</SortHeader>
               <SortHeader field="status">Trạng thái</SortHeader>
-              <TableHead>Điểm</TableHead>
+              <TableHead>KQ</TableHead>
               <TableHead className="w-[100px]">Hành động</TableHead>
             </TableRow>
           </TableHeader>
@@ -244,9 +244,12 @@ export default function AdminCheckAttempt() {
                   </TableCell>
                   <TableCell>{getStatusBadge(submission.status)}</TableCell>
                   <TableCell>
-                    {submission.totalScore != null
-                      ? submission.totalScore
-                      : "-"}
+                    {submission.correctAnswers != null &&
+                    submission.totalQuestions != null
+                      ? `${submission.correctAnswers}/${submission.totalQuestions}`
+                      : submission.totalScore != null
+                        ? submission.totalScore
+                        : "-"}
                   </TableCell>
                   <TableCell>
                     <Button variant="ghost" size="sm" asChild>
