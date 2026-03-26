@@ -1140,13 +1140,14 @@ export default function AdminSectionEdit() {
 
       {/* Question Dialog */}
       <Dialog open={questionDialogOpen} onOpenChange={(open) => !open && closeQuestionDialog(false)}>
-        <DialogContent className="max-w-[96vw] sm:max-w-[980px] max-h-[90vh] overflow-hidden p-0">
+        <DialogContent className="max-w-[96vw] sm:max-w-[980px] h-[90vh] overflow-hidden p-0 flex flex-col">
           <DialogHeader className="px-6 pt-6 pb-2">
             <DialogTitle>
               {editingQuestion ? "Chỉnh sửa câu hỏi" : "Thêm câu hỏi mới"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 px-6 py-4 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+            <div className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2 space-y-2">
                 <Label>Dạng câu hỏi</Label>
@@ -1193,6 +1194,7 @@ export default function AdminSectionEdit() {
                   setQuestionForm((f) => ({ ...f, ...updates }))
                 }
               />
+            </div>
             </div>
           </div>
           <DialogFooter className="px-6 py-4 border-t">
