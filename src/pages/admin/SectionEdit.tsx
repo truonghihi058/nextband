@@ -244,6 +244,22 @@ export default function AdminSectionEdit() {
   const section = sectionData;
   const questionGroups = section?.questionGroups || [];
 
+  const getNextOrderIndexForGroup = (groupId: string) => {
+    const group = questionGroups.find((g: any) => g.id === groupId);
+    const questions = Array.isArray(group?.questions) ? group.questions : [];
+    if (questions.length === 0) return 0;
+
+    const maxOrder = questions.reduce((max: number, q: any) => {
+      const value =
+        typeof q?.orderIndex === "number"
+          ? q.orderIndex
+          : Number.parseInt(String(q?.orderIndex ?? 0), 10) || 0;
+      return Math.max(max, value);
+    }, -1);
+
+    return maxOrder + 1;
+  };
+
   // --- Mutations ---
 
   const createGroupMutation = useMutation({
@@ -380,10 +396,12 @@ export default function AdminSectionEdit() {
         .split("\n")
         .map((l: string) => l.trim())
         .filter(Boolean);
-      const payload = lines.map((line: string) => ({
+      const startOrderIndex = getNextOrderIndexForGroup(groupId);
+      const payload = lines.map((line: string, idx: number) => ({
         questionType,
         questionText: line,
         points: 1,
+        orderIndex: startOrderIndex + idx,
       }));
       return questionsApi.bulkCreate(groupId, payload);
     },
@@ -549,11 +567,13 @@ export default function AdminSectionEdit() {
         ...questionForm,
       });
     } else if (selectedGroupId) {
+      const nextOrderIndex = getNextOrderIndexForGroup(selectedGroupId);
       const { orderIndex: _ignoredOrderIndex, ...questionWithoutOrder } =
         questionForm;
       createQuestionMutation.mutate({
         ...questionWithoutOrder,
         groupId: selectedGroupId,
+        orderIndex: nextOrderIndex,
       });
     }
   };
