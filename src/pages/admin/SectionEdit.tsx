@@ -142,7 +142,8 @@ interface Question {
   options: string[] | null;
   correctAnswer: string | null;
   points: number;
-  orderIndex: number;
+  orderIndex?: number;
+  order_index?: number;
 }
 
 // Helper to extract detailed validation error messages from API response
@@ -506,6 +507,8 @@ export default function AdminSectionEdit() {
     pendingImagesRef.current = [];
     setSelectedGroupId(groupId);
     if (question) {
+      const normalizedOrderIndex =
+        question.orderIndex ?? (question as any).order_index ?? 0;
       setEditingQuestion(question);
       setQuestionForm({
         questionText: question.questionText || "",
@@ -520,7 +523,7 @@ export default function AdminSectionEdit() {
             : [""],
         points: question.points || 1,
         audioUrl: (question as any).audioUrl || "",
-        orderIndex: question.orderIndex || 0,
+        orderIndex: normalizedOrderIndex,
       });
     } else {
       setEditingQuestion(null);
@@ -562,9 +565,15 @@ export default function AdminSectionEdit() {
 
   const handleSaveQuestion = () => {
     if (editingQuestion) {
+      const originalOrder =
+        editingQuestion.orderIndex ?? (editingQuestion as any).order_index ?? 0;
+      const { orderIndex, ...rest } = questionForm;
+      const updatePayload =
+        orderIndex === originalOrder ? rest : { ...rest, orderIndex };
+
       updateQuestionMutation.mutate({
         id: editingQuestion.id,
-        ...questionForm,
+        ...updatePayload,
       });
     } else if (selectedGroupId) {
       const nextOrderIndex = getNextOrderIndexForGroup(selectedGroupId);
@@ -1131,13 +1140,13 @@ export default function AdminSectionEdit() {
 
       {/* Question Dialog */}
       <Dialog open={questionDialogOpen} onOpenChange={(open) => !open && closeQuestionDialog(false)}>
-        <DialogContent className="max-w-[96vw] sm:max-w-[980px]">
-          <DialogHeader>
+        <DialogContent className="max-w-[96vw] sm:max-w-[980px] max-h-[90vh] overflow-hidden p-0">
+          <DialogHeader className="px-6 pt-6 pb-2">
             <DialogTitle>
               {editingQuestion ? "Chỉnh sửa câu hỏi" : "Thêm câu hỏi mới"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 px-6 py-4 overflow-y-auto">
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2 space-y-2">
                 <Label>Dạng câu hỏi</Label>
@@ -1186,7 +1195,7 @@ export default function AdminSectionEdit() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="px-6 py-4 border-t">
             <Button
               variant="outline"
               onClick={() => closeQuestionDialog(false)}
