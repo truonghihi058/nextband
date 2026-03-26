@@ -380,15 +380,12 @@ export default function AdminSectionEdit() {
         .split("\n")
         .map((l: string) => l.trim())
         .filter(Boolean);
-      for (const line of lines) {
-        await questionsApi.create({
-          groupId,
-          questionType,
-          questionText: line,
-          points: 1,
-          orderIndex: 0,
-        });
-      }
+      const payload = lines.map((line: string) => ({
+        questionType,
+        questionText: line,
+        points: 1,
+      }));
+      return questionsApi.bulkCreate(groupId, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["section-detail", id] });
@@ -552,8 +549,10 @@ export default function AdminSectionEdit() {
         ...questionForm,
       });
     } else if (selectedGroupId) {
+      const { orderIndex: _ignoredOrderIndex, ...questionWithoutOrder } =
+        questionForm;
       createQuestionMutation.mutate({
-        ...questionForm,
+        ...questionWithoutOrder,
         groupId: selectedGroupId,
       });
     }
