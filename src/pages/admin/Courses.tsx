@@ -13,7 +13,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit, Trash2, ArrowUpDown, BookOpen } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  ArrowUpDown,
+  BookOpen,
+  Lock,
+  Unlock,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
@@ -71,7 +80,8 @@ export default function AdminCourses() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => coursesApi.delete(id),
+    mutationFn: async ({ id, password }: { id: string; password: string }) =>
+      coursesApi.delete(id, password),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
       toast({
@@ -84,6 +94,23 @@ export default function AdminCourses() {
       toast({
         title: "Lỗi",
         description: err.response?.data?.error || "Không thể xóa khóa học",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const lockMutation = useMutation({
+    mutationFn: async ({ id, isLocked }: { id: string; isLocked: boolean }) =>
+      coursesApi.update(id, { isLocked }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+      toast({ title: "Đã cập nhật trạng thái khóa" });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Lỗi",
+        description:
+          err.response?.data?.error || "Không thể cập nhật trạng thái khóa",
         variant: "destructive",
       });
     },
@@ -162,20 +189,21 @@ export default function AdminCourses() {
               <SortHeader field="level">Cấp độ</SortHeader>
               <TableHead>Xuất bản</TableHead>
               <TableHead>Kích hoạt</TableHead>
-              <TableHead className="w-[140px]">Hành động</TableHead>
+              <TableHead>Khóa</TableHead>
+              <TableHead className="w-[240px]">Hành động</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
+                <TableCell colSpan={6} className="text-center py-8">
                   Đang tải...
                 </TableCell>
               </TableRow>
             ) : courses.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="text-center py-8 text-muted-foreground"
                 >
                   Không tìm thấy khóa học nào
@@ -196,6 +224,7 @@ export default function AdminCourses() {
                   <TableCell>
                     <Switch
                       checked={course.isActive ?? true}
+                      disabled={!!course.isLocked}
                       onCheckedChange={(checked) =>
                         toggleMutation.mutate({
                           id: course.id,
@@ -205,8 +234,34 @@ export default function AdminCourses() {
                     />
                   </TableCell>
                   <TableCell>
+                    <Button
+                      variant={course.isLocked ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() =>
+                        lockMutation.mutate({
+                          id: course.id,
+                          isLocked: !course.isLocked,
+                        })
+                      }
+                      disabled={lockMutation.isPending}
+                    >
+                      {course.isLocked ? (
+                        <Unlock className="h-4 w-4 mr-1" />
+                      ) : (
+                        <Lock className="h-4 w-4 mr-1" />
+                      )}
+                      {course.isLocked ? "Mở khóa" : "Khóa"}
+                    </Button>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-4">
-                      <Button variant="ghost" size="sm" asChild title="Sửa khóa học">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        title="Sửa khóa học"
+                        disabled={!!course.isLocked}
+                      >
                         <Link to={`/admin/courses/${course.id}`}>
                           <Edit className="h-4 w-4 mr-1" />
                           Sửa
@@ -218,9 +273,14 @@ export default function AdminCourses() {
                           variant="ghost"
                           size="sm"
                           className="text-destructive hover:text-destructive"
-                          disabled={(course as any)._count?.enrollments > 0}
-                          title={
+                          disabled={
+                            !!course.isLocked ||
                             (course as any)._count?.enrollments > 0
+                          }
+                          title={
+                            course.isLocked
+                              ? "Khóa học đang bị khóa"
+                              : (course as any)._count?.enrollments > 0
                               ? `Không thể xóa — còn ${(course as any)._count.enrollments} học viên`
                               : "Xóa khóa học"
                           }
@@ -255,11 +315,16 @@ export default function AdminCourses() {
       <DeleteConfirmDialog
         open={!!deleteCourse}
         onOpenChange={(open) => !open && setDeleteCourse(null)}
-        onConfirm={() => deleteCourse && deleteMutation.mutate(deleteCourse.id)}
+        onConfirm={(payload) =>
+          deleteCourse &&
+          payload?.password &&
+          deleteMutation.mutate({ id: deleteCourse.id, password: payload.password })
+        }
         loading={deleteMutation.isPending}
         title="Xóa khóa học?"
         description={`Bạn có chắc chắn muốn xóa khóa học "${deleteCourse?.title}"? Hành động này không thể hoàn tác.`}
         confirmKeyword="XOA"
+        requirePassword
       />
     </div>
   );

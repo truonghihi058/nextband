@@ -15,11 +15,12 @@ import { Loader2, Trash2 } from "lucide-react";
 interface DeleteConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: (payload?: { password?: string }) => void;
   title?: string;
   description?: string;
   loading?: boolean;
   confirmKeyword?: string;
+  requirePassword?: boolean;
 }
 
 export default function DeleteConfirmDialog({
@@ -30,18 +31,23 @@ export default function DeleteConfirmDialog({
   description = "Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa không?",
   loading = false,
   confirmKeyword,
+  requirePassword = false,
 }: DeleteConfirmDialogProps) {
   const [typedKeyword, setTypedKeyword] = useState("");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     if (!open) {
       setTypedKeyword("");
+      setPassword("");
     }
   }, [open]);
 
-  const canConfirm =
+  const keywordOk =
     !confirmKeyword ||
     typedKeyword.trim().toLowerCase() === confirmKeyword.toLowerCase();
+  const passwordOk = !requirePassword || password.trim().length > 0;
+  const canConfirm = keywordOk && passwordOk;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -72,6 +78,20 @@ export default function DeleteConfirmDialog({
                 />
               </div>
             )}
+            {requirePassword && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Nhập mật khẩu tài khoản hiện tại để xác nhận xóa.
+                </p>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mật khẩu xác nhận"
+                  disabled={loading}
+                />
+              </div>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -79,7 +99,7 @@ export default function DeleteConfirmDialog({
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
-              onConfirm();
+              onConfirm({ password });
             }}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             disabled={loading || !canConfirm}

@@ -31,6 +31,7 @@ interface Exam {
   durationMinutes: number;
   isPublished: boolean;
   isActive: boolean;
+  isLocked?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -75,7 +76,8 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
   const total = data?.meta?.total || 0;
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => examsApi.delete(id),
+    mutationFn: async ({ id, password }: { id: string; password: string }) =>
+      examsApi.delete(id, password),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["course-exams-admin"] });
       toast({ title: "Đã xóa", description: "Bài thi đã được xóa" });
@@ -160,7 +162,7 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" asChild>
+                      <Button variant="ghost" size="sm" asChild disabled={!!exam.isLocked}>
                         <Link to={`/admin/exams/${exam.id}`}>
                           <Edit className="h-4 w-4" />
                         </Link>
@@ -169,6 +171,7 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
                         variant="ghost"
                         size="sm"
                         className="text-destructive hover:text-destructive"
+                        disabled={!!exam.isLocked}
                         onClick={() =>
                           setDeleteExam({ id: exam.id, title: exam.title })
                         }
@@ -204,10 +207,16 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
       <DeleteConfirmDialog
         open={!!deleteExam}
         onOpenChange={(open) => !open && setDeleteExam(null)}
-        onConfirm={() => deleteExam && deleteMutation.mutate(deleteExam.id)}
+        onConfirm={(payload) =>
+          deleteExam &&
+          payload?.password &&
+          deleteMutation.mutate({ id: deleteExam.id, password: payload.password })
+        }
         loading={deleteMutation.isPending}
         title="Xóa bài thi?"
         description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Hành động này không thể hoàn tác.`}
+        confirmKeyword="XOA"
+        requirePassword
       />
     </Card>
   );

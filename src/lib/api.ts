@@ -128,6 +128,11 @@ export const authApi = {
     });
     return data;
   },
+
+  verifyPassword: async (password: string) => {
+    const { data } = await api.post("/auth/verify-password", { password });
+    return data;
+  },
 };
 
 // =============================================
@@ -162,10 +167,11 @@ export const coursesApi = {
     level?: string;
     price?: number;
     thumbnailUrl?: string;
-    isPublished?: boolean;
-    isActive?: boolean;
-    slug?: string;
-  }) => {
+      isPublished?: boolean;
+      isActive?: boolean;
+      isLocked?: boolean;
+      slug?: string;
+    }) => {
     const { data } = await api.post("/courses", course);
     return data;
   },
@@ -179,6 +185,7 @@ export const coursesApi = {
       thumbnailUrl: string;
       isPublished: boolean;
       isActive: boolean;
+      isLocked: boolean;
       slug: string;
     }>,
   ) => {
@@ -186,8 +193,8 @@ export const coursesApi = {
     return data;
   },
 
-  delete: async (id: string) => {
-    const { data } = await api.delete(`/courses/${id}`);
+  delete: async (id: string, password: string) => {
+    const { data } = await api.delete(`/courses/${id}`, { data: { password } });
     return data;
   },
 };
@@ -221,10 +228,11 @@ export const examsApi = {
     description?: string;
     week?: number;
     durationMinutes?: number;
-    isPublished?: boolean;
-    isActive?: boolean;
-    isOpen?: boolean;
-    maxParticipants?: number | null;
+      isPublished?: boolean;
+      isActive?: boolean;
+      isLocked?: boolean;
+      isOpen?: boolean;
+      maxParticipants?: number | null;
   }) => {
     const { data } = await api.post("/exams", exam);
     return data;
@@ -237,6 +245,7 @@ export const examsApi = {
       description: string;
       isPublished: boolean;
       isActive: boolean;
+      isLocked: boolean;
       week: number;
       durationMinutes: number;
       isOpen: boolean;
@@ -247,8 +256,8 @@ export const examsApi = {
     return data;
   },
 
-  delete: async (id: string) => {
-    const { data } = await api.delete(`/exams/${id}`);
+  delete: async (id: string, password: string) => {
+    const { data } = await api.delete(`/exams/${id}`, { data: { password } });
     return data;
   },
 };

@@ -20,6 +20,8 @@ import {
   ArrowUpDown,
   Search,
   ClipboardList,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -78,11 +80,29 @@ export default function AdminExams() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => examsApi.delete(id),
+    mutationFn: async ({ id, password }: { id: string; password: string }) =>
+      examsApi.delete(id, password),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
       toast({ title: "Đã xóa", description: "Bài thi đã được xóa" });
       setDeleteExam(null);
+    },
+  });
+
+  const lockMutation = useMutation({
+    mutationFn: async ({ id, isLocked }: { id: string; isLocked: boolean }) =>
+      examsApi.update(id, { isLocked }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
+      toast({ title: "Đã cập nhật trạng thái khóa" });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Lỗi",
+        description:
+          err.response?.data?.error || "Không thể cập nhật trạng thái khóa",
+        variant: "destructive",
+      });
     },
   });
 
@@ -160,20 +180,21 @@ export default function AdminExams() {
               <SortHeader field="week">Tuần</SortHeader>
               <TableHead>Xuất bản</TableHead>
               <TableHead>Kích hoạt</TableHead>
-              <TableHead className="w-[140px]">Hành động</TableHead>
+              <TableHead>Khóa</TableHead>
+              <TableHead className="w-[240px]">Hành động</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   Đang tải...
                 </TableCell>
               </TableRow>
             ) : exams.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="text-center py-8 text-muted-foreground"
                 >
                   Không tìm thấy bài thi nào
@@ -193,6 +214,7 @@ export default function AdminExams() {
                   <TableCell>
                     <Switch
                       checked={exam.isActive ?? true}
+                      disabled={!!exam.isLocked}
                       onCheckedChange={(checked) =>
                         toggleMutation.mutate({
                           id: exam.id,
@@ -202,8 +224,34 @@ export default function AdminExams() {
                     />
                   </TableCell>
                   <TableCell>
+                    <Button
+                      variant={exam.isLocked ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() =>
+                        lockMutation.mutate({
+                          id: exam.id,
+                          isLocked: !exam.isLocked,
+                        })
+                      }
+                      disabled={lockMutation.isPending}
+                    >
+                      {exam.isLocked ? (
+                        <Unlock className="h-4 w-4 mr-1" />
+                      ) : (
+                        <Lock className="h-4 w-4 mr-1" />
+                      )}
+                      {exam.isLocked ? "Mở khóa" : "Khóa"}
+                    </Button>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" asChild title="Sửa bài thi">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        title="Sửa bài thi"
+                        disabled={!!exam.isLocked}
+                      >
                         <Link to={`/admin/exams/${exam.id}`}>
                           <Edit className="h-4 w-4 mr-1" />
                           Sửa
@@ -215,9 +263,13 @@ export default function AdminExams() {
                           variant="ghost"
                           size="sm"
                           className="text-destructive hover:text-destructive"
-                          disabled={(exam as any)._count?.submissions > 0}
+                          disabled={
+                            !!exam.isLocked || (exam as any)._count?.submissions > 0
+                          }
                           title={
-                            (exam as any)._count?.submissions > 0
+                            exam.isLocked
+                              ? "Bài thi đang bị khóa"
+                              : (exam as any)._count?.submissions > 0
                               ? `Không thể xóa — đã có ${(exam as any)._count.submissions} bài nộp`
                               : "Xóa bài thi"
                           }
@@ -252,11 +304,16 @@ export default function AdminExams() {
       <DeleteConfirmDialog
         open={!!deleteExam}
         onOpenChange={(open) => !open && setDeleteExam(null)}
-        onConfirm={() => deleteExam && deleteMutation.mutate(deleteExam.id)}
+        onConfirm={(payload) =>
+          deleteExam &&
+          payload?.password &&
+          deleteMutation.mutate({ id: deleteExam.id, password: payload.password })
+        }
         loading={deleteMutation.isPending}
         title="Xóa bài thi?"
         description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Hành động này không thể hoàn tác.`}
         confirmKeyword="XOA"
+        requirePassword
       />
     </div>
   );
