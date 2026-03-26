@@ -47,6 +47,7 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
   const [deleteExam, setDeleteExam] = useState<{
     id: string;
     title: string;
+    isLocked?: boolean;
   } | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -171,9 +172,12 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
                         variant="ghost"
                         size="sm"
                         className="text-destructive hover:text-destructive"
-                        disabled={!!exam.isLocked}
                         onClick={() =>
-                          setDeleteExam({ id: exam.id, title: exam.title })
+                          setDeleteExam({
+                            id: exam.id,
+                            title: exam.title,
+                            isLocked: !!exam.isLocked,
+                          })
                         }
                       >
                         <Trash2 className="h-4 w-4" />
@@ -214,7 +218,7 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
         }
         loading={deleteMutation.isPending}
         title="Xóa bài thi?"
-        description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Hành động này không thể hoàn tác.`}
+        description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Hành động này không thể hoàn tác.${deleteExam?.isLocked ? " Bài thi hiện đang bị khóa nhưng vẫn có thể xóa sau khi xác nhận." : ""}`}
         confirmKeyword="XOA"
         requirePassword
       />

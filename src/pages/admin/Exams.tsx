@@ -27,6 +27,12 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import DeleteConfirmDialog from "@/components/admin/DeleteConfirmDialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type SortField = "title" | "createdAt" | "week";
 
@@ -42,6 +48,7 @@ export default function AdminExams() {
   const [deleteExam, setDeleteExam] = useState<{
     id: string;
     title: string;
+    isLocked?: boolean;
   } | null>(null);  
 
   // Debounce search
@@ -224,62 +231,86 @@ export default function AdminExams() {
                     />
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant={exam.isLocked ? "secondary" : "outline"}
-                      size="sm"
-                      onClick={() =>
-                        lockMutation.mutate({
-                          id: exam.id,
-                          isLocked: !exam.isLocked,
-                        })
-                      }
-                      disabled={lockMutation.isPending}
-                    >
-                      {exam.isLocked ? (
-                        <Unlock className="h-4 w-4 mr-1" />
-                      ) : (
-                        <Lock className="h-4 w-4 mr-1" />
-                      )}
-                      {exam.isLocked ? "Mở khóa" : "Khóa"}
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant={exam.isLocked ? "secondary" : "outline"}
+                            size="icon"
+                            onClick={() =>
+                              lockMutation.mutate({
+                                id: exam.id,
+                                isLocked: !exam.isLocked,
+                              })
+                            }
+                            disabled={lockMutation.isPending}
+                            aria-label={exam.isLocked ? "Mở khóa" : "Khóa"}
+                          >
+                            {exam.isLocked ? (
+                              <Unlock className="h-4 w-4" />
+                            ) : (
+                              <Lock className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {exam.isLocked ? "Mở khóa" : "Khóa"}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        asChild
-                        title="Sửa bài thi"
-                        disabled={!!exam.isLocked}
-                      >
-                        <Link to={`/admin/exams/${exam.id}`}>
-                          <Edit className="h-4 w-4 mr-1" />
-                          Sửa
-                        </Link>
-                      </Button>
-                      <div className="h-5 w-px bg-border" />
-                      <div className="rounded-md border border-destructive/40 bg-destructive/5 p-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          disabled={
-                            !!exam.isLocked || (exam as any)._count?.submissions > 0
-                          }
-                          title={
-                            exam.isLocked
-                              ? "Bài thi đang bị khóa"
-                              : (exam as any)._count?.submissions > 0
-                              ? `Không thể xóa — đã có ${(exam as any)._count.submissions} bài nộp`
-                              : "Xóa bài thi"
-                          }
-                          onClick={() =>
-                            setDeleteExam({ id: exam.id, title: exam.title })
-                          }
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Xóa
-                        </Button>
+                    <div className="flex items-center gap-5">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                asChild
+                                disabled={!!exam.isLocked}
+                                aria-label="Sửa bài thi"
+                              >
+                                <Link to={`/admin/exams/${exam.id}`}>
+                                  <Edit className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Sửa</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <div className="rounded-md border border-destructive/40 bg-destructive/5 p-1.5">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  disabled={(exam as any)._count?.submissions > 0}
+                                  aria-label="Xóa bài thi"
+                                  onClick={() =>
+                                    setDeleteExam({
+                                      id: exam.id,
+                                      title: exam.title,
+                                      isLocked: !!exam.isLocked,
+                                    })
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {(exam as any)._count?.submissions > 0
+                                ? `Không thể xóa — đã có ${(exam as any)._count.submissions} bài nộp`
+                                : "Xóa"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </div>
                   </TableCell>
@@ -311,7 +342,7 @@ export default function AdminExams() {
         }
         loading={deleteMutation.isPending}
         title="Xóa bài thi?"
-        description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Hành động này không thể hoàn tác.`}
+        description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Dữ liệu sẽ mất vĩnh viễn.${deleteExam?.isLocked ? " Bài thi hiện đang bị khóa nhưng vẫn có thể xóa sau khi xác nhận." : ""}`}
         confirmKeyword="XOA"
         requirePassword
       />

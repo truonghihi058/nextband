@@ -27,6 +27,12 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { DataTablePagination } from "@/components/admin/DataTablePagination";
 import DeleteConfirmDialog from "@/components/admin/DeleteConfirmDialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type SortField = "title" | "createdAt" | "level";
 
@@ -39,7 +45,7 @@ export default function AdminCourses() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [deleteCourse, setDeleteCourse] = useState<{ id: string; title: string } | null>(null);
+  const [deleteCourse, setDeleteCourse] = useState<{ id: string; title: string; isLocked?: boolean } | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -234,63 +240,86 @@ export default function AdminCourses() {
                     />
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant={course.isLocked ? "secondary" : "outline"}
-                      size="sm"
-                      onClick={() =>
-                        lockMutation.mutate({
-                          id: course.id,
-                          isLocked: !course.isLocked,
-                        })
-                      }
-                      disabled={lockMutation.isPending}
-                    >
-                      {course.isLocked ? (
-                        <Unlock className="h-4 w-4 mr-1" />
-                      ) : (
-                        <Lock className="h-4 w-4 mr-1" />
-                      )}
-                      {course.isLocked ? "Mở khóa" : "Khóa"}
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant={course.isLocked ? "secondary" : "outline"}
+                            size="icon"
+                            onClick={() =>
+                              lockMutation.mutate({
+                                id: course.id,
+                                isLocked: !course.isLocked,
+                              })
+                            }
+                            disabled={lockMutation.isPending}
+                            aria-label={course.isLocked ? "Mở khóa" : "Khóa"}
+                          >
+                            {course.isLocked ? (
+                              <Unlock className="h-4 w-4" />
+                            ) : (
+                              <Lock className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {course.isLocked ? "Mở khóa" : "Khóa"}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        asChild
-                        title="Sửa khóa học"
-                        disabled={!!course.isLocked}
-                      >
-                        <Link to={`/admin/courses/${course.id}`}>
-                          <Edit className="h-4 w-4 mr-1" />
-                          Sửa
-                        </Link>
-                      </Button>
-                      <div className="h-5 w-px bg-border" />
-                      <div className="rounded-md border border-destructive/40 bg-destructive/5 p-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          disabled={
-                            !!course.isLocked ||
-                            (course as any)._count?.enrollments > 0
-                          }
-                          title={
-                            course.isLocked
-                              ? "Khóa học đang bị khóa"
-                              : (course as any)._count?.enrollments > 0
-                              ? `Không thể xóa — còn ${(course as any)._count.enrollments} học viên`
-                              : "Xóa khóa học"
-                          }
-                          onClick={() =>
-                            setDeleteCourse({ id: course.id, title: course.title })
-                          }
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Xóa
-                        </Button>
+                    <div className="flex items-center gap-5">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                asChild
+                                disabled={!!course.isLocked}
+                                aria-label="Sửa khóa học"
+                              >
+                                <Link to={`/admin/courses/${course.id}`}>
+                                  <Edit className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Sửa</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <div className="rounded-md border border-destructive/40 bg-destructive/5 p-1.5">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  disabled={(course as any)._count?.enrollments > 0}
+                                  aria-label="Xóa khóa học"
+                                  onClick={() =>
+                                    setDeleteCourse({
+                                      id: course.id,
+                                      title: course.title,
+                                      isLocked: !!course.isLocked,
+                                    })
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {(course as any)._count?.enrollments > 0
+                                ? `Không thể xóa — còn ${(course as any)._count.enrollments} học viên`
+                                : "Xóa"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </div>
                   </TableCell>
@@ -322,7 +351,7 @@ export default function AdminCourses() {
         }
         loading={deleteMutation.isPending}
         title="Xóa khóa học?"
-        description={`Bạn có chắc chắn muốn xóa khóa học "${deleteCourse?.title}"? Hành động này không thể hoàn tác.`}
+        description={`Bạn có chắc chắn muốn xóa khóa học "${deleteCourse?.title}"? Dữ liệu sẽ mất vĩnh viễn.${deleteCourse?.isLocked ? " Khóa học hiện đang bị khóa nhưng vẫn có thể xóa sau khi xác nhận." : ""}`}
         confirmKeyword="XOA"
         requirePassword
       />
