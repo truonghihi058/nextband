@@ -172,6 +172,7 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
                         variant="ghost"
                         size="sm"
                         className="text-destructive hover:text-destructive"
+                        disabled={!!exam.isLocked}
                         onClick={() =>
                           setDeleteExam({
                             id: exam.id,
@@ -218,7 +219,7 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
         }
         loading={deleteMutation.isPending}
         title="Xóa bài thi?"
-        description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Hành động này không thể hoàn tác.${deleteExam?.isLocked ? " Bài thi hiện đang bị khóa nhưng vẫn có thể xóa sau khi xác nhận." : ""}`}
+        description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Hành động này không thể hoàn tác.`}
         confirmKeyword="XOA"
         requirePassword
       />

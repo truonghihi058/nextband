@@ -290,7 +290,10 @@ export default function AdminExams() {
                                   variant="ghost"
                                   size="icon"
                                   className="text-destructive hover:text-destructive"
-                                  disabled={(exam as any)._count?.submissions > 0}
+                                  disabled={
+                                    !!exam.isLocked ||
+                                    (exam as any)._count?.submissions > 0
+                                  }
                                   aria-label="Xóa bài thi"
                                   onClick={() =>
                                     setDeleteExam({
@@ -305,7 +308,9 @@ export default function AdminExams() {
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
-                              {(exam as any)._count?.submissions > 0
+                              {exam.isLocked
+                                ? "Đang khóa, cần mở khóa trước khi xóa"
+                                : (exam as any)._count?.submissions > 0
                                 ? `Không thể xóa — đã có ${(exam as any)._count.submissions} bài nộp`
                                 : "Xóa"}
                             </TooltipContent>
@@ -342,7 +347,7 @@ export default function AdminExams() {
         }
         loading={deleteMutation.isPending}
         title="Xóa bài thi?"
-        description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Dữ liệu sẽ mất vĩnh viễn.${deleteExam?.isLocked ? " Bài thi hiện đang bị khóa nhưng vẫn có thể xóa sau khi xác nhận." : ""}`}
+        description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Dữ liệu sẽ mất vĩnh viễn.`}
         confirmKeyword="XOA"
         requirePassword
       />

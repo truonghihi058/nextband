@@ -299,7 +299,10 @@ export default function AdminCourses() {
                                   variant="ghost"
                                   size="icon"
                                   className="text-destructive hover:text-destructive"
-                                  disabled={(course as any)._count?.enrollments > 0}
+                                  disabled={
+                                    !!course.isLocked ||
+                                    (course as any)._count?.enrollments > 0
+                                  }
                                   aria-label="Xóa khóa học"
                                   onClick={() =>
                                     setDeleteCourse({
@@ -314,7 +317,9 @@ export default function AdminCourses() {
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
-                              {(course as any)._count?.enrollments > 0
+                              {course.isLocked
+                                ? "Đang khóa, cần mở khóa trước khi xóa"
+                                : (course as any)._count?.enrollments > 0
                                 ? `Không thể xóa — còn ${(course as any)._count.enrollments} học viên`
                                 : "Xóa"}
                             </TooltipContent>
@@ -351,7 +356,7 @@ export default function AdminCourses() {
         }
         loading={deleteMutation.isPending}
         title="Xóa khóa học?"
-        description={`Bạn có chắc chắn muốn xóa khóa học "${deleteCourse?.title}"? Dữ liệu sẽ mất vĩnh viễn.${deleteCourse?.isLocked ? " Khóa học hiện đang bị khóa nhưng vẫn có thể xóa sau khi xác nhận." : ""}`}
+        description={`Bạn có chắc chắn muốn xóa khóa học "${deleteCourse?.title}"? Dữ liệu sẽ mất vĩnh viễn.`}
         confirmKeyword="XOA"
         requirePassword
       />
