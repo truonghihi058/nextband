@@ -25,12 +25,10 @@ import { ArrowUpDown, Eye, User, Filter, ClipboardCheck } from "lucide-react";
 
 type SortField = "submittedAt" | "status";
 type SortOrder = "asc" | "desc";
-type StatusFilter = "all" | "in_progress" | "submitted" | "graded";
 
 export default function AdminCheckAttempt() {
   const [sortField, setSortField] = useState<SortField>("submittedAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [examFilter, setExamFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
 
@@ -51,14 +49,13 @@ export default function AdminCheckAttempt() {
       "admin-submissions",
       sortField,
       sortOrder,
-      statusFilter,
       examFilter,
       classFilter,
     ],
     queryFn: () =>
       submissionsApi.list({
         limit: 100,
-        status: statusFilter !== "all" ? statusFilter : undefined,
+        needGrading: true,
         examId: examFilter !== "all" ? examFilter : undefined,
         classId: classFilter !== "all" ? classFilter : undefined,
         sortBy: "submittedAt",
@@ -147,21 +144,6 @@ export default function AdminCheckAttempt() {
               <Filter className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">Lọc:</span>
             </div>
-            <Select
-              value={statusFilter}
-              onValueChange={(v) => setStatusFilter(v as StatusFilter)}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Trạng thái" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                <SelectItem value="in_progress">Đang làm</SelectItem>
-                <SelectItem value="submitted">Chờ chấm</SelectItem>
-                <SelectItem value="graded">Đã chấm</SelectItem>
-              </SelectContent>
-            </Select>
-
             <Select value={examFilter} onValueChange={setExamFilter}>
               <SelectTrigger className="w-[220px]">
                 <SelectValue placeholder="Bài thi" />

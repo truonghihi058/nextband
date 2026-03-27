@@ -359,6 +359,7 @@ export const submissionsApi = {
     studentId?: string;
     status?: string;
     classId?: string;
+    needGrading?: boolean;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
   }) => {
