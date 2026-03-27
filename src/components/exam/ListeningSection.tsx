@@ -109,36 +109,33 @@ export function ListeningSection({
         </div>
       )}
 
-      {/* Split-screen layout */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x overflow-hidden">
-        {/* Left Panel - Transcript/Passage - Hidden during exam, only shown in review mode */}
+      {/* Single-column layout */}
+      <div className="flex-1 overflow-hidden">
+        {/* Transcript/Passage - Hidden during exam, only shown in review mode */}
         {showTranscript && currentGroup?.passage && (
-          <ScrollArea className="h-[calc(100vh-280px)]">
-            <div className="p-6">
-              <div className="prose prose-sm max-w-none">
-                <h3 className="text-lg font-semibold mb-4">Transcript</h3>
-                {/<[^>]+>/.test(currentGroup.passage) ? (
-                  <div
-                    className="leading-relaxed text-foreground"
-                    dangerouslySetInnerHTML={{ __html: currentGroup.passage }}
-                  />
-                ) : (
-                  <p className="whitespace-pre-wrap leading-relaxed text-foreground">
-                    {currentGroup.passage}
-                  </p>
-                )}
-              </div>
-            </div>
-          </ScrollArea>
+          <div className="p-6 pb-0">
+            <Card className="border-muted/60">
+              <CardContent className="p-5">
+                <div className="prose prose-sm max-w-none">
+                  <h3 className="text-lg font-semibold mb-4">Transcript</h3>
+                  {/<[^>]+>/.test(currentGroup.passage) ? (
+                    <div
+                      className="leading-relaxed text-foreground"
+                      dangerouslySetInnerHTML={{ __html: currentGroup.passage }}
+                    />
+                  ) : (
+                    <p className="whitespace-pre-wrap leading-relaxed text-foreground">
+                      {currentGroup.passage}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
-        {/* Right Panel - Questions */}
-        <ScrollArea
-          className={cn(
-            "h-[calc(100vh-280px)]",
-            (!showTranscript || !currentGroup?.passage) && "lg:col-span-2",
-          )}
-        >
+        {/* Questions */}
+        <ScrollArea className="h-[calc(100vh-280px)]">
           <div className="p-6">
             <div className="max-w-3xl mx-auto space-y-6">
               <div className="flex items-center gap-2 text-[hsl(var(--listening))] mb-6">
@@ -432,7 +429,7 @@ export function ListeningSection({
             </div>
           </div>
         </ScrollArea>
-      </div >
-    </div >
+      </div>
+    </div>
   );
 }

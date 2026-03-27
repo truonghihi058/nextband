@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Minus } from "lucide-react";
+import { CheckCircle, XCircle, Minus, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AnswerGradingCardProps {
@@ -19,6 +19,7 @@ interface AnswerGradingCardProps {
   currentFeedback: string | null;
   onScoreChange: (score: number | null) => void;
   onFeedbackChange: (feedback: string) => void;
+  onMaxScoreChange?: (maxScore: number) => void;
   readOnly?: boolean;
   sectionType?: string;
 }
@@ -46,6 +47,7 @@ export function AnswerGradingCard({
   currentFeedback,
   onScoreChange,
   onFeedbackChange,
+  onMaxScoreChange,
   readOnly = false,
   sectionType,
 }: AnswerGradingCardProps) {
@@ -69,7 +71,12 @@ export function AnswerGradingCard({
 
     setScore(sanitizedValue);
     const num = parseFloat(sanitizedValue);
-    onScoreChange(isNaN(num) ? null : num);
+    if (isNaN(num)) {
+      onScoreChange(null);
+      return;
+    }
+    const clamped = Math.min(Math.max(num, 0), points);
+    onScoreChange(clamped);
   };
 
   const isAutoGradable =
@@ -204,7 +211,20 @@ export function AnswerGradingCard({
                 <p className="text-sm whitespace-pre-wrap">{answerText}</p>
               )
             ) : audioUrl ? (
-              <audio controls className="w-full mt-1" src={audioUrl} />
+              <div className="space-y-2">
+                <audio controls className="w-full mt-1" src={audioUrl} />
+                <div>
+                  <a
+                    href={audioUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Mở audio trong tab mới
+                  </a>
+                </div>
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground italic">
                 Chưa trả lời
@@ -237,6 +257,22 @@ export function AnswerGradingCard({
                 className="mt-1"
                 disabled={readOnly}
               />
+              {sectionType === "speaking" && onMaxScoreChange && !readOnly && (
+                <div className="mt-2">
+                  <Label className="text-xs">Thang điểm tối đa</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    step={1}
+                    defaultValue={points}
+                    onBlur={(e) => {
+                      const next = Number.parseInt(e.target.value, 10);
+                      onMaxScoreChange(Number.isFinite(next) && next > 0 ? next : 1);
+                    }}
+                    className="mt-1"
+                  />
+                </div>
+              )}
             </div>
             <div>
               <Label className="text-xs">Nhận xét</Label>

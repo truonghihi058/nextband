@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { submissionsApi } from "@/lib/api";
+import { questionsApi, submissionsApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -42,6 +42,7 @@ export default function SubmissionGrade() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [grades, setGrades] = useState<Record<string, GradeUpdate>>({});
+  const [maxScores, setMaxScores] = useState<Record<string, number>>({});
 
   // Fetch submission with related data
   const { data: submission, isLoading } = useQuery({
@@ -106,10 +107,41 @@ export default function SubmissionGrade() {
     [],
   );
 
+  const getEffectiveMaxScore = useCallback(
+    (question: any) => {
+      return maxScores[question.id] ?? Math.max(1, Number(question.points || 1));
+    },
+    [maxScores],
+  );
+
+  const handleMaxScoreChange = useCallback((questionId: string, maxScore: number) => {
+    setMaxScores((prev) => ({
+      ...prev,
+      [questionId]: Math.max(1, maxScore),
+    }));
+  }, []);
+
   // Save grades mutation
   const saveMutation = useMutation({
     mutationFn: async ({ finalize }: { finalize: boolean }) => {
       const updates = Object.values(grades).filter((g) => g.answerId);
+
+      const speakingPointUpdates = allQuestions
+        .filter((q: any) => q._sectionType === "speaking")
+        .map((q: any) => ({
+          questionId: q.id,
+          currentPoints: Math.max(1, Number(q.points || 1)),
+          nextPoints: getEffectiveMaxScore(q),
+        }))
+        .filter((entry) => entry.nextPoints !== entry.currentPoints);
+
+      if (speakingPointUpdates.length > 0) {
+        await Promise.all(
+          speakingPointUpdates.map((entry) =>
+            questionsApi.update(entry.questionId, { points: entry.nextPoints }),
+          ),
+        );
+      }
 
       // Calculate total score (exclude speaking/writing from auto calculation)
       const currentTotalValue = allQuestions.reduce((sum, q: any) => {
@@ -118,12 +150,16 @@ export default function SubmissionGrade() {
           // Only include manual-grade scores that have been explicitly graded
           const grade = grades[q.id];
           const answer = answerMap[q.id];
-          const score = grade?.score ?? answer?.score ?? 0;
+          const maxScore = getEffectiveMaxScore(q);
+          const rawScore = grade?.score ?? answer?.score ?? 0;
+          const score = Math.min(Math.max(Number(rawScore), 0), maxScore);
           return sum + Number(score);
         }
         const grade = grades[q.id];
         const answer = answerMap[q.id];
-        const score = grade?.score ?? answer?.score ?? 0;
+        const maxScore = getEffectiveMaxScore(q);
+        const rawScore = grade?.score ?? answer?.score ?? 0;
+        const score = Math.min(Math.max(Number(rawScore), 0), maxScore);
         return sum + Number(score);
       }, 0);
 
@@ -163,20 +199,21 @@ export default function SubmissionGrade() {
     return grade?.score != null || answer?.score != null;
   }).length;
 
-  const totalPoints = allQuestions.reduce(
-    (sum, q: any) => sum + (q.points || 1),
-    0,
-  );
+  const totalPoints = allQuestions.reduce((sum, q: any) => {
+    return sum + getEffectiveMaxScore(q);
+  }, 0);
 
   const currentTotal = useMemo(() => {
     const total = allQuestions.reduce((sum, q: any) => {
       const grade = grades[q.id];
       const answer = answerMap[q.id];
-      const score = grade?.score ?? answer?.score ?? 0;
+      const maxScore = getEffectiveMaxScore(q);
+      const rawScore = grade?.score ?? answer?.score ?? 0;
+      const score = Math.min(Math.max(Number(rawScore), 0), maxScore);
       return sum + Number(score);
     }, 0);
     return total;
-  }, [allQuestions, grades, answerMap]);
+  }, [allQuestions, grades, answerMap, getEffectiveMaxScore]);
 
   if (isLoading) {
     return (
@@ -332,7 +369,7 @@ export default function SubmissionGrade() {
                           questionText={question.questionText}
                           questionType={question.questionType}
                           correctAnswer={question.correctAnswer}
-                          points={question.points || 1}
+                          points={getEffectiveMaxScore(question)}
                           answerText={answer?.answerText || null}
                           audioUrl={answer?.audioUrl || null}
                           currentScore={grade?.score ?? answer?.score ?? null}
@@ -352,6 +389,9 @@ export default function SubmissionGrade() {
                               question.id,
                               fb,
                             )
+                          }
+                          onMaxScoreChange={(maxScore) =>
+                            handleMaxScoreChange(question.id, maxScore)
                           }
                           readOnly={!canGrade}
                           sectionType={section.sectionType}

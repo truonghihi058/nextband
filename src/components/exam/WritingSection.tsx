@@ -331,7 +331,7 @@ export function WritingSection({
   };
 
   return (
-    <div className="h-full grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x overflow-hidden">
+    <div className="h-full grid grid-cols-1 overflow-hidden">
       {/* Left - Task Prompt */}
       <div className="p-6 overflow-auto bg-muted/5">
         <div className="max-w-2xl mx-auto space-y-6">

@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Mic } from "lucide-react";
 import FileUpload from "@/components/admin/FileUpload";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { Input } from "@/components/ui/input";
 import type { QuestionFormProps } from "./QuestionFormTypes";
 
 export function SpeakingForm({ form, onChange }: QuestionFormProps) {
@@ -52,6 +53,19 @@ export function SpeakingForm({ form, onChange }: QuestionFormProps) {
             value={form.correctAnswer}
             onChange={(html) => onChange({ correctAnswer: html })}
             minHeight={120}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Thang điểm tối đa
+          </Label>
+          <Input
+            type="number"
+            min={1}
+            step={1}
+            value={form.points}
+            onChange={(e) => onChange({ points: Math.max(1, parseInt(e.target.value) || 1) })}
           />
         </div>
       </CardContent>
