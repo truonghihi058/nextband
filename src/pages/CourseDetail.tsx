@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient, useQueries } from "@tanstack/react-query";
 import {
@@ -128,7 +128,16 @@ export default function CourseDetail() {
   const exams = examsData?.data || [];
   const meta = examsData?.meta;
   const totalPages = meta?.totalPages || 1;
-  const totalExams = meta?.total || exams.length;
+  const courseExamIds = useMemo(
+    () =>
+      new Set(
+        ((course?.exams || []) as any[])
+          .filter((e: any) => e?.isPublished && e?.isActive)
+          .map((e: any) => e.id),
+      ),
+    [course?.exams],
+  );
+  const totalExams = courseExamIds.size;
 
   // Check if user is enrolled in this course
   const enrollmentList = enrollmentsData?.data || [];
@@ -188,11 +197,15 @@ export default function CourseDetail() {
   })();
 
   // Progress stats
-  const completedExams = Object.values(submissionStatusMap).filter(
-    (s) => s === "submitted" || s === "graded",
+  const completedExams = Object.entries(submissionStatusMap).filter(
+    ([examId, status]) =>
+      courseExamIds.has(examId) &&
+      (status === "submitted" || status === "graded"),
   ).length;
   const progressPercent =
-    totalExams > 0 ? Math.round((completedExams / totalExams) * 100) : 0;
+    totalExams > 0
+      ? Math.min(100, Math.round((completedExams / totalExams) * 100))
+      : 0;
 
   if (courseLoading) {
     return (
