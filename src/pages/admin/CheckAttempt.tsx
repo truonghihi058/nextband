@@ -65,7 +65,9 @@ export default function AdminCheckAttempt() {
     refetchOnWindowFocus: true,
   });
 
-  const submissions = submissionsData?.data || [];
+  const submissions = (submissionsData?.data || []).filter(
+    (submission: any) => submission?.status === "submitted",
+  );
 
   // Client-side sorting
   const sortedSubmissions = [...submissions].sort((a: any, b: any) => {

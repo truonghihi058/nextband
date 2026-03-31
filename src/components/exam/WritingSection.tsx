@@ -73,6 +73,10 @@ export function WritingSection({
             : [],
           correct_answer: q.correct_answer || q.correctAnswer || null,
         }))
+        .filter((q: any, idx: number, arr: any[]) => {
+          if (!q?.id) return true;
+          return arr.findIndex((item: any) => item?.id === q.id) === idx;
+        })
         .sort((a: any, b: any) => {
           const orderDiff = (a.order_index || 0) - (b.order_index || 0);
           if (orderDiff !== 0) return orderDiff;
@@ -102,6 +106,7 @@ export function WritingSection({
   );
 
   const primaryQuestionId = allQuestions[0]?.id || section.id;
+  const firstQuestion = allQuestions[0];
   const primaryText = answers[primaryQuestionId] || "";
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [imageZoom, setImageZoom] = useState(1);
@@ -124,16 +129,13 @@ export function WritingSection({
     };
   }, [primaryText]);
 
-  const firstQuestion = allQuestions[0];
-  const promptText =
-    section.prompt_text || firstQuestion?.question_text || section.title || "";
+  const promptText = section.prompt_text || section.title || "";
   const imageUrl =
     section.image_url ||
     firstQuestion?.image_url ||
     questionGroups[0]?.image_url ||
     "";
-  const instructions =
-    section.instructions || questionGroups[0]?.instructions || "";
+  const instructions = section.instructions || "";
 
   const renderAnswerField = (question: any) => {
     const value = answers[question.id] || "";
