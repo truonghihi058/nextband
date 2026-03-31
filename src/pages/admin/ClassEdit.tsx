@@ -273,6 +273,23 @@ export default function AdminClassEdit() {
     },
   });
 
+  useEffect(() => {
+    const students = attendanceData?.students || [];
+    const next: Record<
+      string,
+      { status: "present" | "absent" | "late"; note?: string }
+    > = {};
+
+    students.forEach((student: any) => {
+      next[student.studentId] = {
+        status: (student.status || "absent") as "present" | "absent" | "late",
+        note: student.note || "",
+      };
+    });
+
+    setAttendanceDraft(next);
+  }, [attendanceData]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -297,23 +314,6 @@ export default function AdminClassEdit() {
 
   // Find current teacher info
   const currentTeacher = teachers.find((t: any) => t.id === teacherId);
-
-  useEffect(() => {
-    const students = attendanceData?.students || [];
-    const next: Record<
-      string,
-      { status: "present" | "absent" | "late"; note?: string }
-    > = {};
-
-    students.forEach((student: any) => {
-      next[student.studentId] = {
-        status: (student.status || "absent") as "present" | "absent" | "late",
-        note: student.note || "",
-      };
-    });
-
-    setAttendanceDraft(next);
-  }, [attendanceData]);
 
   const handleSave = () => {
     if (startDate && endDate) {
