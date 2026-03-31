@@ -155,12 +155,16 @@ export default function AdminClassEdit() {
     queryKey: ["class-schedules", id],
     queryFn: () => classesApi.listSchedules(id!),
     enabled: !!id,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const { data: attendanceData, isLoading: attendanceLoading } = useQuery({
     queryKey: ["class-attendance", id, sessionDate],
     queryFn: () => classesApi.getAttendance(id!, sessionDate),
     enabled: !!id && !!sessionDate,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   // Update class mutation
