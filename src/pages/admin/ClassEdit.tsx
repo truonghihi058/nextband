@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { classesApi, usersApi } from "@/lib/api";
@@ -50,8 +50,20 @@ import {
   GraduationCap,
   Mail,
   Calendar,
+  ClipboardCheck,
+  Clock3,
 } from "lucide-react";
 import DeleteConfirmDialog from "@/components/admin/DeleteConfirmDialog";
+
+const DAY_OPTIONS = [
+  { value: 1, label: "Thứ 2" },
+  { value: 2, label: "Thứ 3" },
+  { value: 3, label: "Thứ 4" },
+  { value: 4, label: "Thứ 5" },
+  { value: 5, label: "Thứ 6" },
+  { value: 6, label: "Thứ 7" },
+  { value: 0, label: "Chủ nhật" },
+];
 
 export default function AdminClassEdit() {
   const { id } = useParams<{ id: string }>();
@@ -78,6 +90,20 @@ export default function AdminClassEdit() {
     name: string;
   } | null>(null);
 
+  // Schedule state
+  const [scheduleDay, setScheduleDay] = useState("1");
+  const [scheduleStartTime, setScheduleStartTime] = useState("19:00");
+  const [scheduleDuration, setScheduleDuration] = useState("120");
+  const [scheduleTimezone, setScheduleTimezone] = useState("Asia/Ho_Chi_Minh");
+
+  // Attendance state
+  const [sessionDate, setSessionDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
+  const [attendanceDraft, setAttendanceDraft] = useState<
+    Record<string, { status: "present" | "absent" | "late"; note?: string }>
+  >({});
+
   // Fetch class detail
   const { data: classData, isLoading } = useQuery({
     queryKey: ["admin-class", id],
@@ -94,7 +120,8 @@ export default function AdminClassEdit() {
   const teachers = teachersData?.data || [];
 
   // Initialize form when data loads
-  if (classData && !initialized) {
+  useEffect(() => {
+    if (!classData || initialized) return;
     setName(classData.name || "");
     setDescription(classData.description || "");
     setTeacherId(classData.teacherId || classData.teacher?.id || "");
@@ -109,7 +136,7 @@ export default function AdminClassEdit() {
         : "",
     );
     setInitialized(true);
-  }
+  }, [classData, initialized]);
 
   // Fetch students for the add-students dialog
   const { data: usersData, isLoading: usersLoading } = useQuery({
@@ -122,6 +149,18 @@ export default function AdminClassEdit() {
         role: "student",
       }),
     enabled: addStudentsOpen,
+  });
+
+  const { data: schedulesData, isLoading: schedulesLoading } = useQuery({
+    queryKey: ["class-schedules", id],
+    queryFn: () => classesApi.listSchedules(id!),
+    enabled: !!id,
+  });
+
+  const { data: attendanceData, isLoading: attendanceLoading } = useQuery({
+    queryKey: ["class-attendance", id, sessionDate],
+    queryFn: () => classesApi.getAttendance(id!, sessionDate),
+    enabled: !!id && !!sessionDate,
   });
 
   // Update class mutation
@@ -179,6 +218,61 @@ export default function AdminClassEdit() {
     },
   });
 
+  const createScheduleMutation = useMutation({
+    mutationFn: () =>
+      classesApi.createSchedule(id!, {
+        dayOfWeek: Number(scheduleDay),
+        startTime: scheduleStartTime,
+        durationMinutes: Number(scheduleDuration),
+        timezone: scheduleTimezone,
+        isActive: true,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["class-schedules", id] });
+      toast({ title: "Đã thêm lịch học" });
+    },
+    onError: () => {
+      toast({
+        title: "Lỗi",
+        description: "Không thể thêm lịch học",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteScheduleMutation = useMutation({
+    mutationFn: (scheduleId: string) => classesApi.deleteSchedule(id!, scheduleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["class-schedules", id] });
+      toast({ title: "Đã xóa lịch học" });
+    },
+  });
+
+  const saveAttendanceMutation = useMutation({
+    mutationFn: () =>
+      classesApi.upsertAttendance(id!, {
+        sessionDate,
+        records: Object.entries(attendanceDraft).map(([studentId, value]) => ({
+          studentId,
+          status: value.status,
+          note: value.note || "",
+        })),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["class-attendance", id, sessionDate],
+      });
+      toast({ title: "Đã lưu điểm danh" });
+    },
+    onError: () => {
+      toast({
+        title: "Lỗi",
+        description: "Không thể lưu điểm danh",
+        variant: "destructive",
+      });
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -203,6 +297,23 @@ export default function AdminClassEdit() {
 
   // Find current teacher info
   const currentTeacher = teachers.find((t: any) => t.id === teacherId);
+
+  useEffect(() => {
+    const students = attendanceData?.students || [];
+    const next: Record<
+      string,
+      { status: "present" | "absent" | "late"; note?: string }
+    > = {};
+
+    students.forEach((student: any) => {
+      next[student.studentId] = {
+        status: (student.status || "absent") as "present" | "absent" | "late",
+        note: student.note || "",
+      };
+    });
+
+    setAttendanceDraft(next);
+  }, [attendanceData]);
 
   const handleSave = () => {
     if (startDate && endDate) {
@@ -361,6 +472,226 @@ export default function AdminClassEdit() {
             )}
             Lưu thay đổi
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Weekly Schedule */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Clock3 className="h-5 w-5" />
+            Lịch học cố định
+          </CardTitle>
+          <CardDescription>
+            Thiết lập lịch lặp theo tuần cho lớp học
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-4">
+            <div className="space-y-2">
+              <Label>Ngày học</Label>
+              <Select value={scheduleDay} onValueChange={setScheduleDay}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DAY_OPTIONS.map((day) => (
+                    <SelectItem key={day.value} value={String(day.value)}>
+                      {day.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Bắt đầu</Label>
+              <Input
+                type="time"
+                value={scheduleStartTime}
+                onChange={(e) => setScheduleStartTime(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Thời lượng (phút)</Label>
+              <Input
+                type="number"
+                min={15}
+                max={600}
+                value={scheduleDuration}
+                onChange={(e) => setScheduleDuration(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Timezone</Label>
+              <Input
+                value={scheduleTimezone}
+                onChange={(e) => setScheduleTimezone(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              onClick={() => createScheduleMutation.mutate()}
+              disabled={createScheduleMutation.isPending}
+            >
+              {createScheduleMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Thêm lịch học
+            </Button>
+          </div>
+
+          {schedulesLoading ? (
+            <div className="text-sm text-muted-foreground">Đang tải lịch học...</div>
+          ) : (schedulesData?.data || []).length === 0 ? (
+            <div className="text-sm text-muted-foreground">
+              Chưa có lịch học nào.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ngày</TableHead>
+                  <TableHead>Bắt đầu</TableHead>
+                  <TableHead>Thời lượng</TableHead>
+                  <TableHead>Timezone</TableHead>
+                  <TableHead className="w-[90px]">Xóa</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(schedulesData?.data || []).map((schedule: any) => {
+                  const day = DAY_OPTIONS.find((d) => d.value === schedule.dayOfWeek);
+                  return (
+                    <TableRow key={schedule.id}>
+                      <TableCell>{day?.label || "—"}</TableCell>
+                      <TableCell>{schedule.startTime}</TableCell>
+                      <TableCell>{schedule.durationMinutes} phút</TableCell>
+                      <TableCell>{schedule.timezone}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => deleteScheduleMutation.mutate(schedule.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Attendance */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ClipboardCheck className="h-5 w-5" />
+            Điểm danh theo buổi
+          </CardTitle>
+          <CardDescription>
+            Chỉ cần chọn ngày và đánh dấu nhanh trạng thái từng học viên
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-2">
+              <Label>Ngày học</Label>
+              <Input
+                type="date"
+                value={sessionDate}
+                onChange={(e) => setSessionDate(e.target.value)}
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const next = { ...attendanceDraft };
+                Object.keys(next).forEach((studentId) => {
+                  next[studentId] = { ...next[studentId], status: "present" };
+                });
+                setAttendanceDraft(next);
+              }}
+            >
+              Mark all Present
+            </Button>
+            <Button
+              onClick={() => saveAttendanceMutation.mutate()}
+              disabled={saveAttendanceMutation.isPending}
+            >
+              {saveAttendanceMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Lưu điểm danh
+            </Button>
+          </div>
+
+          {attendanceLoading ? (
+            <div className="text-sm text-muted-foreground">Đang tải điểm danh...</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Học viên</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead>Ghi chú</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(attendanceData?.students || []).map((student: any) => (
+                  <TableRow key={student.studentId}>
+                    <TableCell className="font-medium">{student.fullName}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {student.email}
+                    </TableCell>
+                    <TableCell className="w-[160px]">
+                      <Select
+                        value={attendanceDraft[student.studentId]?.status || "absent"}
+                        onValueChange={(value: "present" | "absent" | "late") =>
+                          setAttendanceDraft((prev) => ({
+                            ...prev,
+                            [student.studentId]: {
+                              status: value,
+                              note: prev[student.studentId]?.note || "",
+                            },
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="present">Có mặt</SelectItem>
+                          <SelectItem value="late">Đi trễ</SelectItem>
+                          <SelectItem value="absent">Vắng</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={attendanceDraft[student.studentId]?.note || ""}
+                        onChange={(e) =>
+                          setAttendanceDraft((prev) => ({
+                            ...prev,
+                            [student.studentId]: {
+                              status: prev[student.studentId]?.status || "absent",
+                              note: e.target.value,
+                            },
+                          }))
+                        }
+                        placeholder="Ghi chú..."
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 

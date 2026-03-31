@@ -643,6 +643,54 @@ export const classesApi = {
     );
     return data;
   },
+
+  listSchedules: async (classId: string) => {
+    const { data } = await api.get(`/classes/${classId}/schedules`);
+    return data;
+  },
+
+  createSchedule: async (
+    classId: string,
+    body: {
+      dayOfWeek: number;
+      startTime: string;
+      durationMinutes: number;
+      timezone?: string;
+      isActive?: boolean;
+    },
+  ) => {
+    const { data } = await api.post(`/classes/${classId}/schedules`, body);
+    return data;
+  },
+
+  deleteSchedule: async (classId: string, scheduleId: string) => {
+    const { data } = await api.delete(
+      `/classes/${classId}/schedules/${scheduleId}`,
+    );
+    return data;
+  },
+
+  getAttendance: async (classId: string, sessionDate: string) => {
+    const { data } = await api.get(`/classes/${classId}/attendance`, {
+      params: { sessionDate },
+    });
+    return data;
+  },
+
+  upsertAttendance: async (
+    classId: string,
+    body: {
+      sessionDate: string;
+      records: Array<{
+        studentId: string;
+        status: "present" | "absent" | "late";
+        note?: string | null;
+      }>;
+    },
+  ) => {
+    const { data } = await api.put(`/classes/${classId}/attendance`, body);
+    return data;
+  },
 };
 
 export default api;

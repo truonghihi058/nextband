@@ -397,6 +397,15 @@ export default function CourseDetail() {
                 const isSubmitted = examStatus === "submitted";
                 const isInProgress = examStatus === "in_progress";
                 const isDone = isGraded || isSubmitted;
+                const objectiveScore =
+                  latestCompletedSubmission?.correctAnswers != null &&
+                  latestCompletedSubmission?.totalQuestions != null
+                    ? `${latestCompletedSubmission.correctAnswers}/${latestCompletedSubmission.totalQuestions}`
+                    : null;
+                const gradedScore =
+                  latestCompletedSubmission?.totalScore != null
+                    ? String(latestCompletedSubmission.totalScore)
+                    : null;
                 const isOpenExam = exam.isOpen === true;
                 const hasSlots =
                   exam.maxParticipants == null ||
@@ -484,6 +493,23 @@ export default function CourseDetail() {
                             <Clock className="mr-1 h-4 w-4" />
                             {exam.durationMinutes || 60} phút
                           </div>
+                          {isGraded && (objectiveScore || gradedScore) && (
+                            <div>
+                              <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">
+                                {objectiveScore || gradedScore}
+                              </Badge>
+                            </div>
+                          )}
+                          {isSubmitted && objectiveScore && (
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-blue-500 hover:bg-blue-600 text-white">
+                                {objectiveScore}
+                              </Badge>
+                              <span className="text-xs text-amber-600">
+                                Chờ chấm tự luận
+                              </span>
+                            </div>
+                          )}
                           {isOpenExam && (
                             <div className="flex items-center text-xs">
                               <Users className="mr-1 h-3.5 w-3.5" />

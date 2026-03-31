@@ -41,6 +41,7 @@ import {
   Calendar,
   GraduationCap,
   School,
+  ClipboardCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -290,7 +291,7 @@ export default function AdminClasses() {
               <TableHead>Ngày bắt đầu</TableHead>
               <TableHead>Ngày kết thúc</TableHead>
               <SortHeader field="createdAt">Ngày tạo</SortHeader>
-              <TableHead className="w-[140px]">Hành động</TableHead>
+              <TableHead className="w-[220px]">Hành động</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -333,7 +334,14 @@ export default function AdminClasses() {
                   <TableCell className="text-muted-foreground text-sm">
                     {formatDate(cls.createdAt)}
                   </TableCell>
-                  <TableCell className="space-x-1">
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link to={`/admin/classes/${cls.id}`}>
+                          <ClipboardCheck className="h-4 w-4 mr-1" />
+                          Điểm danh
+                        </Link>
+                      </Button>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -356,6 +364,7 @@ export default function AdminClasses() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
