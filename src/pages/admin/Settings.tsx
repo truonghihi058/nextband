@@ -40,9 +40,24 @@ export default function AdminSettings() {
     }
   }, []);
 
+  const persistSettings = (next: SettingsData, showToast = false) => {
+    setData(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    if (showToast) {
+      toast({ title: "Đã lưu cài đặt cục bộ" });
+    }
+  };
+
+  const updateSettings = (
+    updater: (prev: SettingsData) => SettingsData,
+    showToast = false,
+  ) => {
+    const next = updater(data);
+    persistSettings(next, showToast);
+  };
+
   const handleSave = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    toast({ title: "Đã lưu cài đặt cục bộ" });
+    persistSettings(data, true);
   };
 
   return (
@@ -65,7 +80,12 @@ export default function AdminSettings() {
               <Label>Tên site</Label>
               <Input
                 value={data.siteName}
-                onChange={(e) => setData((prev) => ({ ...prev, siteName: e.target.value }))}
+                onChange={(e) =>
+                  updateSettings(
+                    (prev) => ({ ...prev, siteName: e.target.value }),
+                    false,
+                  )
+                }
                 placeholder="Nhập tên site"
               />
             </div>
@@ -76,9 +96,14 @@ export default function AdminSettings() {
                 accept="image/*"
                 currentUrl={data.logoUrl || null}
                 onUploadComplete={(url) =>
-                  setData((prev) => ({ ...prev, logoUrl: url || "" }))
+                  updateSettings(
+                    (prev) => ({ ...prev, logoUrl: url || "" }),
+                    true,
+                  )
                 }
-                onRemove={() => setData((prev) => ({ ...prev, logoUrl: "" }))}
+                onRemove={() =>
+                  updateSettings((prev) => ({ ...prev, logoUrl: "" }), true)
+                }
                 label="Tải lên logo (PNG/JPG)"
               />
             </div>
@@ -90,10 +115,13 @@ export default function AdminSettings() {
                 currentUrl={null}
                 onUploadComplete={(url) => {
                   if (!url) return;
-                  setData((prev) => ({
-                    ...prev,
-                    uploads: [url, ...prev.uploads].slice(0, 5),
-                  }));
+                  updateSettings(
+                    (prev) => ({
+                      ...prev,
+                      uploads: [url, ...prev.uploads].slice(0, 20),
+                    }),
+                    false,
+                  );
                   toast({ title: "Đã tải lên", description: url });
                 }}
                 label="Tải lên nhanh (lưu URL gần đây nhất)"
@@ -103,6 +131,23 @@ export default function AdminSettings() {
                   {data.uploads.map((u, i) => (
                     <li key={i} className="flex items-center gap-2">
                       <span className="truncate max-w-xs">{u}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          updateSettings(
+                            (prev) => ({
+                              ...prev,
+                              uploads: prev.uploads.filter(
+                                (url) => url !== u,
+                              ),
+                            }),
+                            true,
+                          )
+                        }
+                      >
+                        Xóa
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -136,7 +181,10 @@ export default function AdminSettings() {
                   type="color"
                   value={data.highlightPresent}
                   onChange={(e) =>
-                    setData((prev) => ({ ...prev, highlightPresent: e.target.value }))
+                    updateSettings(
+                      (prev) => ({ ...prev, highlightPresent: e.target.value }),
+                      false,
+                    )
                   }
                 />
               </div>
@@ -146,7 +194,10 @@ export default function AdminSettings() {
                   type="color"
                   value={data.highlightAbsent}
                   onChange={(e) =>
-                    setData((prev) => ({ ...prev, highlightAbsent: e.target.value }))
+                    updateSettings(
+                      (prev) => ({ ...prev, highlightAbsent: e.target.value }),
+                      false,
+                    )
                   }
                 />
               </div>
@@ -156,7 +207,10 @@ export default function AdminSettings() {
                   type="color"
                   value={data.highlightInactive}
                   onChange={(e) =>
-                    setData((prev) => ({ ...prev, highlightInactive: e.target.value }))
+                    updateSettings(
+                      (prev) => ({ ...prev, highlightInactive: e.target.value }),
+                      false,
+                    )
                   }
                 />
               </div>
