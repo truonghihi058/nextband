@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { FileUpload } from "@/components/admin/FileUpload";
+import FileUpload from "@/components/admin/FileUpload";
 import { useToast } from "@/hooks/use-toast";
 
 type SettingsData = {
@@ -73,23 +73,30 @@ export default function AdminSettings() {
             <div className="space-y-2">
               <Label>Logo</Label>
               <FileUpload
-                value={data.logoUrl}
-                onChange={(url) => setData((prev) => ({ ...prev, logoUrl: url || "" }))}
                 accept="image/*"
-                description="Tải lên logo (PNG/JPG)"
+                currentUrl={data.logoUrl || null}
+                onUploadComplete={(url) =>
+                  setData((prev) => ({ ...prev, logoUrl: url || "" }))
+                }
+                onRemove={() => setData((prev) => ({ ...prev, logoUrl: "" }))}
+                label="Tải lên logo (PNG/JPG)"
               />
             </div>
 
             <div className="space-y-2">
               <Label>File uploads</Label>
               <FileUpload
-                value=""
-                onChange={(url) => {
+                accept="image/*,audio/*"
+                currentUrl={null}
+                onUploadComplete={(url) => {
                   if (!url) return;
-                  setData((prev) => ({ ...prev, uploads: [url, ...prev.uploads].slice(0, 5) }));
+                  setData((prev) => ({
+                    ...prev,
+                    uploads: [url, ...prev.uploads].slice(0, 5),
+                  }));
                   toast({ title: "Đã tải lên", description: url });
                 }}
-                description="Tải lên nhanh (lưu URL gần đây nhất)"
+                label="Tải lên nhanh (lưu URL gần đây nhất)"
               />
               {data.uploads.length > 0 ? (
                 <ul className="text-sm list-disc list-inside space-y-1">
