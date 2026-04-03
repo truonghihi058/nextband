@@ -15,17 +15,35 @@ import {
   Mail,
   Phone,
   ChevronRight,
+  CalendarRange,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { useMemo, useState } from "react";
 
 export default function AdminDashboard() {
   const { data: stats } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: () => statsApi.getAdminStats(),
   });
+
+  const [month, setMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
+
+  const { data: attendanceSummary } = useQuery({
+    queryKey: ["admin-attendance-monthly", month],
+    queryFn: () => statsApi.getMonthlyAttendance({ month }),
+  });
+
+  const monthLabel = useMemo(() => {
+    const [y, m] = month.split("-");
+    return `Tháng ${m}/${y}`;
+  }, [month]);
 
   // Fetch recent teachers for the teacher list widget
   const { data: teachersData } = useQuery({
@@ -91,6 +109,41 @@ export default function AdminDashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Attendance Monthly Card */}
+      <Card className="overflow-hidden">
+        <CardHeader className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
+              <CalendarRange className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Điểm danh theo tháng</CardTitle>
+              <CardDescription>Tổng lượt có mặt (mọi lớp)</CardDescription>
+            </div>
+          </div>
+          <Input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            className="w-40"
+          />
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <div className="text-sm text-muted-foreground">{monthLabel}</div>
+          <div className="text-3xl font-bold">
+            {attendanceSummary?.totalPresent ?? 0} lượt
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Vắng: {attendanceSummary?.totalAbsent ?? 0} ·
+            Tỷ lệ chuyên cần:{" "}
+            {attendanceSummary?.attendanceRate != null
+              ? Math.round(attendanceSummary.attendanceRate * 100)
+              : 0}
+            %
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Teachers List Widget */}
       <Card>

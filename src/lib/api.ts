@@ -565,6 +565,13 @@ export const statsApi = {
       exams: exams.data.meta?.total || 0,
     };
   },
+
+  getMonthlyAttendance: async (params?: { month?: string; classId?: string }) => {
+    const { data } = await api.get("/attendance/summary/monthly", {
+      params,
+    });
+    return data;
+  },
 };
 
 // =============================================
