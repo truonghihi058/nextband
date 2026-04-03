@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { AnswerResultCard } from "@/components/submission/AnswerResultCard";
 import { ReadingSection } from "@/components/exam/ReadingSection";
+import { RichContent } from "@/components/exam/RichContent";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 
@@ -451,6 +452,14 @@ export default function SubmissionDetail() {
                 </span>
               </CardTitle>
             </CardHeader>
+
+            {section.instructions && (
+              <Card className="border border-muted/60 bg-muted/20">
+                <CardContent className="prose prose-sm max-w-none dark:prose-invert text-foreground">
+                  <RichContent html={section.instructions} />
+                </CardContent>
+              </Card>
+            )}
 
             {section.sectionType === "listening" &&
               section.audioScript &&
