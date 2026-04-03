@@ -683,12 +683,17 @@ export const classesApi = {
       sessionDate: string;
       records: Array<{
         studentId: string;
-        status: "present" | "absent" | "late";
+        status: "present" | "absent" | "inactive";
         note?: string | null;
       }>;
     },
   ) => {
     const { data } = await api.put(`/classes/${classId}/attendance`, body);
+    return data;
+  },
+
+  getAttendanceHistory: async (classId: string) => {
+    const { data } = await api.get(`/classes/${classId}/attendance/history`);
     return data;
   },
 };

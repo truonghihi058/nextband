@@ -101,7 +101,10 @@ export default function AdminClassEdit() {
     new Date().toISOString().slice(0, 10),
   );
   const [attendanceDraft, setAttendanceDraft] = useState<
-    Record<string, { status: "present" | "absent" | "late"; note?: string }>
+    Record<
+      string,
+      { status: "present" | "absent" | "inactive"; note?: string }
+    >
   >({});
 
   // Fetch class detail
@@ -164,6 +167,14 @@ export default function AdminClassEdit() {
     queryFn: () => classesApi.getAttendance(id!, sessionDate),
     enabled: !!id && !!sessionDate,
     retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: attendanceHistory, isLoading: historyLoading } = useQuery({
+    queryKey: ["class-attendance-history", id],
+    queryFn: () => classesApi.getAttendanceHistory(id!),
+    enabled: !!id,
+    staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
 
@@ -266,6 +277,9 @@ export default function AdminClassEdit() {
       queryClient.invalidateQueries({
         queryKey: ["class-attendance", id, sessionDate],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["class-attendance-history", id],
+      });
       toast({ title: "Đã lưu điểm danh" });
     },
     onError: () => {
@@ -281,12 +295,15 @@ export default function AdminClassEdit() {
     const students = attendanceData?.students || [];
     const next: Record<
       string,
-      { status: "present" | "absent" | "late"; note?: string }
+      { status: "present" | "absent" | "inactive"; note?: string }
     > = {};
 
     students.forEach((student: any) => {
       next[student.studentId] = {
-        status: (student.status || "absent") as "present" | "absent" | "late",
+        status: (student.status || "absent") as
+          | "present"
+          | "absent"
+          | "inactive",
         note: student.note || "",
       };
     });
@@ -621,7 +638,7 @@ export default function AdminClassEdit() {
                 setAttendanceDraft(next);
               }}
             >
-              Mark all Present
+              Đánh dấu tất cả Có mặt
             </Button>
             <Button
               onClick={() => saveAttendanceMutation.mutate()}
@@ -656,7 +673,7 @@ export default function AdminClassEdit() {
                     <TableCell className="w-[160px]">
                       <Select
                         value={attendanceDraft[student.studentId]?.status || "absent"}
-                        onValueChange={(value: "present" | "absent" | "late") =>
+                        onValueChange={(value: "present" | "absent" | "inactive") =>
                           setAttendanceDraft((prev) => ({
                             ...prev,
                             [student.studentId]: {
@@ -671,8 +688,8 @@ export default function AdminClassEdit() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="present">Có mặt</SelectItem>
-                          <SelectItem value="late">Đi trễ</SelectItem>
                           <SelectItem value="absent">Vắng</SelectItem>
+                          <SelectItem value="inactive">Tạm nghỉ</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>
@@ -695,6 +712,97 @@ export default function AdminClassEdit() {
                 ))}
               </TableBody>
             </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Attendance history */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Lịch sử điểm danh</CardTitle>
+          <CardDescription>
+            Bảng theo ngày (cột là buổi học, hàng là học viên) + tổng kết chuyên cần
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {historyLoading ? (
+            <div className="text-sm text-muted-foreground">
+              Đang tải lịch sử điểm danh...
+            </div>
+          ) : attendanceHistory?.sessionDates?.length ? (
+            <Table className="overflow-x-auto">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Học viên</TableHead>
+                  {attendanceHistory.sessionDates.map((d: string) => (
+                    <TableHead key={d} className="text-center whitespace-nowrap">
+                      {d}
+                    </TableHead>
+                  ))}
+                  <TableHead className="text-center whitespace-nowrap">
+                    Có mặt
+                  </TableHead>
+                  <TableHead className="text-center whitespace-nowrap">
+                    Vắng
+                  </TableHead>
+                  <TableHead className="text-center whitespace-nowrap">
+                    Tỷ lệ
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(attendanceHistory.students || []).map((s: any) => {
+                  const summary = s.summary || {};
+                  const rate =
+                    summary.attendanceRate != null
+                      ? Math.round(summary.attendanceRate * 100)
+                      : 0;
+                  return (
+                    <TableRow key={s.studentId}>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {s.fullName}
+                      </TableCell>
+                      {attendanceHistory.sessionDates.map((d: string) => {
+                        const status = s.statuses?.[d];
+                        const symbol =
+                          status === "present"
+                            ? "✓"
+                            : status === "absent"
+                            ? "✗"
+                            : status === "inactive"
+                            ? "–"
+                            : "";
+                        return (
+                          <TableCell
+                            key={d}
+                            className="text-center text-sm font-semibold"
+                          >
+                            {symbol}
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell className="text-center text-sm">
+                        {summary.present ?? 0}
+                      </TableCell>
+                      <TableCell className="text-center text-sm">
+                        {summary.absent ?? 0}
+                      </TableCell>
+                      <TableCell
+                        className={`text-center text-sm ${
+                          rate >= 80 ? "text-emerald-600" : "text-amber-600"
+                        }`}
+                      >
+                        {rate}%
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              Chưa có dữ liệu điểm danh để hiển thị.
+            </div>
           )}
         </CardContent>
       </Card>
