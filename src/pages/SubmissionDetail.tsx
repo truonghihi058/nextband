@@ -18,6 +18,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { AnswerResultCard } from "@/components/submission/AnswerResultCard";
+import { ReadingSection } from "@/components/exam/ReadingSection";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 
@@ -72,6 +73,7 @@ export default function SubmissionDetail() {
 
   const sections = submission?.exam?.sections || [];
   const answers = submission?.answers || [];
+  const isReviewMode = true;
 
   const answerMap = useMemo(() => {
     const map: Record<string, any> = {};
@@ -403,10 +405,43 @@ export default function SubmissionDetail() {
         </CardContent>
       </Card>
 
-      {/* Questions by section */}
-      {sections
-        ?.sort(compareByDisplayOrder)
-        .map((section: any) => (
+      {/* Sections */}
+      {sections?.sort(compareByDisplayOrder).map((section: any) => {
+        const sectionQuestions =
+          (section.questionGroups || [])
+            .sort(compareByDisplayOrder)
+            .flatMap((g: any) =>
+              (g.questions || []).sort(compareByDisplayOrder),
+            ) || [];
+
+        // Reuse ReadingSection for review to keep layout/highlight identical
+        if (section.sectionType === "reading") {
+          return (
+            <Card key={section.id} className="overflow-hidden">
+              <CardHeader className="px-4 pt-4 pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  {section.title}
+                  <span className="text-sm font-normal text-muted-foreground">
+                    (Reading)
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-0 pb-4">
+                <ReadingSection
+                  section={section}
+                  answers={{}}
+                  onAnswerChange={() => {}}
+                  questionRefs={undefined}
+                  currentQuestionId={undefined}
+                  onQuestionFocus={() => {}}
+                />
+              </CardContent>
+            </Card>
+          );
+        }
+
+        return (
           <div key={section.id} className="space-y-4">
             <CardHeader className="px-0 pb-2">
               <CardTitle className="text-lg">
@@ -434,54 +469,34 @@ export default function SubmissionDetail() {
                 </Card>
               )}
 
-            {(section.questionGroups || [])
-              .sort(compareByDisplayOrder)
-              .map((group: any, gIndex: number) => (
-                <div key={group.id} className="space-y-3">
-                  {(group.title || group.instructions) && (
-                    <div className="pl-1 space-y-2">
-                      {group.title && (
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-sm">{group.title}</h3>
-                        </div>
-                      )}
-                      {group.instructions && (
-                        <div 
-                          className="text-xs text-muted-foreground mt-0.5 prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: group.instructions }}
-                        />
-                      )}
-                    </div>
-                  )}
+            {sectionQuestions.map((question: any) => {
+              questionCounter++;
+              const answer = answerMap[question.id];
 
-                  {(group.questions || [])
-                    .sort(compareByDisplayOrder)
-                    .map((question: any) => {
-                      questionCounter++;
-                      const answer = answerMap[question.id];
-
-                      return (
-                        <AnswerResultCard
-                          key={question.id}
-                          questionIndex={questionCounter}
-                          questionText={question.questionText}
-                          questionType={question.questionType}
-                          correctAnswer={question.correctAnswer}
-                          points={question.points || 1}
-                          answerText={answer?.answerText || null}
-                          audioUrl={answer?.audioUrl || null}
-                          score={answer?.score ?? null}
-                          feedback={answer?.feedback ?? null}
-                          isGraded={isGraded}
-                          isSubmitted={submission?.status === "submitted" || submission?.status === "graded"}
-                          sectionType={section.sectionType}
-                        />
-                      );
-                    })}
-                </div>
-              ))}
+              return (
+                <AnswerResultCard
+                  key={question.id}
+                  questionIndex={questionCounter}
+                  questionText={question.questionText}
+                  questionType={question.questionType}
+                  correctAnswer={question.correctAnswer}
+                  points={question.points || 1}
+                  answerText={answer?.answerText || null}
+                  audioUrl={answer?.audioUrl || null}
+                  score={answer?.score ?? null}
+                  feedback={answer?.feedback ?? null}
+                  isGraded={isGraded}
+                  isSubmitted={
+                    submission?.status === "submitted" ||
+                    submission?.status === "graded"
+                  }
+                  sectionType={section.sectionType}
+                />
+              );
+            })}
           </div>
-        ))}
+        );
+      })}
     </div>
   );
 }

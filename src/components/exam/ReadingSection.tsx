@@ -338,73 +338,101 @@ export function ReadingSection({
   }, []);
 
   /**
-   * Render the passage with highlight marks.
-   * We split the plain-text source by newlines to preserve paragraph structure
-   * even though highlights work on flat character offsets.
+   * Render passage HTML while wrapping only text nodes with <mark> for highlights.
+   * Preserve DOM structure (images, links, block tags) and avoid spacing shifts.
    */
-  const renderHighlightedText = (): React.ReactNode => {
-    const text = passageSourceText || passagePlainFromSource;
-    if (!text) return null;
-
-    // Build flat list of spans from highlight data
-    const buildSpans = (chunk: string, baseOffset: number): React.ReactNode[] => {
-      if (highlights.length === 0) return [chunk];
-      const spans: React.ReactNode[] = [];
-      let cursor = baseOffset;
-      const end = baseOffset + chunk.length;
-
-      sortedHighlights.forEach((h) => {
-        const hStart = Math.max(h.startIndex, cursor);
-        const hEnd = Math.min(h.endIndex, end);
-        if (hStart >= hEnd) return;
-
-        if (hStart > cursor) {
-          spans.push(text.slice(cursor, hStart));
-        }
-        const bg =
-          h.color === "yellow"
-            ? "bg-yellow-200 dark:bg-yellow-900/50"
-            : "bg-green-200 dark:bg-green-900/50";
-        spans.push(
-          <mark
-            key={`${h.id}-${hStart}`}
-            ref={(el) => { if (el) markRefs.current.set(h.id, el); }}
-            className={`${bg} px-0.5 rounded cursor-pointer hover:opacity-90 transition-opacity ${activeHighlightId === h.id ? "ring-2 ring-primary/50" : ""}`}
-            onClick={() => setActiveHighlightId((prev) => (prev === h.id ? null : h.id))}
-            title="Click để chọn highlight"
-          >
-            {text.slice(hStart, hEnd)}
-          </mark>,
-        );
-        cursor = hEnd;
-      });
-
-      if (cursor < end) spans.push(text.slice(cursor, end));
-      return spans;
-    };
-
-    // Split on double newlines to recover paragraph structure from plain text
-    const paragraphs = text.split(/\n{2,}/).filter(Boolean);
-    if (paragraphs.length <= 1) {
-      // Single-para or no break: render inline
-      return <>{buildSpans(text, 0)}</>;
+  const renderHighlightedText = useCallback((): React.ReactNode => {
+    const html = passageText;
+    if (!html) return null;
+    if (typeof window === "undefined" || typeof DOMParser === "undefined") {
+      return <RichContent html={html} />;
     }
 
-    let offset = 0;
-    return (
-      <>
-        {paragraphs.map((para, i) => {
-          const spans = buildSpans(para, offset);
-          offset += para.length + 2; // +2 for the \n\n separator
-          return (
-            <p key={i} className="mb-5 last:mb-0 text-justify">
-              {spans}
-            </p>
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const body = doc.body;
+
+    let globalOffset = 0;
+
+    const renderNode = (node: ChildNode): React.ReactNode => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent || "";
+        const parts: React.ReactNode[] = [];
+        const start = globalOffset;
+        const end = start + text.length;
+        let cursor = start;
+
+        sortedHighlights.forEach((h) => {
+          const hStart = Math.max(h.startIndex, start);
+          const hEnd = Math.min(h.endIndex, end);
+          if (hStart >= hEnd) return;
+          if (hStart > cursor) {
+            parts.push(text.slice(cursor - start, hStart - start));
+          }
+          const bg =
+            h.color === "yellow"
+              ? "bg-yellow-200 dark:bg-yellow-900/50"
+              : "bg-green-200 dark:bg-green-900/50";
+          parts.push(
+            <mark
+              key={`${h.id}-${hStart}`}
+              ref={(el) => {
+                if (el) markRefs.current.set(h.id, el);
+              }}
+              className={`${bg} inline rounded px-0 py-0 cursor-pointer hover:opacity-90 transition-opacity ${
+                activeHighlightId === h.id ? "ring-2 ring-primary/50" : ""
+              }`}
+              onClick={() =>
+                setActiveHighlightId((prev) => (prev === h.id ? null : h.id))
+              }
+              title="Click để chọn highlight"
+            >
+              {text.slice(hStart - start, hEnd - start)}
+            </mark>,
           );
-        })}
-      </>
-    );
-  };
+          cursor = hEnd;
+        });
+
+        if (cursor < end) {
+          parts.push(text.slice(cursor - start));
+        }
+        globalOffset = end;
+        if (parts.length === 1 && typeof parts[0] === "string") {
+          return parts[0];
+        }
+        return <>{parts}</>;
+      }
+
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const el = node as HTMLElement;
+        const children = Array.from(el.childNodes).map((child, idx) => (
+          <React.Fragment key={idx}>{renderNode(child)}</React.Fragment>
+        ));
+        const props: Record<string, any> = {};
+        Array.from(el.attributes).forEach((attr) => {
+          props[attr.name] = attr.value;
+        });
+
+        const tag = el.tagName.toLowerCase();
+        return React.createElement(tag, props, children);
+      }
+
+      // Ignore comments/others
+      return null;
+    };
+
+    const rendered = Array.from(body.childNodes).map((child, idx) => (
+      <React.Fragment key={idx}>{renderNode(child)}</React.Fragment>
+    ));
+
+    return <>{rendered}</>;
+  }, [
+    passageText,
+    sortedHighlights,
+    activeHighlightId,
+    setActiveHighlightId,
+    markRefs,
+  ]);
 
   // Flatten all questions from all groups
   const allQuestions =
