@@ -246,10 +246,12 @@ export default function AdminClassEdit() {
       queryClient.invalidateQueries({ queryKey: ["class-schedules", id] });
       toast({ title: "Đã thêm lịch học" });
     },
-    onError: () => {
+    onError: (err: any) => {
+      const message =
+        err?.response?.data?.error || "Không thể thêm lịch học";
       toast({
         title: "Lỗi",
-        description: "Không thể thêm lịch học",
+        description: message,
         variant: "destructive",
       });
     },
