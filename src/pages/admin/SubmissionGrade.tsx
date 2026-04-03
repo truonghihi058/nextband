@@ -10,6 +10,7 @@ import { ArrowLeft, Save, CheckCheck, Loader2 } from "lucide-react";
 import { SubmissionHeader } from "@/components/grading/SubmissionHeader";
 import { AnswerGradingCard } from "@/components/grading/AnswerGradingCard";
 import { useAuth } from "@/hooks/useAuth";
+import { RichContent } from "@/components/exam/RichContent";
 
 interface GradeUpdate {
   answerId: string;
@@ -336,6 +337,14 @@ export default function SubmissionGrade() {
               </CardTitle>
             </CardHeader>
 
+            {section.instructions && (
+              <Card className="border border-muted/60 bg-muted/20">
+                <CardContent className="prose prose-sm max-w-none dark:prose-invert text-foreground">
+                  <RichContent html={section.instructions} />
+                </CardContent>
+              </Card>
+            )}
+
             {(section.questionGroups || [])
               .sort(compareByDisplayOrder)
               .map((group: any, gIndex: number) => (
@@ -348,9 +357,9 @@ export default function SubmissionGrade() {
                         </div>
                       )}
                       {group.instructions && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {group.instructions}
-                        </p>
+                        <div className="text-xs text-muted-foreground mt-0.5 prose prose-sm max-w-none">
+                          <RichContent html={group.instructions} />
+                        </div>
                       )}
                     </div>
                   )}
