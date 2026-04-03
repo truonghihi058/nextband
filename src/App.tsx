@@ -38,6 +38,7 @@ import AdminLogViewer from "@/pages/admin/LogViewer";
 import AdminClasses from "@/pages/admin/Classes";
 import AdminClassEdit from "@/pages/admin/ClassEdit";
 import AdminTeachers from "@/pages/admin/Teachers";
+import AdminSettings from "@/pages/admin/Settings";
 
 const queryClient = new QueryClient();
 
@@ -200,6 +201,14 @@ const App = () => (
                 element={
                   <ProtectedRoute requiredRoles={["admin"]}>
                     <AdminTeachers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings"
+                element={
+                  <ProtectedRoute requiredRoles={["admin"]}>
+                    <AdminSettings />
                   </ProtectedRoute>
                 }
               />
