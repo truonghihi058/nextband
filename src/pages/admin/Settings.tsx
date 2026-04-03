@@ -12,7 +12,6 @@ type SettingsData = {
   highlightPresent: string;
   highlightAbsent: string;
   highlightInactive: string;
-  uploads: string[];
 };
 
 const STORAGE_KEY = "nb_admin_settings";
@@ -25,7 +24,6 @@ export default function AdminSettings() {
     highlightPresent: "#fff7a5",
     highlightAbsent: "#ffd7d7",
     highlightInactive: "#e5e7eb",
-    uploads: [],
   });
 
   useEffect(() => {
@@ -108,63 +106,6 @@ export default function AdminSettings() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>File uploads</Label>
-              <FileUpload
-                accept="image/*,audio/*"
-                currentUrl={null}
-                onUploadComplete={(url) => {
-                  if (!url) return;
-                  updateSettings(
-                    (prev) => ({
-                      ...prev,
-                      uploads: [url, ...prev.uploads].slice(0, 20),
-                    }),
-                    false,
-                  );
-                  toast({ title: "Đã tải lên", description: url });
-                }}
-                label="Tải lên nhanh (lưu URL gần đây nhất)"
-              />
-              {data.uploads.length > 0 ? (
-                <ul className="text-sm list-disc list-inside space-y-1">
-                  {data.uploads.map((u, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <span className="truncate max-w-xs">{u}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          updateSettings(
-                            (prev) => ({
-                              ...prev,
-                              uploads: prev.uploads.filter(
-                                (url) => url !== u,
-                              ),
-                            }),
-                            true,
-                          )
-                        }
-                      >
-                        Xóa
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          navigator.clipboard?.writeText(u).catch(() => {});
-                          toast({ title: "Đã copy URL" });
-                        }}
-                      >
-                        Copy
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-xs text-muted-foreground">Chưa có file nào</p>
-              )}
-            </div>
           </CardContent>
         </Card>
 
