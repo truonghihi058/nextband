@@ -48,7 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Load user from token on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
+    const storedToken =
+      localStorage.getItem("token") || sessionStorage.getItem("token");
     if (storedToken) {
       setToken(storedToken);
       loadUser();
@@ -73,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       // Token invalid, clear it
       localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
       setToken(null);
       setUser(null);
     } finally {
@@ -134,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     setToken(null);
     setUser(null);
   };

@@ -145,25 +145,31 @@ export default function CourseDetail() {
     (e: any) => e.courseId === slug || e.course?.id === slug,
   );
 
-  // Tạo map: examId → trạng thái submission mới nhất (submitted / graded / in_progress)
+  // Tạo map: examId → trạng thái hiển thị thống nhất
+  // - filled: đã nộp (submittedAt != null)
+  // - in_progress: có bản nháp nhưng chưa nộp
+  // - not_started: không có record
   const submissionStatusMap = (() => {
     const submissions: any[] = submissionsData?.data || [];
-    const map: Record<string, string> = {};
-    // Duyệt theo thứ tự ưu tiên: graded > submitted > in_progress
-    const priority: Record<string, number> = {
-      graded: 3,
-      submitted: 2,
-      in_progress: 1,
+    const map: Record<string, "filled" | "in_progress" | "not_started"> = {};
+    const priority: Record<"filled" | "in_progress" | "not_started", number> = {
+      filled: 3,
+      in_progress: 2,
+      not_started: 1,
     };
     for (const sub of submissions) {
       const examId = sub.exam?.id || sub.examId;
       if (!examId) continue;
+      const normalizedStatus =
+        sub.submittedAt != null
+          ? ("filled" as const)
+          : ("in_progress" as const);
       const existing = map[examId];
       if (
         !existing ||
-        (priority[sub.status] ?? 0) > (priority[existing] ?? 0)
+        (priority[normalizedStatus] ?? 0) > (priority[existing] ?? 0)
       ) {
-        map[examId] = sub.status;
+        map[examId] = normalizedStatus;
       }
     }
     return map;
@@ -198,9 +204,7 @@ export default function CourseDetail() {
 
   // Progress stats
   const completedExams = Object.entries(submissionStatusMap).filter(
-    ([examId, status]) =>
-      courseExamIds.has(examId) &&
-      (status === "submitted" || status === "graded"),
+    ([examId, status]) => courseExamIds.has(examId) && status === "filled",
   ).length;
   const progressPercent =
     totalExams > 0
@@ -406,10 +410,10 @@ export default function CourseDetail() {
                   latestReviewSubmissionMap[exam.id];
                 const latestReviewLoading = latestReviewLoadingMap[exam.id];
                 const canReviewLatest = !!latestCompletedSubmission?.id;
-                const isGraded = examStatus === "graded";
-                const isSubmitted = examStatus === "submitted";
+                const isFilled = examStatus === "filled";
                 const isInProgress = examStatus === "in_progress";
-                const isDone = isGraded || isSubmitted;
+                const isNotStarted = !examStatus || examStatus === "not_started";
+                const isDone = isFilled;
                 const objectiveScore =
                   latestCompletedSubmission?.correctAnswers != null &&
                   latestCompletedSubmission?.totalQuestions != null
@@ -506,21 +510,11 @@ export default function CourseDetail() {
                             <Clock className="mr-1 h-4 w-4" />
                             {exam.durationMinutes || 60} phút
                           </div>
-                          {isGraded && (objectiveScore || gradedScore) && (
+                          {isFilled && (objectiveScore || gradedScore) && (
                             <div>
                               <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">
                                 {objectiveScore || gradedScore}
                               </Badge>
-                            </div>
-                          )}
-                          {isSubmitted && objectiveScore && (
-                            <div className="flex items-center gap-2">
-                              <Badge className="bg-blue-500 hover:bg-blue-600 text-white">
-                                {objectiveScore}
-                              </Badge>
-                              <span className="text-xs text-amber-600">
-                                Chờ chấm tự luận
-                              </span>
                             </div>
                           )}
                           {isOpenExam && (
@@ -536,44 +530,25 @@ export default function CourseDetail() {
 
                         {/* Trạng thái & nút hành động */}
                         <div className="flex items-center gap-2">
-                          {isGraded && (
+                          <Badge
+                            className={
+                              isFilled
+                                ? "bg-green-500 hover:bg-green-600 text-white gap-1"
+                                : isInProgress
+                                  ? "bg-amber-500 hover:bg-amber-600 text-white gap-1"
+                                  : "bg-slate-500 hover:bg-slate-600 text-white gap-1"
+                            }
+                          >
+                            <ClipboardCheck className="h-3.5 w-3.5" />
+                            {isFilled
+                              ? "Filled"
+                              : isInProgress
+                                ? "In Progress"
+                                : "Not Started"}
+                          </Badge>
+
+                          {isFilled && (
                             <>
-                              <Badge className="bg-green-500 hover:bg-green-600 text-white gap-1">
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                Đã hoàn thành
-                              </Badge>
-                              {canAccessExam && (
-                                <Button size="sm" variant="outline" asChild>
-                                  <Link to={`/exam/${exam.id}`}>
-                                    <Play className="mr-1 h-3.5 w-3.5" />
-                                    Làm lại
-                                  </Link>
-                                </Button>
-                              )}
-                              {latestReviewLoading && (
-                                <Button size="sm" variant="outline" disabled>
-                                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                                  Đang tải
-                                </Button>
-                              )}
-                              {!latestReviewLoading && canReviewLatest && (
-                                <Button size="sm" variant="secondary" asChild>
-                                  <Link
-                                    to={`/exam/${exam.id}/review?submissionId=${latestCompletedSubmission.id}`}
-                                  >
-                                    <Eye className="mr-1 h-3.5 w-3.5" />
-                                    Xem lại
-                                  </Link>
-                                </Button>
-                              )}
-                            </>
-                          )}
-                          {isSubmitted && (
-                            <>
-                              <Badge className="bg-amber-500 hover:bg-amber-600 text-white gap-1">
-                                <ClipboardCheck className="h-3.5 w-3.5" />
-                                Chờ chấm
-                              </Badge>
                               {canAccessExam && (
                                 <Button size="sm" variant="outline" asChild>
                                   <Link to={`/exam/${exam.id}`}>
@@ -621,7 +596,7 @@ export default function CourseDetail() {
                                 </Link>
                               </Button>
                             )}
-                          {!examStatus && canAccessExam && (
+                          {isNotStarted && canAccessExam && (
                             !hasSlots && isOpenExam ? (
                               <Button size="sm" disabled>
                                 <Play className="mr-1 h-3.5 w-3.5" />

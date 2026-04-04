@@ -162,7 +162,11 @@ export default function AdminClassEdit() {
     refetchOnWindowFocus: false,
   });
 
-  const { data: attendanceData, isLoading: attendanceLoading } = useQuery({
+  const {
+    data: attendanceData,
+    isLoading: attendanceLoading,
+    refetch: refetchAttendance,
+  } = useQuery({
     queryKey: ["class-attendance", id, sessionDate],
     queryFn: () => classesApi.getAttendance(id!, sessionDate),
     enabled: !!id && !!sessionDate,
@@ -170,7 +174,11 @@ export default function AdminClassEdit() {
     refetchOnWindowFocus: false,
   });
 
-  const { data: attendanceHistory, isLoading: historyLoading } = useQuery({
+  const {
+    data: attendanceHistory,
+    isLoading: historyLoading,
+    refetch: refetchAttendanceHistory,
+  } = useQuery({
     queryKey: ["class-attendance-history", id],
     queryFn: () => classesApi.getAttendanceHistory(id!),
     enabled: !!id,
@@ -275,13 +283,14 @@ export default function AdminClassEdit() {
           note: value.note || "",
         })),
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({
         queryKey: ["class-attendance", id, sessionDate],
       });
       queryClient.invalidateQueries({
         queryKey: ["class-attendance-history", id],
       });
+      await Promise.all([refetchAttendance(), refetchAttendanceHistory()]);
       toast({ title: "Đã lưu điểm danh" });
     },
     onError: () => {

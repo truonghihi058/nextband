@@ -23,6 +23,7 @@ import {
 import { GoogleLogin } from "@react-oauth/google";
 import { authApi } from "@/lib/api";
 import { z } from "zod";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const emailSchema = z.string().email("Email không hợp lệ");
 const passwordSchema = z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự");
@@ -35,6 +36,8 @@ export default function Auth() {
     {},
   );
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberGoogleLogin, setRememberGoogleLogin] = useState(true);
+  const [showGoogleHint, setShowGoogleHint] = useState(false);
 
   const { signIn, user } = useAuth();
   const navigate = useNavigate();
@@ -48,6 +51,11 @@ export default function Auth() {
       navigate(from, { replace: true });
     }
   }, [user, navigate, from]);
+
+  useEffect(() => {
+    const hidden = localStorage.getItem("google_login_hint_hidden") === "1";
+    setShowGoogleHint(!hidden);
+  }, []);
 
   const validateInputs = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -170,19 +178,21 @@ export default function Auth() {
                       const data = await authApi.loginWithGoogle(
                         credentialResponse.credential,
                       );
-                      signIn(data.user, data.token); // Assuming useAuth has a way to set user/token directly or we reload
-                      // Wait, useAuth.signIn only takes email/pass usually.
-                      // I need to check useAuth logic.
-                      // If useAuth doesn't expose a method to set user/token, I might need to update it
-                      // Or just set localStorage and reload/fetchMe.
-                      // Let's check useAuth first.
-                      // But for now, let's assume I can trigger it.
-                      // Actually, I should inspect useAuth first.
-                      // I'll comment this part out and come back or use a simple hack.
+                      if (rememberGoogleLogin) {
+                        localStorage.setItem("google_login_hint_hidden", "1");
+                        localStorage.setItem("google_login_remember", "1");
+                      } else {
+                        localStorage.removeItem("google_login_remember");
+                      }
 
-                      localStorage.setItem("token", data.token);
-                      localStorage.setItem("user", JSON.stringify(data.user));
-                      window.location.href = from; // Force reload/redirect to init state
+                      localStorage.removeItem("token");
+                      sessionStorage.removeItem("token");
+                      if (rememberGoogleLogin) {
+                        localStorage.setItem("token", data.token);
+                      } else {
+                        sessionStorage.setItem("token", data.token);
+                      }
+                      window.location.href = from;
 
                       toast({
                         title: "Đăng nhập thành công",
@@ -209,6 +219,22 @@ export default function Auth() {
                 }}
               />
             </div>
+            {showGoogleHint && (
+              <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground space-y-2">
+                <p>
+                  Lần đầu đăng nhập bằng Google có thể cần xác nhận tài khoản.
+                </p>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={rememberGoogleLogin}
+                    onCheckedChange={(checked) =>
+                      setRememberGoogleLogin(Boolean(checked))
+                    }
+                  />
+                  <span>Ghi nhớ cho lần đăng nhập sau</span>
+                </label>
+              </div>
+            )}
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
