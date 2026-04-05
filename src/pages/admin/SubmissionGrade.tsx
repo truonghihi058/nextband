@@ -37,6 +37,15 @@ const compareByDisplayOrder = (a: any, b: any) => {
   return String(a?.id || "").localeCompare(String(b?.id || ""));
 };
 
+const getQuestionText = (question: any) =>
+  question?.questionText || question?.question_text || "";
+
+const getQuestionType = (question: any) =>
+  question?.questionType || question?.question_type || "";
+
+const getCorrectAnswer = (question: any) =>
+  question?.correctAnswer || question?.correct_answer || null;
+
 export default function SubmissionGrade() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -364,6 +373,14 @@ export default function SubmissionGrade() {
                     </div>
                   )}
 
+                  {group.passage && (
+                    <Card className="border border-muted/60 bg-muted/10">
+                      <CardContent className="prose prose-sm max-w-none dark:prose-invert text-foreground">
+                        <RichContent html={group.passage} variant="passage" />
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {(group.questions || [])
                     .sort(compareByDisplayOrder)
                     .map((question: any) => {
@@ -375,9 +392,9 @@ export default function SubmissionGrade() {
                         <AnswerGradingCard
                           key={question.id}
                           questionIndex={questionCounter}
-                          questionText={question.questionText}
-                          questionType={question.questionType}
-                          correctAnswer={question.correctAnswer}
+                          questionText={getQuestionText(question)}
+                          questionType={getQuestionType(question)}
+                          correctAnswer={getCorrectAnswer(question)}
                           points={getEffectiveMaxScore(question)}
                           answerText={answer?.answerText || null}
                           audioUrl={answer?.audioUrl || null}

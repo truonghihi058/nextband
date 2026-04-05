@@ -7,6 +7,7 @@ import { Mic, BookOpen } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { QuestionRecorder } from "./QuestionRecorder";
+import { RichContent } from "./RichContent";
 
 import {
   FillBlankHtmlRenderer,
@@ -85,9 +86,7 @@ export function SpeakingSection({
               <h2 className="text-2xl font-bold">{section.title}</h2>
               {section.instructions && (
                 <div className="mt-2 p-3 bg-white border-orange-500 border rounded-lg text-sm text-black font-medium shadow-sm">
-                  <div
-                    dangerouslySetInnerHTML={{ __html: section.instructions }}
-                  />
+                  <RichContent html={section.instructions} />
                 </div>
               )}
             </div>
@@ -108,9 +107,7 @@ export function SpeakingSection({
                   </div>
                   {group.instructions && (
                     <div className="p-3 bg-white border-orange-500/50 border rounded-lg text-sm text-black font-semibold shadow-sm mb-4">
-                      <div
-                        dangerouslySetInnerHTML={{ __html: group.instructions }}
-                      />
+                      <RichContent html={group.instructions} />
                     </div>
                   )}
                 </div>
@@ -124,9 +121,11 @@ export function SpeakingSection({
                       <BookOpen className="h-4 w-4" />
                       Cue Card / Thông tin gợi ý
                     </div>
-                    <div className="text-lg leading-relaxed whitespace-pre-wrap font-medium">
-                      {group.passage}
-                    </div>
+                    <RichContent
+                      html={group.passage}
+                      variant="passage"
+                      className="text-lg leading-relaxed font-medium"
+                    />
                   </CardContent>
                 </Card>
               )}
@@ -172,19 +171,12 @@ export function SpeakingSection({
                             {!(
                               question.question_type === "fill_blank" &&
                               hasFillBlankPlaceholders(question.question_text)
-                            ) &&
-                              (/<[^>]+>/.test(question.question_text) ? (
-                                <div
-                                  className="font-semibold text-lg leading-snug pt-1 prose prose-sm max-w-none"
-                                  dangerouslySetInnerHTML={{
-                                    __html: question.question_text,
-                                  }}
-                                />
-                              ) : (
-                                <p className="font-semibold text-lg leading-snug pt-1">
-                                  {question.question_text}
-                                </p>
-                              ))}
+                            ) && (
+                              <RichContent
+                                html={question.question_text}
+                                className="font-semibold text-lg leading-snug pt-1"
+                              />
+                            )}
 
                             {question.question_audio_url && (
                               <div className="bg-white/60 p-3 rounded-xl border border-[hsl(var(--speaking))]/20 flex items-center gap-3 max-w-md">

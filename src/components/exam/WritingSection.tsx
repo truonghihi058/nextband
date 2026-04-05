@@ -29,6 +29,7 @@ import {
 } from "./FillBlankHtmlRenderer";
 import { MatchingRenderer } from "./MatchingRenderer";
 import { cn } from "@/lib/utils";
+import { RichContent } from "./RichContent";
 
 interface WritingSectionProps {
   section: any;
@@ -351,19 +352,15 @@ export function WritingSection({
             </CardHeader>
             <CardContent className="py-6 space-y-4">
               {promptText &&
-                (/<[^>]+>/.test(promptText) ? (
-                  <div
-                    className="prose prose-sm max-w-none text-foreground leading-relaxed font-medium text-base"
-                    dangerouslySetInnerHTML={{ __html: promptText }}
+                (
+                  <RichContent
+                    html={promptText}
+                    className="text-foreground leading-relaxed font-medium text-base"
                   />
-                ) : (
-                  <p className="whitespace-pre-wrap leading-relaxed font-medium text-base">
-                    {promptText}
-                  </p>
-                ))}
+                )}
               {instructions && (
                 <div className="p-4 bg-white border-orange-500 border rounded-xl text-black font-medium shadow-sm leading-relaxed">
-                  <div dangerouslySetInnerHTML={{ __html: instructions }} />
+                  <RichContent html={instructions} />
                 </div>
               )}
             </CardContent>
@@ -456,12 +453,19 @@ export function WritingSection({
                     </h3>
                   )}
                   {group.instructions && (
-                    <div
-                      className="p-3 bg-white border-orange-500/50 border rounded-lg text-sm text-black font-semibold shadow-sm"
-                      dangerouslySetInnerHTML={{ __html: group.instructions }}
-                    />
+                    <div className="p-3 bg-white border-orange-500/50 border rounded-lg text-sm text-black font-semibold shadow-sm">
+                      <RichContent html={group.instructions} />
+                    </div>
                   )}
                 </div>
+              )}
+
+              {group.passage && (
+                <Card className="bg-amber-50/50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-900/30">
+                  <CardContent className="p-4">
+                    <RichContent html={group.passage} variant="passage" />
+                  </CardContent>
+                </Card>
               )}
 
               {(group.questions || []).map((question: any, index: number) => {
@@ -482,19 +486,12 @@ export function WritingSection({
                           {!(
                             question.question_type === "fill_blank" &&
                             hasFillBlankPlaceholders(question.question_text)
-                          ) &&
-                            (/<[^>]+>/.test(question.question_text) ? (
-                              <div
-                                className="font-semibold text-base leading-snug prose prose-sm max-w-none"
-                                dangerouslySetInnerHTML={{
-                                  __html: question.question_text,
-                                }}
-                              />
-                            ) : (
-                              <p className="font-semibold text-base leading-snug">
-                                {question.question_text}
-                              </p>
-                            ))}
+                          ) && (
+                            <RichContent
+                              html={question.question_text}
+                              className="font-semibold text-base leading-snug"
+                            />
+                          )}
 
                           {question.question_audio_url && (
                             <div className="bg-muted/50 p-3 rounded-xl border border-border/50 flex items-center gap-3">

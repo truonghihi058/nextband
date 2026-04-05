@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { FillBlankResultRenderer } from "@/components/exam/FillBlankResultRenderer";
 import { hasFillBlankPlaceholders } from "@/components/exam/FillBlankHtmlRenderer";
+import { RichContent } from "@/components/exam/RichContent";
 
 interface AnswerResultCardProps {
   questionIndex: number;
@@ -264,10 +265,7 @@ export function AnswerResultCard({
                 />
               </div>
             ) : (
-              <div
-                className="text-sm pl-6 rich-content"
-                dangerouslySetInnerHTML={{ __html: questionText }}
-              />
+              <RichContent html={questionText} className="text-sm pl-6" />
             )}
           </div>
         </div>

@@ -118,16 +118,10 @@ export function ListeningSection({
               <CardContent className="p-5">
                 <div className="prose prose-sm max-w-none">
                   <h3 className="text-lg font-semibold mb-4">Transcript</h3>
-                  {/<[^>]+>/.test(currentGroup.passage) ? (
-                    <div
-                      className="leading-relaxed text-foreground"
-                      dangerouslySetInnerHTML={{ __html: currentGroup.passage }}
-                    />
-                  ) : (
-                    <p className="whitespace-pre-wrap leading-relaxed text-foreground">
-                      {currentGroup.passage}
-                    </p>
-                  )}
+                  <RichContent
+                    html={currentGroup.passage}
+                    className="leading-relaxed text-foreground"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -146,9 +140,7 @@ export function ListeningSection({
               {section.instructions && (
                 <Card className="bg-white border-orange-500 border shadow-sm">
                   <CardContent className="p-4 text-sm text-black font-medium leading-relaxed">
-                    <div
-                      dangerouslySetInnerHTML={{ __html: section.instructions }}
-                    />
+                    <RichContent html={section.instructions} />
                   </CardContent>
                 </Card>
               )}

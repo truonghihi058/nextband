@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, Minus, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RichContent } from "@/components/exam/RichContent";
 
 interface AnswerGradingCardProps {
   questionIndex: number;
@@ -123,9 +124,9 @@ export function AnswerGradingCard({
                 ({points} điểm)
               </span>
             </div>
-            <div
+            <RichContent
+              html={questionText}
               className="text-sm pl-6 prose prose-sm max-w-none dark:prose-invert"
-              dangerouslySetInnerHTML={{ __html: questionText }}
             />
           </div>
         </div>

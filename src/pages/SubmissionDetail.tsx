@@ -59,6 +59,15 @@ const compareByDisplayOrder = (a: any, b: any) => {
   return String(a?.id || "").localeCompare(String(b?.id || ""));
 };
 
+const getQuestionText = (question: any) =>
+  question?.questionText || question?.question_text || "";
+
+const getQuestionType = (question: any) =>
+  question?.questionType || question?.question_type || "";
+
+const getCorrectAnswer = (question: any) =>
+  question?.correctAnswer || question?.correct_answer || null;
+
 export default function SubmissionDetail() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
@@ -408,12 +417,9 @@ export default function SubmissionDetail() {
 
       {/* Sections */}
       {sections?.sort(compareByDisplayOrder).map((section: any) => {
-        const sectionQuestions =
-          (section.questionGroups || [])
-            .sort(compareByDisplayOrder)
-            .flatMap((g: any) =>
-              (g.questions || []).sort(compareByDisplayOrder),
-            ) || [];
+        const sectionGroups = (section.questionGroups || []).sort(
+          compareByDisplayOrder,
+        );
 
         // Reuse ReadingSection for review to keep layout/highlight identical
         if (section.sectionType === "reading") {
@@ -471,38 +477,63 @@ export default function SubmissionDetail() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="prose prose-sm max-w-none text-foreground">
-                    <div
-                      dangerouslySetInnerHTML={{ __html: section.audioScript }}
-                    />
+                    <RichContent html={section.audioScript} />
                   </CardContent>
                 </Card>
               )}
 
-            {sectionQuestions.map((question: any) => {
-              questionCounter++;
-              const answer = answerMap[question.id];
+            {sectionGroups.map((group: any, groupIndex: number) => (
+              <div key={group.id || groupIndex} className="space-y-3">
+                {(group.title || group.instructions) && (
+                  <div className="pl-1 space-y-1">
+                    {group.title && (
+                      <h3 className="font-semibold text-sm">{group.title}</h3>
+                    )}
+                    {group.instructions && (
+                      <div className="text-xs text-muted-foreground prose prose-sm max-w-none">
+                        <RichContent html={group.instructions} />
+                      </div>
+                    )}
+                  </div>
+                )}
 
-              return (
-                <AnswerResultCard
-                  key={question.id}
-                  questionIndex={questionCounter}
-                  questionText={question.questionText}
-                  questionType={question.questionType}
-                  correctAnswer={question.correctAnswer}
-                  points={question.points || 1}
-                  answerText={answer?.answerText || null}
-                  audioUrl={answer?.audioUrl || null}
-                  score={answer?.score ?? null}
-                  feedback={answer?.feedback ?? null}
-                  isGraded={isGraded}
-                  isSubmitted={
-                    submission?.status === "submitted" ||
-                    submission?.status === "graded"
-                  }
-                  sectionType={section.sectionType}
-                />
-              );
-            })}
+                {group.passage && (
+                  <Card className="border border-muted/60 bg-muted/10">
+                    <CardContent className="prose prose-sm max-w-none dark:prose-invert text-foreground">
+                      <RichContent html={group.passage} variant="passage" />
+                    </CardContent>
+                  </Card>
+                )}
+
+                {(group.questions || [])
+                  .sort(compareByDisplayOrder)
+                  .map((question: any) => {
+                    questionCounter++;
+                    const answer = answerMap[question.id];
+
+                    return (
+                      <AnswerResultCard
+                        key={question.id}
+                        questionIndex={questionCounter}
+                        questionText={getQuestionText(question)}
+                        questionType={getQuestionType(question)}
+                        correctAnswer={getCorrectAnswer(question)}
+                        points={question.points || 1}
+                        answerText={answer?.answerText || null}
+                        audioUrl={answer?.audioUrl || null}
+                        score={answer?.score ?? null}
+                        feedback={answer?.feedback ?? null}
+                        isGraded={isGraded}
+                        isSubmitted={
+                          submission?.status === "submitted" ||
+                          submission?.status === "graded"
+                        }
+                        sectionType={section.sectionType}
+                      />
+                    );
+                  })}
+              </div>
+            ))}
           </div>
         );
       })}
