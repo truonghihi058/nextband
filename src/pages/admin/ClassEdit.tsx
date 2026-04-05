@@ -52,6 +52,7 @@ import {
   Calendar,
   ClipboardCheck,
   Clock3,
+  Eye,
 } from "lucide-react";
 import DeleteConfirmDialog from "@/components/admin/DeleteConfirmDialog";
 
@@ -106,6 +107,7 @@ export default function AdminClassEdit() {
       { status: "present" | "absent" | "inactive"; note?: string }
     >
   >({});
+  const [attendanceHistoryOpen, setAttendanceHistoryOpen] = useState(false);
 
   // Fetch class detail
   const { data: classData, isLoading } = useQuery({
@@ -726,10 +728,22 @@ export default function AdminClassEdit() {
       {/* Attendance history */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Lịch sử điểm danh</CardTitle>
-          <CardDescription>
-            Bảng theo ngày (cột là buổi học, hàng là học viên) + tổng kết chuyên cần
-          </CardDescription>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg">Lịch sử điểm danh</CardTitle>
+              <CardDescription>
+                Xem tổng kết nhanh. Bấm "Chi tiết điểm danh" để mở bảng đầy đủ.
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setAttendanceHistoryOpen(true)}
+              disabled={!attendanceHistory?.sessionDates?.length}
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              Chi tiết điểm danh
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {historyLoading ? (
@@ -737,75 +751,77 @@ export default function AdminClassEdit() {
               Đang tải lịch sử điểm danh...
             </div>
           ) : attendanceHistory?.sessionDates?.length ? (
-            <Table className="overflow-x-auto">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Học viên</TableHead>
-                  {attendanceHistory.sessionDates.map((d: string) => (
-                    <TableHead key={d} className="text-center whitespace-nowrap">
-                      {d}
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Số buổi đã điểm danh</p>
+                  <p className="text-2xl font-semibold">
+                    {attendanceHistory.sessionDates.length}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Số học viên</p>
+                  <p className="text-2xl font-semibold">
+                    {(attendanceHistory.students || []).length}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Tổng lượt có mặt</p>
+                  <p className="text-2xl font-semibold text-emerald-600">
+                    {(attendanceHistory.students || []).reduce(
+                      (sum: number, s: any) => sum + (s.summary?.present ?? 0),
+                      0,
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Học viên</TableHead>
+                    <TableHead className="text-center whitespace-nowrap">
+                      Có mặt
                     </TableHead>
-                  ))}
-                  <TableHead className="text-center whitespace-nowrap">
-                    Có mặt
-                  </TableHead>
-                  <TableHead className="text-center whitespace-nowrap">
-                    Vắng
-                  </TableHead>
-                  <TableHead className="text-center whitespace-nowrap">
-                    Tỷ lệ
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(attendanceHistory.students || []).map((s: any) => {
-                  const summary = s.summary || {};
-                  const rate =
-                    summary.attendanceRate != null
-                      ? Math.round(summary.attendanceRate * 100)
-                      : 0;
-                  return (
-                    <TableRow key={s.studentId}>
-                      <TableCell className="font-medium whitespace-nowrap">
-                        {s.fullName}
-                      </TableCell>
-                      {attendanceHistory.sessionDates.map((d: string) => {
-                        const status = s.statuses?.[d];
-                        const symbol =
-                          status === "present"
-                            ? "✓"
-                            : status === "absent"
-                            ? "✗"
-                            : status === "inactive"
-                            ? "–"
-                            : "";
-                        return (
-                          <TableCell
-                            key={d}
-                            className="text-center text-sm font-semibold"
-                          >
-                            {symbol}
-                          </TableCell>
-                        );
-                      })}
-                      <TableCell className="text-center text-sm">
-                        {summary.present ?? 0}
-                      </TableCell>
-                      <TableCell className="text-center text-sm">
-                        {summary.absent ?? 0}
-                      </TableCell>
-                      <TableCell
-                        className={`text-center text-sm ${
-                          rate >= 80 ? "text-emerald-600" : "text-amber-600"
-                        }`}
-                      >
-                        {rate}%
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                    <TableHead className="text-center whitespace-nowrap">
+                      Vắng
+                    </TableHead>
+                    <TableHead className="text-center whitespace-nowrap">
+                      Tỷ lệ
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(attendanceHistory.students || []).map((s: any) => {
+                    const summary = s.summary || {};
+                    const rate =
+                      summary.attendanceRate != null
+                        ? Math.round(summary.attendanceRate * 100)
+                        : 0;
+                    return (
+                      <TableRow key={s.studentId}>
+                        <TableCell className="font-medium whitespace-nowrap">
+                          {s.fullName}
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {summary.present ?? 0}
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {summary.absent ?? 0}
+                        </TableCell>
+                        <TableCell
+                          className={`text-center text-sm ${
+                            rate >= 80 ? "text-emerald-600" : "text-amber-600"
+                          }`}
+                        >
+                          {rate}%
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <div className="text-sm text-muted-foreground">
               Chưa có dữ liệu điểm danh để hiển thị.
@@ -813,6 +829,96 @@ export default function AdminClassEdit() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={attendanceHistoryOpen} onOpenChange={setAttendanceHistoryOpen}>
+        <DialogContent className="max-w-[95vw] w-[1200px] max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Lịch sử điểm danh chi tiết</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto border rounded-md">
+            {attendanceHistory?.sessionDates?.length ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 z-20 bg-background min-w-[220px]">
+                      Học viên
+                    </TableHead>
+                    {attendanceHistory.sessionDates.map((d: string) => (
+                      <TableHead
+                        key={d}
+                        className="text-center whitespace-nowrap min-w-[88px]"
+                      >
+                        {d}
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-center whitespace-nowrap min-w-[90px]">
+                      Có mặt
+                    </TableHead>
+                    <TableHead className="text-center whitespace-nowrap min-w-[90px]">
+                      Vắng
+                    </TableHead>
+                    <TableHead className="text-center whitespace-nowrap min-w-[90px]">
+                      Tỷ lệ
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(attendanceHistory.students || []).map((s: any) => {
+                    const summary = s.summary || {};
+                    const rate =
+                      summary.attendanceRate != null
+                        ? Math.round(summary.attendanceRate * 100)
+                        : 0;
+                    return (
+                      <TableRow key={s.studentId}>
+                        <TableCell className="sticky left-0 z-10 bg-background font-medium whitespace-nowrap">
+                          {s.fullName}
+                        </TableCell>
+                        {attendanceHistory.sessionDates.map((d: string) => {
+                          const status = s.statuses?.[d];
+                          const symbol =
+                            status === "present"
+                              ? "✓"
+                              : status === "absent"
+                                ? "✗"
+                                : status === "inactive"
+                                  ? "–"
+                                  : "";
+                          return (
+                            <TableCell
+                              key={d}
+                              className="text-center text-sm font-semibold"
+                            >
+                              {symbol}
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell className="text-center text-sm">
+                          {summary.present ?? 0}
+                        </TableCell>
+                        <TableCell className="text-center text-sm">
+                          {summary.absent ?? 0}
+                        </TableCell>
+                        <TableCell
+                          className={`text-center text-sm ${
+                            rate >= 80 ? "text-emerald-600" : "text-amber-600"
+                          }`}
+                        >
+                          {rate}%
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="p-4 text-sm text-muted-foreground">
+                Chưa có dữ liệu điểm danh để hiển thị.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Student Management */}
       <Card>
