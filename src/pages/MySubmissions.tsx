@@ -220,8 +220,18 @@ export default function MySubmissions() {
               </TableHeader>
               <TableBody>
                 {filteredSubmissions.map((submission: any) => {
+                  const normalizedStatus =
+                    submission?.submittedAt != null
+                      ? "filled"
+                      : submission.status || "in_progress";
                   const status =
-                    statusConfig[submission.status || "in_progress"];
+                    normalizedStatus === "filled"
+                      ? {
+                          label: "Filled",
+                          variant: "default" as const,
+                          icon: CheckCircle2,
+                        }
+                      : statusConfig[normalizedStatus] || statusConfig.in_progress;
                   const StatusIcon = status.icon;
                   const latestReviewSubmission = submission.examId
                     ? latestSubmissionByExam[submission.examId]
@@ -236,10 +246,16 @@ export default function MySubmissions() {
                     ? `/exam/${submission.examId}/review?submissionId=${latestReviewSubmission.id}`
                     : null;
 
+                  const courseTitle = submission.exam?.course?.title || "";
+                  const examTitle = submission.exam?.title || "Không rõ";
+                  const mergedTitle = courseTitle
+                    ? `${courseTitle} - ${examTitle}`
+                    : examTitle;
+
                   return (
                     <TableRow key={submission.id}>
                       <TableCell className="font-medium">
-                        {submission.exam?.title || "Không rõ"}
+                        {mergedTitle}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {submission.exam?.course?.title || "—"}
