@@ -81,7 +81,7 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
       examsApi.delete(id, password),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["course-exams-admin"] });
-      toast({ title: "Đã xóa", description: "Bài thi đã được xóa" });
+      toast({ title: "Đã xóa", description: "bài tập đã được xóa" });
       setDeleteExam(null);
     },
   });
@@ -119,7 +119,7 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Bài thi trong khóa học</CardTitle>
+        <CardTitle>bài tập trong khóa học</CardTitle>
         <Button size="sm" asChild>
           <Link to={`/admin/exams/create?course_id=${courseId}`}>
             <Plus className="mr-2 h-4 w-4" />
@@ -204,7 +204,7 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
           </>
         ) : (
           <p className="text-center py-8 text-muted-foreground">
-            Chưa có bài thi nào
+            Chưa có bài tập nào
           </p>
         )}
       </CardContent>
@@ -219,7 +219,7 @@ export default function CourseExamsList({ courseId }: CourseExamsListProps) {
         }
         loading={deleteMutation.isPending}
         title="Xóa bài thi?"
-        description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Hành động này không thể hoàn tác.`}
+        description={`Bạn có chắc chắn muốn xóa bài tập "${deleteExam?.title}"? Hành động này không thể hoàn tác.`}
         confirmKeyword="XOA"
         requirePassword
       />

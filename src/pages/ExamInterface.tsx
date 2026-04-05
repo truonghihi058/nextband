@@ -384,7 +384,7 @@ export default function ExamInterface() {
 
       toast({
         title: "Nộp bài thành công",
-        description: `Bài thi của bạn đã được ghi nhận${resultText}`,
+        description: `bài tập của bạn đã được ghi nhận${resultText}`,
       });
 
       navigate(`/submissions/${submission.id}`);
@@ -414,7 +414,7 @@ export default function ExamInterface() {
     autoSubmitTriggeredRef.current = true;
     toast({
       title: "Hết giờ!",
-      description: "Bài thi sẽ được nộp tự động.",
+      description: "bài tập sẽ được nộp tự động.",
       variant: "destructive",
     });
     handleSubmit();
@@ -433,7 +433,7 @@ export default function ExamInterface() {
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <h2 className="text-xl font-semibold">Không tìm thấy bài thi</h2>
         <p className="text-muted-foreground">
-          Bài thi không tồn tại hoặc bạn không có quyền truy cập.
+          bài tập không tồn tại hoặc bạn không có quyền truy cập.
         </p>
         <Button asChild>
           <Link to="/">Quay về trang chủ</Link>
@@ -448,7 +448,7 @@ export default function ExamInterface() {
         <FileText className="h-16 w-16 text-muted-foreground/50" />
         <h2 className="text-xl font-semibold">{exam.title}</h2>
         <p className="text-muted-foreground">
-          Bài thi này chưa được cấu hình phần thi nào. Vui lòng liên hệ giáo
+          bài tập này chưa được cấu hình phần thi nào. Vui lòng liên hệ giáo
           viên.
         </p>
         <Button asChild variant="outline">

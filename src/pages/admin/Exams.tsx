@@ -91,7 +91,7 @@ export default function AdminExams() {
       examsApi.delete(id, password),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
-      toast({ title: "Đã xóa", description: "Bài thi đã được xóa" });
+      toast({ title: "Đã xóa", description: "bài tập đã được xóa" });
       setDeleteExam(null);
     },
   });
@@ -156,7 +156,7 @@ export default function AdminExams() {
           <div>
             <h1 className="text-2xl font-bold">Quản lý bài thi</h1>
             <p className="text-sm text-muted-foreground">
-              {total} bài thi trong hệ thống
+              {total} bài tập trong hệ thống
             </p>
           </div>
         </div>
@@ -204,7 +204,7 @@ export default function AdminExams() {
                   colSpan={7}
                   className="text-center py-8 text-muted-foreground"
                 >
-                  Không tìm thấy bài thi nào
+                  Không tìm thấy bài tập nào
                 </TableCell>
               </TableRow>
             ) : (
@@ -347,7 +347,7 @@ export default function AdminExams() {
         }
         loading={deleteMutation.isPending}
         title="Xóa bài thi?"
-        description={`Bạn có chắc chắn muốn xóa bài thi "${deleteExam?.title}"? Dữ liệu sẽ mất vĩnh viễn.`}
+        description={`Bạn có chắc chắn muốn xóa bài tập "${deleteExam?.title}"? Dữ liệu sẽ mất vĩnh viễn.`}
         confirmKeyword="XOA"
         requirePassword
       />

@@ -328,7 +328,7 @@ export default function AdminExamEdit() {
           <DialogHeader>
             <DialogTitle>Thêm Section mới</DialogTitle>
             <DialogDescription>
-              Tạo một phần thi mới cho bài thi này.
+              Tạo một phần thi mới cho bài tập này.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

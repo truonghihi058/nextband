@@ -341,7 +341,7 @@ export default function CourseDetail() {
 
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <h2 className="text-2xl font-bold">Bài thi trong khóa học</h2>
+          <h2 className="text-2xl font-bold">bài tập trong khóa học</h2>
 
           <div className="flex flex-wrap items-center gap-3">
             {/* Search Input */}
@@ -624,7 +624,7 @@ export default function CourseDetail() {
           <Card className="text-center py-8">
             <CardContent>
               <FileText className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground">Chưa có bài thi nào</p>
+              <p className="text-muted-foreground">Chưa có bài tập nào</p>
             </CardContent>
           </Card>
         )}

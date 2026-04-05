@@ -162,7 +162,7 @@ export default function MySubmissions() {
       <div>
         <h1 className="text-2xl font-bold text-foreground mb-2">Bài Đã Làm</h1>
         <p className="text-muted-foreground">
-          Xem lại lịch sử và kết quả các bài thi bạn đã thực hiện
+          Xem lại lịch sử và kết quả các bài tập bạn đã thực hiện
         </p>
       </div>
 
@@ -171,7 +171,7 @@ export default function MySubmissions() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Tìm theo tên bài thi hoặc khóa học..."
+            placeholder="Tìm theo tên bài tập hoặc khóa học..."
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
             className="pl-9 pr-9"
@@ -339,13 +339,13 @@ export default function MySubmissions() {
           <ClipboardList className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
           <h3 className="text-lg font-medium text-foreground mb-2">
             {debouncedSearch || statusFilter !== "all"
-              ? "Không tìm thấy bài thi nào phù hợp"
-              : "Bạn chưa làm bài thi nào"}
+              ? "Không tìm thấy bài tập nào phù hợp"
+              : "Bạn chưa làm bài tập nào"}
           </h3>
           <p className="text-muted-foreground mb-6">
             {debouncedSearch || statusFilter !== "all"
               ? "Hãy thử thay đổi bộ lọc hoặc từ khóa tìm kiếm"
-              : "Hãy vào khóa học và bắt đầu làm bài thi đầu tiên của bạn"}
+              : "Hãy vào khóa học và bắt đầu làm bài tập đầu tiên của bạn"}
           </p>
           {!debouncedSearch && statusFilter === "all" && (
             <Button asChild>

@@ -169,7 +169,7 @@ export default function ExamForm({
 
         toast({
           title: "Thành công",
-          description: "Bài thi đã được tạo với 5 sections mặc định!",
+          description: "bài tập đã được tạo với 5 sections mặc định!",
         });
         navigate(`/admin/exams/${newExam.id}`);
       } else if (mode === "edit") {
@@ -188,7 +188,7 @@ export default function ExamForm({
 
         toast({
           title: "Thành công",
-          description: "Bài thi đã được cập nhật!",
+          description: "bài tập đã được cập nhật!",
         });
 
         queryClient.invalidateQueries({ queryKey: ["exam-sections", examId] });
@@ -223,7 +223,7 @@ export default function ExamForm({
             <CardTitle>Thông tin bài thi</CardTitle>
             <CardDescription>
               {mode === "create"
-                ? "Tạo bài thi mới (sẽ tự động tạo 5 sections: Listening, Reading, Writing, Speaking, Grammar)"
+                ? "Tạo bài tập mới (sẽ tự động tạo 5 sections: Listening, Reading, Writing, Speaking, Grammar)"
                 : mode === "edit"
                   ? "Chỉnh sửa thông tin"
                   : "Xem chi tiết"}
@@ -314,7 +314,7 @@ export default function ExamForm({
                       />
                     </FormControl>
                     <FormDescription>
-                      Dùng để sắp xếp bài thi trong khóa học
+                      Dùng để sắp xếp bài tập trong khóa học
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -349,7 +349,7 @@ export default function ExamForm({
                     <div className="space-y-0.5">
                       <FormLabel>Xuất bản</FormLabel>
                       <FormDescription>
-                        Bài thi sẽ hiển thị cho học viên
+                        bài tập sẽ hiển thị cho học viên
                       </FormDescription>
                     </div>
                     <FormControl>
