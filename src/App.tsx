@@ -40,7 +40,18 @@ import AdminClassEdit from "@/pages/admin/ClassEdit";
 import AdminTeachers from "@/pages/admin/Teachers";
 import AdminSettings from "@/pages/admin/Settings";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 0,
+      gcTime: 0,
+      refetchOnMount: "always",
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

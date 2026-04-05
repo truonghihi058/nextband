@@ -111,6 +111,8 @@ export default function CourseDetail() {
     queryKey: ["my-enrollments"],
     queryFn: () => enrollmentsApi.list(),
     enabled: isAuthenticated,
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: true,
   });
 
   // Fetch tất cả submissions của chính user hiện tại (truyền studentId để admin

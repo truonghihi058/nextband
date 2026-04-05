@@ -14,6 +14,8 @@ export default function MyCourses() {
     queryKey: ["my-enrollments"],
     queryFn: () => enrollmentsApi.list(),
     enabled: isAuthenticated,
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: true,
   });
 
   const enrollments = data?.data || [];
