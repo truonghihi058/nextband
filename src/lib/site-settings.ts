@@ -1,5 +1,3 @@
-export const SITE_SETTINGS_STORAGE_KEY = "nb_admin_settings";
-
 export type SiteSettings = {
   siteName: string;
   logoUrl: string;
@@ -49,17 +47,39 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   heroDescriptionLineHeight: 1.6,
 };
 
-export function loadSiteSettings(): SiteSettings {
-  const raw = localStorage.getItem(SITE_SETTINGS_STORAGE_KEY);
-  if (!raw) return DEFAULT_SITE_SETTINGS;
-  try {
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULT_SITE_SETTINGS, ...parsed };
-  } catch {
-    return DEFAULT_SITE_SETTINGS;
-  }
-}
-
-export function saveSiteSettings(next: SiteSettings) {
-  localStorage.setItem(SITE_SETTINGS_STORAGE_KEY, JSON.stringify(next));
+export function normalizeSiteSettings(raw: any): SiteSettings {
+  return {
+    ...DEFAULT_SITE_SETTINGS,
+    ...raw,
+    logoUrl: raw?.logoUrl || "",
+    sloganFontWeight: ["light", "regular", "bold"].includes(
+      raw?.sloganFontWeight,
+    )
+      ? raw.sloganFontWeight
+      : DEFAULT_SITE_SETTINGS.sloganFontWeight,
+    sloganAlign: ["left", "center", "right"].includes(raw?.sloganAlign)
+      ? raw.sloganAlign
+      : DEFAULT_SITE_SETTINGS.sloganAlign,
+    heroDescriptionFontWeight: ["light", "regular", "bold"].includes(
+      raw?.heroDescriptionFontWeight,
+    )
+      ? raw.heroDescriptionFontWeight
+      : DEFAULT_SITE_SETTINGS.heroDescriptionFontWeight,
+    heroDescriptionAlign: ["left", "center", "right"].includes(
+      raw?.heroDescriptionAlign,
+    )
+      ? raw.heroDescriptionAlign
+      : DEFAULT_SITE_SETTINGS.heroDescriptionAlign,
+    sloganLineHeight:
+      typeof raw?.sloganLineHeight === "number"
+        ? raw.sloganLineHeight
+        : Number(raw?.sloganLineHeight ?? DEFAULT_SITE_SETTINGS.sloganLineHeight),
+    heroDescriptionLineHeight:
+      typeof raw?.heroDescriptionLineHeight === "number"
+        ? raw.heroDescriptionLineHeight
+        : Number(
+            raw?.heroDescriptionLineHeight ??
+              DEFAULT_SITE_SETTINGS.heroDescriptionLineHeight,
+          ),
+  };
 }

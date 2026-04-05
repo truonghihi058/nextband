@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { coursesApi } from "@/lib/api";
+import { coursesApi, siteSettingsApi } from "@/lib/api";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { CourseFilters } from "@/components/courses/CourseFilters";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,7 +9,7 @@ import { BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import { SEO } from "@/components/common/SEO";
 import {
   DEFAULT_SITE_SETTINGS,
-  loadSiteSettings,
+  normalizeSiteSettings,
 } from "@/lib/site-settings";
 
 const PAGE_SIZE = 6;
@@ -22,20 +22,21 @@ export default function HomePage() {
     typeof window !== "undefined" ? window.innerWidth < 768 : false,
   );
 
+  const { data: settingsData } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: () => siteSettingsApi.get(),
+  });
+
   useEffect(() => {
-    setSettings(loadSiteSettings());
+    if (settingsData) {
+      setSettings(normalizeSiteSettings(settingsData));
+    }
+  }, [settingsData]);
 
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === "nb_admin_settings") {
-        setSettings(loadSiteSettings());
-      }
-    };
-
+  useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("storage", onStorage);
     window.addEventListener("resize", onResize);
     return () => {
-      window.removeEventListener("storage", onStorage);
       window.removeEventListener("resize", onResize);
     };
   }, []);

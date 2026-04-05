@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,37 +15,55 @@ import {
 } from "@/components/ui/select";
 import {
   DEFAULT_SITE_SETTINGS,
-  loadSiteSettings,
-  saveSiteSettings,
+  normalizeSiteSettings,
   type SiteSettings,
 } from "@/lib/site-settings";
+import { siteSettingsApi } from "@/lib/api";
 
 export default function AdminSettings() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [data, setData] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
 
-  useEffect(() => {
-    setData(loadSiteSettings());
-  }, []);
+  const { data: remoteSettings, isLoading } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: () => siteSettingsApi.get(),
+  });
 
-  const persistSettings = (next: SiteSettings, showToast = false) => {
-    setData(next);
-    saveSiteSettings(next);
-    if (showToast) {
-      toast({ title: "Đã lưu cài đặt cục bộ" });
+  const saveMutation = useMutation({
+    mutationFn: (payload: SiteSettings) => siteSettingsApi.update(payload),
+    onSuccess: (saved) => {
+      const normalized = normalizeSiteSettings(saved);
+      setData(normalized);
+      queryClient.setQueryData(["site-settings"], saved);
+      toast({ title: "Đã lưu cài đặt hệ thống" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi",
+        description: error?.response?.data?.error || "Không thể lưu cài đặt",
+        variant: "destructive",
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (remoteSettings) {
+      setData(normalizeSiteSettings(remoteSettings));
     }
+  }, [remoteSettings]);
+
+  const persistSettings = (next: SiteSettings) => {
+    setData(next);
   };
 
-  const updateSettings = (
-    updater: (prev: SiteSettings) => SiteSettings,
-    showToast = false,
-  ) => {
+  const updateSettings = (updater: (prev: SiteSettings) => SiteSettings) => {
     const next = updater(data);
-    persistSettings(next, showToast);
+    persistSettings(next);
   };
 
   const handleSave = () => {
-    persistSettings(data, true);
+    saveMutation.mutate(data);
   };
 
   return (
@@ -68,10 +87,7 @@ export default function AdminSettings() {
               <Input
                 value={data.siteName}
                 onChange={(e) =>
-                  updateSettings(
-                    (prev) => ({ ...prev, siteName: e.target.value }),
-                    false,
-                  )
+                  updateSettings((prev) => ({ ...prev, siteName: e.target.value }))
                 }
                 placeholder="Nhập tên site"
               />
@@ -83,13 +99,10 @@ export default function AdminSettings() {
                 accept="image/*"
                 currentUrl={data.logoUrl || null}
                 onUploadComplete={(url) =>
-                  updateSettings(
-                    (prev) => ({ ...prev, logoUrl: url || "" }),
-                    true,
-                  )
+                  updateSettings((prev) => ({ ...prev, logoUrl: url || "" }))
                 }
                 onRemove={() =>
-                  updateSettings((prev) => ({ ...prev, logoUrl: "" }), true)
+                  updateSettings((prev) => ({ ...prev, logoUrl: "" }))
                 }
                 label="Tải lên logo (PNG/JPG)"
               />
@@ -113,7 +126,6 @@ export default function AdminSettings() {
                   onChange={(e) =>
                     updateSettings(
                       (prev) => ({ ...prev, highlightPresent: e.target.value }),
-                      false,
                     )
                   }
                 />
@@ -126,7 +138,6 @@ export default function AdminSettings() {
                   onChange={(e) =>
                     updateSettings(
                       (prev) => ({ ...prev, highlightAbsent: e.target.value }),
-                      false,
                     )
                   }
                 />
@@ -139,16 +150,11 @@ export default function AdminSettings() {
                   onChange={(e) =>
                     updateSettings(
                       (prev) => ({ ...prev, highlightInactive: e.target.value }),
-                      false,
                     )
                   }
                 />
               </div>
             </div>
-
-            <p className="text-xs text-muted-foreground">
-              Lưu ý: hiện lưu cục bộ trình duyệt. Cần API settings để đồng bộ giữa thiết bị.
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -169,7 +175,6 @@ export default function AdminSettings() {
               onChange={(e) =>
                 updateSettings(
                   (prev) => ({ ...prev, sloganText: e.target.value.slice(0, 100) }),
-                  false,
                 )
               }
               placeholder="Nhập slogan..."
@@ -516,7 +521,12 @@ export default function AdminSettings() {
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave}>Lưu cài đặt</Button>
+        <Button
+          onClick={handleSave}
+          disabled={isLoading || saveMutation.isPending}
+        >
+          {saveMutation.isPending ? "Đang lưu..." : "Lưu cài đặt"}
+        </Button>
       </div>
     </div>
   );

@@ -710,4 +710,19 @@ export const classesApi = {
   },
 };
 
+// =============================================
+// SITE SETTINGS API
+// =============================================
+export const siteSettingsApi = {
+  get: async () => {
+    const { data } = await api.get("/site-settings");
+    return data;
+  },
+
+  update: async (payload: Record<string, unknown>) => {
+    const { data } = await api.put("/site-settings", payload);
+    return data;
+  },
+};
+
 export default api;
