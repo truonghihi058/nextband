@@ -129,7 +129,6 @@ export default function MySubmissions() {
       queryKey: ["latest-submission-by-exam", examId],
       queryFn: () => submissionsApi.getLatestByExam(examId),
       enabled: isAuthenticated && !!examId,
-      staleTime: 30_000,
     })),
   });
 

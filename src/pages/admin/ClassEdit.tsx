@@ -159,7 +159,6 @@ export default function AdminClassEdit() {
     queryFn: () => classesApi.listSchedules(id!),
     enabled: !!id,
     retry: false,
-    refetchOnWindowFocus: false,
   });
 
   const {
@@ -171,7 +170,6 @@ export default function AdminClassEdit() {
     queryFn: () => classesApi.getAttendance(id!, sessionDate),
     enabled: !!id && !!sessionDate,
     retry: false,
-    refetchOnWindowFocus: false,
   });
 
   const {
@@ -182,8 +180,6 @@ export default function AdminClassEdit() {
     queryKey: ["class-attendance-history", id],
     queryFn: () => classesApi.getAttendanceHistory(id!),
     enabled: !!id,
-    staleTime: 30_000,
-    refetchOnWindowFocus: false,
   });
 
   // Update class mutation

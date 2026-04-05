@@ -182,7 +182,6 @@ export default function CourseDetail() {
       queryKey: ["course-exam-latest-review", user?.id, exam.id],
       queryFn: () => submissionsApi.getLatestByExam(exam.id),
       enabled: isAuthenticated && !!user?.id && !!exam?.id,
-      staleTime: 30_000,
     })),
   });
 
