@@ -5,49 +5,38 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import FileUpload from "@/components/admin/FileUpload";
 import { useToast } from "@/hooks/use-toast";
-
-type SettingsData = {
-  siteName: string;
-  logoUrl: string;
-  highlightPresent: string;
-  highlightAbsent: string;
-  highlightInactive: string;
-};
-
-const STORAGE_KEY = "nb_admin_settings";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DEFAULT_SITE_SETTINGS,
+  loadSiteSettings,
+  saveSiteSettings,
+  type SiteSettings,
+} from "@/lib/site-settings";
 
 export default function AdminSettings() {
   const { toast } = useToast();
-  const [data, setData] = useState<SettingsData>({
-    siteName: "NextBand",
-    logoUrl: "",
-    highlightPresent: "#fff7a5",
-    highlightAbsent: "#ffd7d7",
-    highlightInactive: "#e5e7eb",
-  });
+  const [data, setData] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
 
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        setData((prev) => ({ ...prev, ...parsed }));
-      } catch (e) {
-        console.warn("Invalid settings cache", e);
-      }
-    }
+    setData(loadSiteSettings());
   }, []);
 
-  const persistSettings = (next: SettingsData, showToast = false) => {
+  const persistSettings = (next: SiteSettings, showToast = false) => {
     setData(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    saveSiteSettings(next);
     if (showToast) {
       toast({ title: "Đã lưu cài đặt cục bộ" });
     }
   };
 
   const updateSettings = (
-    updater: (prev: SettingsData) => SettingsData,
+    updater: (prev: SiteSettings) => SiteSettings,
     showToast = false,
   ) => {
     const next = updater(data);
@@ -63,7 +52,7 @@ export default function AdminSettings() {
       <div>
         <h1 className="text-2xl font-bold">Cài đặt hệ thống</h1>
         <p className="text-muted-foreground text-sm">
-          Thiết lập tên site, logo và màu highlight cho điểm danh/đọc.
+          Thiết lập tên site, logo, màu highlight và slogan trang chủ.
         </p>
       </div>
 
@@ -163,6 +152,196 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Slogan Trang Chủ</CardTitle>
+          <CardDescription>
+            Tuỳ chỉnh nội dung và style slogan hiển thị ở Hero trang học viên
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="space-y-2">
+            <Label>Câu slogan (tối đa 100 ký tự)</Label>
+            <Input
+              value={data.sloganText}
+              maxLength={100}
+              onChange={(e) =>
+                updateSettings(
+                  (prev) => ({ ...prev, sloganText: e.target.value.slice(0, 100) }),
+                  false,
+                )
+              }
+              placeholder="Nhập slogan..."
+            />
+            <p className="text-xs text-muted-foreground text-right">
+              {data.sloganText.length}/100
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Font</Label>
+              <Select
+                value={data.sloganFontFamily}
+                onValueChange={(value) =>
+                  updateSettings((prev) => ({ ...prev, sloganFontFamily: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="'Be Vietnam Pro', sans-serif">
+                    Be Vietnam Pro
+                  </SelectItem>
+                  <SelectItem value="'Montserrat', sans-serif">
+                    Montserrat
+                  </SelectItem>
+                  <SelectItem value="'Merriweather', serif">Merriweather</SelectItem>
+                  <SelectItem value="'Poppins', sans-serif">Poppins</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Font weight</Label>
+              <Select
+                value={data.sloganFontWeight}
+                onValueChange={(value) =>
+                  updateSettings((prev) => ({
+                    ...prev,
+                    sloganFontWeight: value as "light" | "regular" | "bold",
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light">Light</SelectItem>
+                  <SelectItem value="regular">Regular</SelectItem>
+                  <SelectItem value="bold">Bold</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Vị trí</Label>
+              <Select
+                value={data.sloganAlign}
+                onValueChange={(value) =>
+                  updateSettings((prev) => ({
+                    ...prev,
+                    sloganAlign: value as "left" | "center" | "right",
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="left">Left</SelectItem>
+                  <SelectItem value="center">Center</SelectItem>
+                  <SelectItem value="right">Right</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            <div className="space-y-2">
+              <Label>Kích thước desktop (px)</Label>
+              <Input
+                type="number"
+                min={20}
+                max={96}
+                value={data.sloganDesktopSize}
+                onChange={(e) =>
+                  updateSettings((prev) => ({
+                    ...prev,
+                    sloganDesktopSize: Math.min(
+                      96,
+                      Math.max(20, Number(e.target.value || 20)),
+                    ),
+                  }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Kích thước mobile (px)</Label>
+              <Input
+                type="number"
+                min={14}
+                max={72}
+                value={data.sloganMobileSize}
+                onChange={(e) =>
+                  updateSettings((prev) => ({
+                    ...prev,
+                    sloganMobileSize: Math.min(
+                      72,
+                      Math.max(14, Number(e.target.value || 14)),
+                    ),
+                  }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Line height</Label>
+              <Input
+                type="number"
+                step={0.1}
+                min={1}
+                max={2}
+                value={data.sloganLineHeight}
+                onChange={(e) =>
+                  updateSettings((prev) => ({
+                    ...prev,
+                    sloganLineHeight: Math.min(
+                      2,
+                      Math.max(1, Number(e.target.value || 1.2)),
+                    ),
+                  }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Màu chữ</Label>
+              <Input
+                type="color"
+                value={data.sloganColor}
+                onChange={(e) =>
+                  updateSettings((prev) => ({ ...prev, sloganColor: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+
+          <div className="rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground mb-2">Preview</p>
+            <h3
+              style={{
+                fontFamily: data.sloganFontFamily,
+                fontWeight:
+                  data.sloganFontWeight === "light"
+                    ? 300
+                    : data.sloganFontWeight === "regular"
+                      ? 400
+                      : 700,
+                fontSize: `${data.sloganDesktopSize}px`,
+                color: data.sloganColor,
+                lineHeight: data.sloganLineHeight,
+                textAlign: data.sloganAlign,
+              }}
+            >
+              {data.sloganText || "Nhập slogan để xem trước"}
+            </h3>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="flex justify-end">
         <Button onClick={handleSave}>Lưu cài đặt</Button>

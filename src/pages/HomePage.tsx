@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { coursesApi } from "@/lib/api";
 import { CourseCard } from "@/components/courses/CourseCard";
@@ -7,12 +7,48 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import { SEO } from "@/components/common/SEO";
+import {
+  DEFAULT_SITE_SETTINGS,
+  loadSiteSettings,
+} from "@/lib/site-settings";
 
 const PAGE_SIZE = 6;
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [settings, setSettings] = useState(DEFAULT_SITE_SETTINGS);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 768 : false,
+  );
+
+  useEffect(() => {
+    setSettings(loadSiteSettings());
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === "nb_admin_settings") {
+        setSettings(loadSiteSettings());
+      }
+    };
+
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  const sloganWeight =
+    settings.sloganFontWeight === "light"
+      ? 300
+      : settings.sloganFontWeight === "regular"
+        ? 400
+        : 700;
+  const sloganSize = isMobile
+    ? settings.sloganMobileSize
+    : settings.sloganDesktopSize;
 
   const { data, isLoading } = useQuery({
     queryKey: ["courses", searchQuery, currentPage],
@@ -47,11 +83,31 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-secondary to-primary/5 p-8 md:p-12">
-        <div className="relative z-10">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Khám phá khóa học IELTS
+        <div
+          className="relative z-10"
+          style={{ textAlign: settings.sloganAlign }}
+        >
+          <h1
+            className="mb-4"
+            style={{
+              fontFamily: settings.sloganFontFamily,
+              fontWeight: sloganWeight,
+              color: settings.sloganColor,
+              fontSize: `${sloganSize}px`,
+              lineHeight: settings.sloganLineHeight,
+            }}
+          >
+            {settings.sloganText}
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl">
+          <p
+            className={`text-lg text-muted-foreground ${
+              settings.sloganAlign === "center"
+                ? "mx-auto"
+                : settings.sloganAlign === "right"
+                  ? "ml-auto"
+                  : ""
+            } max-w-2xl`}
+          >
             Nâng cao kỹ năng tiếng Anh của bạn với các khóa học được thiết kế
             bởi đội ngũ giáo viên giàu kinh nghiệm.
           </p>
