@@ -49,6 +49,15 @@ export default function HomePage() {
   const sloganSize = isMobile
     ? settings.sloganMobileSize
     : settings.sloganDesktopSize;
+  const descriptionWeight =
+    settings.heroDescriptionFontWeight === "light"
+      ? 300
+      : settings.heroDescriptionFontWeight === "regular"
+        ? 400
+        : 700;
+  const descriptionSize = isMobile
+    ? settings.heroDescriptionMobileSize
+    : settings.heroDescriptionDesktopSize;
 
   const { data, isLoading } = useQuery({
     queryKey: ["courses", searchQuery, currentPage],
@@ -100,16 +109,23 @@ export default function HomePage() {
             {settings.sloganText}
           </h1>
           <p
-            className={`text-lg text-muted-foreground ${
-              settings.sloganAlign === "center"
+            className={`max-w-2xl ${
+              settings.heroDescriptionAlign === "center"
                 ? "mx-auto"
-                : settings.sloganAlign === "right"
+                : settings.heroDescriptionAlign === "right"
                   ? "ml-auto"
                   : ""
-            } max-w-2xl`}
+            }`}
+            style={{
+              fontFamily: settings.heroDescriptionFontFamily,
+              fontWeight: descriptionWeight,
+              color: settings.heroDescriptionColor,
+              fontSize: `${descriptionSize}px`,
+              lineHeight: settings.heroDescriptionLineHeight,
+              textAlign: settings.heroDescriptionAlign,
+            }}
           >
-            Nâng cao kỹ năng tiếng Anh của bạn với các khóa học được thiết kế
-            bởi đội ngũ giáo viên giàu kinh nghiệm.
+            {settings.heroDescriptionText}
           </p>
         </div>
         <div className="absolute right-8 top-1/2 -translate-y-1/2 opacity-10">

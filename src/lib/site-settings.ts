@@ -14,6 +14,14 @@ export type SiteSettings = {
   sloganColor: string;
   sloganAlign: "left" | "center" | "right";
   sloganLineHeight: number;
+  heroDescriptionText: string;
+  heroDescriptionFontFamily: string;
+  heroDescriptionFontWeight: "light" | "regular" | "bold";
+  heroDescriptionDesktopSize: number;
+  heroDescriptionMobileSize: number;
+  heroDescriptionColor: string;
+  heroDescriptionAlign: "left" | "center" | "right";
+  heroDescriptionLineHeight: number;
 };
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -30,6 +38,15 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   sloganColor: "#0f172a",
   sloganAlign: "left",
   sloganLineHeight: 1.2,
+  heroDescriptionText:
+    "Nâng cao kỹ năng tiếng Anh của bạn với các khóa học được thiết kế bởi đội ngũ giáo viên giàu kinh nghiệm.",
+  heroDescriptionFontFamily: "'Be Vietnam Pro', sans-serif",
+  heroDescriptionFontWeight: "regular",
+  heroDescriptionDesktopSize: 30,
+  heroDescriptionMobileSize: 20,
+  heroDescriptionColor: "#64748b",
+  heroDescriptionAlign: "left",
+  heroDescriptionLineHeight: 1.6,
 };
 
 export function loadSiteSettings(): SiteSettings {

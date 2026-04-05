@@ -340,6 +340,178 @@ export default function AdminSettings() {
               {data.sloganText || "Nhập slogan để xem trước"}
             </h3>
           </div>
+
+          <div className="border-t pt-5 space-y-5">
+            <div className="space-y-2">
+              <Label>Mô tả phụ Hero (tối đa 200 ký tự)</Label>
+              <Input
+                value={data.heroDescriptionText}
+                maxLength={200}
+                onChange={(e) =>
+                  updateSettings((prev) => ({
+                    ...prev,
+                    heroDescriptionText: e.target.value.slice(0, 200),
+                  }))
+                }
+                placeholder="Nhập mô tả phụ..."
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {data.heroDescriptionText.length}/200
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label>Font mô tả</Label>
+                <Select
+                  value={data.heroDescriptionFontFamily}
+                  onValueChange={(value) =>
+                    updateSettings((prev) => ({
+                      ...prev,
+                      heroDescriptionFontFamily: value,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="'Be Vietnam Pro', sans-serif">
+                      Be Vietnam Pro
+                    </SelectItem>
+                    <SelectItem value="'Montserrat', sans-serif">
+                      Montserrat
+                    </SelectItem>
+                    <SelectItem value="'Merriweather', serif">
+                      Merriweather
+                    </SelectItem>
+                    <SelectItem value="'Poppins', sans-serif">Poppins</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Weight mô tả</Label>
+                <Select
+                  value={data.heroDescriptionFontWeight}
+                  onValueChange={(value) =>
+                    updateSettings((prev) => ({
+                      ...prev,
+                      heroDescriptionFontWeight: value as
+                        | "light"
+                        | "regular"
+                        | "bold",
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">Light</SelectItem>
+                    <SelectItem value="regular">Regular</SelectItem>
+                    <SelectItem value="bold">Bold</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Vị trí mô tả</Label>
+                <Select
+                  value={data.heroDescriptionAlign}
+                  onValueChange={(value) =>
+                    updateSettings((prev) => ({
+                      ...prev,
+                      heroDescriptionAlign: value as "left" | "center" | "right",
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="left">Left</SelectItem>
+                    <SelectItem value="center">Center</SelectItem>
+                    <SelectItem value="right">Right</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="space-y-2">
+                <Label>Size desktop mô tả (px)</Label>
+                <Input
+                  type="number"
+                  min={14}
+                  max={56}
+                  value={data.heroDescriptionDesktopSize}
+                  onChange={(e) =>
+                    updateSettings((prev) => ({
+                      ...prev,
+                      heroDescriptionDesktopSize: Math.min(
+                        56,
+                        Math.max(14, Number(e.target.value || 14)),
+                      ),
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Size mobile mô tả (px)</Label>
+                <Input
+                  type="number"
+                  min={12}
+                  max={40}
+                  value={data.heroDescriptionMobileSize}
+                  onChange={(e) =>
+                    updateSettings((prev) => ({
+                      ...prev,
+                      heroDescriptionMobileSize: Math.min(
+                        40,
+                        Math.max(12, Number(e.target.value || 12)),
+                      ),
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Line height mô tả</Label>
+                <Input
+                  type="number"
+                  step={0.1}
+                  min={1}
+                  max={2.2}
+                  value={data.heroDescriptionLineHeight}
+                  onChange={(e) =>
+                    updateSettings((prev) => ({
+                      ...prev,
+                      heroDescriptionLineHeight: Math.min(
+                        2.2,
+                        Math.max(1, Number(e.target.value || 1.6)),
+                      ),
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Màu chữ mô tả</Label>
+                <Input
+                  type="color"
+                  value={data.heroDescriptionColor}
+                  onChange={(e) =>
+                    updateSettings((prev) => ({
+                      ...prev,
+                      heroDescriptionColor: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
