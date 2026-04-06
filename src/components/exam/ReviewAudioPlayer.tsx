@@ -37,6 +37,13 @@ export function ReviewAudioPlayer({ src, className }: ReviewAudioPlayerProps) {
     setDuration(0);
   }, [src]);
 
+  const syncDuration = (audio: HTMLAudioElement | null) => {
+    if (!audio) return;
+    const rawDuration = audio.duration;
+    if (!Number.isFinite(rawDuration) || rawDuration <= 0) return;
+    setDuration(rawDuration);
+  };
+
   const progress = useMemo(() => {
     if (!duration) return 0;
     return Math.min(100, (currentTime / duration) * 100);
@@ -77,8 +84,15 @@ export function ReviewAudioPlayer({ src, className }: ReviewAudioPlayerProps) {
       <audio
         ref={audioRef}
         src={src}
-        onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime || 0)}
-        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
+        preload="metadata"
+        onTimeUpdate={(e) => {
+          const audio = e.currentTarget;
+          setCurrentTime(audio.currentTime || 0);
+          syncDuration(audio);
+        }}
+        onLoadedMetadata={(e) => syncDuration(e.currentTarget)}
+        onDurationChange={(e) => syncDuration(e.currentTarget)}
+        onCanPlay={(e) => syncDuration(e.currentTarget)}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onEnded={() => setIsPlaying(false)}
@@ -118,8 +132,8 @@ export function ReviewAudioPlayer({ src, className }: ReviewAudioPlayerProps) {
           />
         </div>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Dang phat: {formatTime(currentTime)}</span>
-          <span>Tong do dai: {formatTime(duration)}</span>
+          <span>Đang phát: {formatTime(currentTime)}</span>
+          <span>Tổng độ dài: {formatTime(duration)}</span>
         </div>
       </div>
 
@@ -130,7 +144,7 @@ export function ReviewAudioPlayer({ src, className }: ReviewAudioPlayerProps) {
         className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
       >
         <ExternalLink className="h-3.5 w-3.5" />
-        Mo audio trong tab moi
+        Mở audio trong tab mới
       </a>
     </div>
   );
