@@ -53,6 +53,7 @@ export function AnswerGradingCard({
   sectionType,
 }: AnswerGradingCardProps) {
   const isManualGradeOnly = ["speaking", "writing"].includes(sectionType || "");
+  const isSpeakingSection = sectionType === "speaking" || questionType === "speaking";
   const [score, setScore] = useState<string>(
     currentScore != null ? String(currentScore) : "",
   );
@@ -100,8 +101,24 @@ export function AnswerGradingCard({
     return <Minus className="h-4 w-4 text-yellow-600" />;
   };
 
+  const isLikelyMediaUrl = (value: string) => {
+    if (!value) return false;
+    const normalized = value.trim().toLowerCase();
+    return (
+      normalized.startsWith("http://") ||
+      normalized.startsWith("https://") ||
+      normalized.startsWith("blob:") ||
+      normalized.startsWith("/uploads/") ||
+      normalized.endsWith(".webm") ||
+      normalized.endsWith(".mp3") ||
+      normalized.endsWith(".wav") ||
+      normalized.endsWith(".m4a") ||
+      normalized.endsWith(".ogg")
+    );
+  };
+
   return (
-    <Card className="transition-all hover:shadow-sm">
+    <Card className="transition-all hover:shadow-sm border-l-4 border-l-transparent hover:border-l-muted-foreground/30">
       <CardContent className="pt-4 space-y-3">
         {/* Question header */}
         <div className="flex items-start justify-between gap-2">
@@ -208,6 +225,21 @@ export function AnswerGradingCard({
                     return <p className="text-sm whitespace-pre-wrap">{answerText}</p>;
                   }
                 })()
+              ) : isSpeakingSection && isLikelyMediaUrl(answerText) ? (
+                <div className="space-y-2">
+                  <audio controls className="w-full mt-1" src={answerText} />
+                  <div>
+                    <a
+                      href={answerText}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Mở audio trong tab mới
+                    </a>
+                  </div>
+                </div>
               ) : (
                 <p className="text-sm whitespace-pre-wrap">{answerText}</p>
               )
@@ -237,9 +269,15 @@ export function AnswerGradingCard({
           {correctAnswer && questionType !== "matching" && (
             <div className="rounded-md border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900 p-3">
               <Label className="text-xs text-green-700 dark:text-green-400 mb-1 block">
-                Đáp án đúng
+                {isSpeakingSection
+                  ? "Lời thoại tham khảo (chỉ giáo viên)"
+                  : "Đáp án đúng"}
               </Label>
-              <p className="text-sm whitespace-pre-wrap">{correctAnswer}</p>
+              {isSpeakingSection ? (
+                <RichContent html={correctAnswer} className="text-sm" />
+              ) : (
+                <p className="text-sm whitespace-pre-wrap">{correctAnswer}</p>
+              )}
             </div>
           )}
 

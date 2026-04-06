@@ -53,6 +53,8 @@ export function AnswerResultCard({
   sectionType,
 }: AnswerResultCardProps) {
   const isManualGradeOnly = ["speaking", "writing"].includes(sectionType || "");
+  const shouldHideCorrectAnswerForStudent =
+    sectionType === "speaking" || questionType === "speaking";
   const isAutoGradable = ["listening", "reading", "general"].includes(sectionType || "");
   const isFillBlankWithPlaceholders =
     questionType === "fill_blank" && hasFillBlankPlaceholders(questionText);
@@ -411,7 +413,11 @@ export function AnswerResultCard({
           })()}
 
           {/* Correct answer - show for auto-gradable or graded */}
-          {canShowResult && correctAnswer && !isFillBlankWithPlaceholders && questionType !== "matching" && (
+          {canShowResult &&
+            correctAnswer &&
+            !isFillBlankWithPlaceholders &&
+            questionType !== "matching" &&
+            !shouldHideCorrectAnswerForStudent && (
             <div className="rounded-md border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900 p-3">
               <Label className="text-xs text-green-700 dark:text-green-400 mb-1 block">
                 Đáp án đúng
