@@ -42,7 +42,9 @@ export function SpeakingSection({
           .map((q: any) => ({
             ...q,
             question_text: q.question_text || q.questionText || "",
-            question_type: q.question_type || q.questionType || "speaking",
+            question_type: String(
+              q.question_type || q.questionType || "speaking",
+            ).toLowerCase(),
             order_index: q.order_index ?? q.orderIndex ?? 0,
             options: q.options
               ? typeof q.options === "string"
@@ -228,8 +230,7 @@ export function SpeakingSection({
                                 </RadioGroup>
                               )}
 
-                              {(question.question_type === "speaking" ||
-                                question.question_type === "essay") && (
+                              {question.question_type === "speaking" && (
                                 <QuestionRecorder
                                   questionId={question.id}
                                   answer={answers[question.id]}
@@ -272,6 +273,19 @@ export function SpeakingSection({
                     </Card>
                   );
                 })}
+
+                {group.questions.length > 0 &&
+                  !group.questions.some(
+                    (q: any) => String(q.question_type).toLowerCase() === "speaking",
+                  ) && (
+                    <Card className="border-amber-300 bg-amber-50/60">
+                      <CardContent className="p-4 text-sm text-amber-800">
+                        Part này chưa có câu hỏi loại{" "}
+                        <span className="font-semibold">speaking</span>, nên nút
+                        ghi âm chưa hiển thị.
+                      </CardContent>
+                    </Card>
+                  )}
               </div>
             </div>
           ))}
