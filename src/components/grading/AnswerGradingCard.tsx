@@ -117,6 +117,53 @@ export function AnswerGradingCard({
     );
   };
 
+  const renderFillBlankCorrectAnswer = (value: string) => {
+    const renderItems = (items: string[]) => (
+      <div className="space-y-1 mt-1">
+        {items.map((item, idx) => (
+          <div
+            key={idx}
+            className="text-xs px-2 py-1 rounded border bg-white/70 dark:bg-background"
+          >
+            <span className="font-semibold text-muted-foreground mr-2">
+              O {idx + 1}:
+            </span>
+            <span>{item || "(trong)"}</span>
+          </div>
+        ))}
+      </div>
+    );
+
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return renderItems(parsed.map((item) => String(item ?? "").trim()));
+      }
+
+      if (parsed && typeof parsed === "object") {
+        const orderedKeys = Object.keys(parsed).sort(
+          (a, b) => Number(a) - Number(b),
+        );
+        return renderItems(
+          orderedKeys.map((key) => String(parsed[key] ?? "").trim()),
+        );
+      }
+    } catch {
+      // Keep backward-compatible formats (pipe-delimited string)
+    }
+
+    if (value.includes("|")) {
+      return renderItems(
+        value
+          .split("|")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      );
+    }
+
+    return <p className="text-sm whitespace-pre-wrap">{value}</p>;
+  };
+
   return (
     <Card className="transition-all hover:shadow-sm border-l-4 border-l-transparent hover:border-l-muted-foreground/30">
       <CardContent className="pt-4 space-y-3">
@@ -275,6 +322,8 @@ export function AnswerGradingCard({
               </Label>
               {isSpeakingSection ? (
                 <RichContent html={correctAnswer} className="text-sm" />
+              ) : questionType === "fill_blank" ? (
+                renderFillBlankCorrectAnswer(correctAnswer)
               ) : (
                 <p className="text-sm whitespace-pre-wrap">{correctAnswer}</p>
               )}
