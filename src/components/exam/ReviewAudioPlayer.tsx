@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import {
   Play,
   Pause,
@@ -65,15 +64,6 @@ export function ReviewAudioPlayer({ src, className }: ReviewAudioPlayerProps) {
     setCurrentTime(next);
   };
 
-  const onProgressChange = (value: number[]) => {
-    const audio = audioRef.current;
-    if (!audio || !duration) return;
-    const percent = value[0] ?? 0;
-    const nextTime = (percent / 100) * duration;
-    audio.currentTime = nextTime;
-    setCurrentTime(nextTime);
-  };
-
   const onRateChange = (value: string) => {
     const nextRate = Number(value);
     const audio = audioRef.current;
@@ -121,9 +111,14 @@ export function ReviewAudioPlayer({ src, className }: ReviewAudioPlayerProps) {
       </div>
 
       <div className="space-y-1.5">
-        <Slider value={[progress]} max={100} step={0.1} onValueChange={onProgressChange} />
+        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full bg-primary transition-all"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{formatTime(currentTime)}</span>
+          <span>Dang phat: {formatTime(currentTime)}</span>
           <span>Tong do dai: {formatTime(duration)}</span>
         </div>
       </div>
