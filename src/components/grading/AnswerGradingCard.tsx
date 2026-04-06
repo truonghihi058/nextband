@@ -4,9 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Minus, ExternalLink } from "lucide-react";
+import { CheckCircle, XCircle, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RichContent } from "@/components/exam/RichContent";
+import { ReviewAudioPlayer } from "@/components/exam/ReviewAudioPlayer";
 
 interface AnswerGradingCardProps {
   questionIndex: number;
@@ -273,38 +274,12 @@ export function AnswerGradingCard({
                   }
                 })()
               ) : isSpeakingSection && isLikelyMediaUrl(answerText) ? (
-                <div className="space-y-2">
-                  <audio controls className="w-full mt-1" src={answerText} />
-                  <div>
-                    <a
-                      href={answerText}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      Mở audio trong tab mới
-                    </a>
-                  </div>
-                </div>
+                <ReviewAudioPlayer src={answerText} />
               ) : (
                 <p className="text-sm whitespace-pre-wrap">{answerText}</p>
               )
             ) : audioUrl ? (
-              <div className="space-y-2">
-                <audio controls className="w-full mt-1" src={audioUrl} />
-                <div>
-                  <a
-                    href={audioUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    Mở audio trong tab mới
-                  </a>
-                </div>
-              </div>
+              <ReviewAudioPlayer src={audioUrl} />
             ) : (
               <p className="text-sm text-muted-foreground italic">
                 Chưa trả lời

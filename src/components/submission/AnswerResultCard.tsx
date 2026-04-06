@@ -11,6 +11,7 @@ import {
 import { FillBlankResultRenderer } from "@/components/exam/FillBlankResultRenderer";
 import { hasFillBlankPlaceholders } from "@/components/exam/FillBlankHtmlRenderer";
 import { RichContent } from "@/components/exam/RichContent";
+import { ReviewAudioPlayer } from "@/components/exam/ReviewAudioPlayer";
 
 interface AnswerResultCardProps {
   questionIndex: number;
@@ -337,9 +338,9 @@ export function AnswerResultCard({
                               trimmedAnswer.startsWith("blob:") ||
                               trimmedAnswer.startsWith("/") ||
                               (trimmedAnswer.includes(".") && !trimmedAnswer.includes(" ") && !trimmedAnswer.includes("<"));
-                if (isUrl) return <audio controls className="w-full mt-1" src={trimmedAnswer} />;
+                if (isUrl) return <ReviewAudioPlayer src={trimmedAnswer} />;
                 if (trimmedAnswer) return <p className="text-sm whitespace-pre-wrap">{trimmedAnswer}</p>;
-                if (audioUrl) return <audio controls className="w-full mt-1" src={audioUrl} />;
+                if (audioUrl) return <ReviewAudioPlayer src={audioUrl} />;
                 return <p className="text-sm text-muted-foreground italic">Chưa trả lời</p>;
               })()}
             </div>
