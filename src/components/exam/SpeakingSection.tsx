@@ -31,6 +31,9 @@ export function SpeakingSection({
   currentQuestionId,
   onQuestionFocus,
 }: SpeakingSectionProps) {
+  const isRecorderType = (type: string) =>
+    type === "speaking" || type === "essay";
+
   const rawGroups = section.question_groups || section.questionGroups || [];
 
   // Normalize question fields
@@ -230,7 +233,7 @@ export function SpeakingSection({
                                 </RadioGroup>
                               )}
 
-                              {question.question_type === "speaking" && (
+                              {isRecorderType(question.question_type) && (
                                 <QuestionRecorder
                                   questionId={question.id}
                                   answer={answers[question.id]}
@@ -275,14 +278,15 @@ export function SpeakingSection({
                 })}
 
                 {group.questions.length > 0 &&
-                  !group.questions.some(
-                    (q: any) => String(q.question_type).toLowerCase() === "speaking",
+                  !group.questions.some((q: any) =>
+                    isRecorderType(String(q.question_type).toLowerCase()),
                   ) && (
                     <Card className="border-amber-300 bg-amber-50/60">
                       <CardContent className="p-4 text-sm text-amber-800">
                         Part này chưa có câu hỏi loại{" "}
-                        <span className="font-semibold">speaking</span>, nên nút
-                        ghi âm chưa hiển thị.
+                        <span className="font-semibold">speaking</span> (hoặc dữ
+                        liệu cũ dạng <span className="font-semibold">essay</span>
+                        ), nên nút ghi âm chưa hiển thị.
                       </CardContent>
                     </Card>
                   )}
