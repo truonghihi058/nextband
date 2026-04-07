@@ -21,8 +21,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Input } from "@/components/ui/input";
 import { useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 
 export default function AdminDashboard() {
   const { data: stats } = useQuery({
@@ -30,20 +30,62 @@ export default function AdminDashboard() {
     queryFn: () => statsApi.getAdminStats(),
   });
 
-  const [month, setMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  });
+  const currentYear = new Date().getFullYear();
+  const [period, setPeriod] = useState<string>(() =>
+    String(new Date().getMonth() + 1).padStart(2, "0"),
+  );
 
   const { data: attendanceSummary } = useQuery({
-    queryKey: ["admin-attendance-monthly", month],
-    queryFn: () => statsApi.getMonthlyAttendance({ month }),
+    queryKey: ["admin-attendance-monthly", currentYear, period],
+    queryFn: async () => {
+      if (period === "year") {
+        const monthly = await Promise.all(
+          Array.from({ length: 12 }, async (_, i) => {
+            const month = `${currentYear}-${String(i + 1).padStart(2, "0")}`;
+            try {
+              return await statsApi.getMonthlyAttendance({ month });
+            } catch {
+              return { totalPresent: 0, totalAbsent: 0, attendanceRate: 0 };
+            }
+          }),
+        );
+
+        const totalPresent = monthly.reduce(
+          (sum, item) => sum + (item?.totalPresent ?? 0),
+          0,
+        );
+        const totalAbsent = monthly.reduce(
+          (sum, item) => sum + (item?.totalAbsent ?? 0),
+          0,
+        );
+        const attendanceRate =
+          totalPresent + totalAbsent > 0
+            ? totalPresent / (totalPresent + totalAbsent)
+            : 0;
+
+        return { totalPresent, totalAbsent, attendanceRate };
+      }
+
+      const month = `${currentYear}-${period}`;
+      return statsApi.getMonthlyAttendance({ month });
+    },
   });
 
   const monthLabel = useMemo(() => {
-    const [y, m] = month.split("-");
-    return `Tháng ${m}/${y}`;
-  }, [month]);
+    if (period === "year") return `Cả năm ${currentYear}`;
+    return `Tháng ${Number(period)}/${currentYear}`;
+  }, [currentYear, period]);
+
+  const periods = useMemo(
+    () => [
+      ...Array.from({ length: 12 }, (_, i) => ({
+        key: String(i + 1).padStart(2, "0"),
+        label: `Tháng ${i + 1}`,
+      })),
+      { key: "year", label: "Cả năm" },
+    ],
+    [],
+  );
 
   // Fetch recent teachers for the teacher list widget
   const { data: teachersData } = useQuery({
@@ -122,14 +164,27 @@ export default function AdminDashboard() {
               <CardDescription>Tổng lượt có mặt (mọi lớp)</CardDescription>
             </div>
           </div>
-          <Input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="w-40"
-          />
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          <div className="overflow-x-auto pb-1">
+            <div className="flex items-center gap-2 min-w-max">
+              {periods.map((item) => (
+                <Button
+                  key={item.key}
+                  type="button"
+                  size="sm"
+                  variant={period === item.key ? "default" : "outline"}
+                  className={cn(
+                    "h-8 rounded-full px-3 text-xs",
+                    period === item.key && "bg-emerald-600 hover:bg-emerald-600/90",
+                  )}
+                  onClick={() => setPeriod(item.key)}
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </div>
+          </div>
           <div className="text-sm text-muted-foreground">{monthLabel}</div>
           <div className="text-3xl font-bold">
             {attendanceSummary?.totalPresent ?? 0} lượt
