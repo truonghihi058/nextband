@@ -37,6 +37,11 @@ const compareByDisplayOrder = (a: any, b: any) => {
   return String(a?.id || "").localeCompare(String(b?.id || ""));
 };
 
+const sectionHasQuestions = (section: any) =>
+  (section?.questionGroups || []).some(
+    (group: any) => Array.isArray(group?.questions) && group.questions.length > 0,
+  );
+
 const getQuestionText = (question: any) =>
   question?.questionText || question?.question_text || "";
 
@@ -334,6 +339,7 @@ export default function SubmissionGrade() {
 
       {/* Questions by section */}
       {sections
+        ?.filter(sectionHasQuestions)
         ?.sort(compareByDisplayOrder)
         .map((section: any) => (
           <div key={section.id} className="space-y-4">

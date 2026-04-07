@@ -59,6 +59,11 @@ const compareByDisplayOrder = (a: any, b: any) => {
   return String(a?.id || "").localeCompare(String(b?.id || ""));
 };
 
+const sectionHasQuestions = (section: any) =>
+  (section?.questionGroups || []).some(
+    (group: any) => Array.isArray(group?.questions) && group.questions.length > 0,
+  );
+
 const getQuestionText = (question: any) =>
   question?.questionText || question?.question_text || "";
 
@@ -416,7 +421,10 @@ export default function SubmissionDetail() {
       </Card>
 
       {/* Sections */}
-      {sections?.sort(compareByDisplayOrder).map((section: any) => {
+      {sections
+        ?.filter(sectionHasQuestions)
+        .sort(compareByDisplayOrder)
+        .map((section: any) => {
         const sectionGroups = (section.questionGroups || []).sort(
           compareByDisplayOrder,
         );
@@ -536,7 +544,7 @@ export default function SubmissionDetail() {
             ))}
           </div>
         );
-      })}
+        })}
     </div>
   );
 }

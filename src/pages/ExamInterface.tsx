@@ -102,16 +102,9 @@ export default function ExamInterface() {
   const availableSections = useMemo(() => {
     return (sections || []).filter((s: any) => {
       const groups = s.questionGroups || s.question_groups || [];
-      return groups.some((g: any) => {
-        const hasQuestions = Array.isArray(g.questions) && g.questions.length > 0;
-        const hasRenderableGroupContent = Boolean(
-          (g.title && String(g.title).trim()) ||
-            (g.instructions && String(g.instructions).trim()) ||
-            (g.passage && String(g.passage).trim()) ||
-            (g.audioUrl && String(g.audioUrl).trim()),
-        );
-        return hasQuestions || hasRenderableGroupContent;
-      });
+      return groups.some(
+        (g: any) => Array.isArray(g.questions) && g.questions.length > 0,
+      );
     });
   }, [sections]);
 
