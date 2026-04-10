@@ -67,10 +67,6 @@ export function QuestionPagination({
 
   const formatQuestionLabel = (q: Question, index: number) => {
     const baseNumber = q.displayNumber ?? q.order_index ?? index + 1;
-    if (q.isSubQuestion && q.subIndex !== undefined) {
-      const subNumber = Number(q.subIndex);
-      return Number.isFinite(subNumber) ? `${baseNumber}.${subNumber + 1}` : `${baseNumber}.${q.subIndex}`;
-    }
     return String(baseNumber);
   };
 

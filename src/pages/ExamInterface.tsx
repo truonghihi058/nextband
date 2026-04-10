@@ -232,20 +232,21 @@ export default function ExamInterface() {
 
   const paginationQuestions = useMemo(() => {
     const list: any[] = [];
+    let displayCursor = 0;
     currentSectionQuestions.forEach((q) => {
       // Split fill_blank into sub-questions
       if (q.questionType === "fill_blank") {
         const blankCount = getFillBlankBlankCount(q.correctAnswer);
         if (blankCount > 0) {
-          const baseNumber = Number(q.orderIndex ?? q.order_index ?? list.length + 1);
           for (let idx = 0; idx < blankCount; idx++) {
+            displayCursor += 1;
             list.push({
               ...q,
               isSubQuestion: true,
               subIndex: String(idx),
               focusId: `${q.id}::blank:${idx}`,
-              displayNumber: baseNumber,
-              displayLabel: `${baseNumber}.${idx + 1}`,
+              displayNumber: displayCursor,
+              displayLabel: String(displayCursor),
             });
           }
           return;
@@ -263,7 +264,14 @@ export default function ExamInterface() {
           ) {
             if (parsed.items.length > 0) {
               parsed.items.forEach((_, idx) => {
-                list.push({ ...q, isSubQuestion: true, subIndex: String(idx) });
+                displayCursor += 1;
+                list.push({
+                  ...q,
+                  isSubQuestion: true,
+                  subIndex: String(idx),
+                  displayNumber: displayCursor,
+                  displayLabel: String(displayCursor),
+                });
               });
               return;
             }
@@ -273,7 +281,12 @@ export default function ExamInterface() {
         }
       }
 
-      list.push(q);
+      displayCursor += 1;
+      list.push({
+        ...q,
+        displayNumber: displayCursor,
+        displayLabel: String(displayCursor),
+      });
     });
     return list;
   }, [currentSectionQuestions]);
