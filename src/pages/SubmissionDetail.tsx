@@ -20,6 +20,7 @@ import {
 import { AnswerResultCard } from "@/components/submission/AnswerResultCard";
 import { ReadingSection } from "@/components/exam/ReadingSection";
 import { RichContent } from "@/components/exam/RichContent";
+import { getFillBlankBlankCount } from "@/lib/fillBlank";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 
@@ -73,11 +74,19 @@ const getQuestionType = (question: any) =>
 const getCorrectAnswer = (question: any) =>
   question?.correctAnswer || question?.correct_answer || null;
 
+const getQuestionAssessmentWeight = (question: any) => {
+  if (getQuestionType(question) === "fill_blank") {
+    const blankCount = getFillBlankBlankCount(getCorrectAnswer(question));
+    if (blankCount > 0) return blankCount;
+  }
+  return Math.max(1, Number(question?.points || 1));
+};
+
 export default function SubmissionDetail() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin, isTeacher } = useAuth();
   const submissionId = id || searchParams.get("submissionId") || undefined;
 
   const { data: submission, isLoading } = useQuery({
@@ -109,27 +118,43 @@ export default function SubmissionDetail() {
     );
   }, [sections]);
 
-  const totalPoints = allQuestions.reduce(
-    (sum: number, q: any) => sum + (q.points || 1),
+  const totalQuestionsCount = allQuestions.reduce(
+    (sum: number, q: any) => sum + getQuestionAssessmentWeight(q),
     0,
   );
+  const totalPoints = totalQuestionsCount;
   const isGraded = submission?.status === "graded";
   const answeredCount = useMemo(() => {
-    return allQuestions.filter((q: any) => {
+    return allQuestions.reduce((sum: number, q: any) => {
       const answer = answerMap[q.id];
-      if (!answer) return false;
-      return (
+      if (!answer) return sum;
+
+      if (getQuestionType(q) === "fill_blank") {
+        try {
+          const parsed = JSON.parse(answer.answerText || "{}");
+          if (parsed && typeof parsed === "object") {
+            const filledCount = Object.values(parsed).filter(
+              (value) => String(value ?? "").trim() !== "",
+            ).length;
+            return sum + filledCount;
+          }
+        } catch {
+          // Fallback to treating any non-empty text as answered
+        }
+      }
+
+      const hasAnswer =
         (typeof answer.answerText === "string" &&
           answer.answerText.trim() !== "") ||
-        !!answer.audioUrl
-      );
-    }).length;
+        !!answer.audioUrl;
+      return sum + (hasAnswer ? 1 : 0);
+    }, 0);
   }, [allQuestions, answerMap]);
 
   const completionRate = useMemo(() => {
-    if (allQuestions.length === 0) return 0;
-    return Math.round((answeredCount / allQuestions.length) * 100);
-  }, [answeredCount, allQuestions.length]);
+    if (totalQuestionsCount === 0) return 0;
+    return Math.round((answeredCount / totalQuestionsCount) * 100);
+  }, [answeredCount, totalQuestionsCount]);
 
   // Auto-graded results from backend
   const hasAutoGradedResults =
@@ -164,7 +189,8 @@ export default function SubmissionDetail() {
       if (!isAutoGradable || !autoGradableTypes.includes(question.questionType)) continue;
       if (!question.correctAnswer) continue;
 
-      gradableCount++;
+      const questionWeight = getQuestionAssessmentWeight(question);
+      gradableCount += questionWeight;
       const answer = answerMap[question.id];
       if (!answer?.answerText) continue;
 
@@ -178,17 +204,17 @@ export default function SubmissionDetail() {
           const parsedCorrect = JSON.parse(correctText);
           if (typeof parsedStudent === "object" && typeof parsedCorrect === "object" &&
               parsedStudent !== null && parsedCorrect !== null) {
-            let allCorrect = true;
+            let correctBlanks = 0;
             for (const key of Object.keys(parsedCorrect)) {
               const correctVal = String(parsedCorrect[key] || "").trim();
               const studentVal = String(parsedStudent[key] || "").trim();
               const alternatives = correctVal.split("|").map((a: string) => a.trim().toLowerCase());
               if (!alternatives.includes(studentVal.toLowerCase())) {
-                allCorrect = false;
-                break;
+                continue;
               }
+              correctBlanks++;
             }
-            if (allCorrect) correctCount++;
+            correctCount += correctBlanks;
             continue;
           }
         } catch {
@@ -230,12 +256,12 @@ export default function SubmissionDetail() {
           normalizedStudent.length === normalizedCorrect.length &&
           normalizedStudent.every((value, idx) => value === normalizedCorrect[idx])
         ) {
-          correctCount++;
+          correctCount += questionWeight;
         }
       } else {
         const normalizedAlternatives = alternatives.map((a) => a.toLowerCase());
         if (normalizedAlternatives.includes(studentText.trim().toLowerCase())) {
-          correctCount++;
+          correctCount += questionWeight;
         }
       }
     }
@@ -320,12 +346,12 @@ export default function SubmissionDetail() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="text-center">
               <p className="text-xs text-muted-foreground">Câu hỏi</p>
-              <p className="text-lg font-semibold">{allQuestions.length}</p>
+              <p className="text-lg font-semibold">{totalQuestionsCount}</p>
             </div>
             <div className="text-center">
               <p className="text-xs text-muted-foreground">Đã trả lời</p>
               <p className="text-lg font-semibold">
-                {answeredCount}/{allQuestions.length} ({completionRate}%)
+                {answeredCount}/{totalQuestionsCount} ({completionRate}%)
               </p>
             </div>
             <div className="text-center">
@@ -476,6 +502,7 @@ export default function SubmissionDetail() {
             )}
 
             {section.sectionType === "listening" &&
+              (isAdmin || isTeacher) &&
               section.audioScript &&
               submission?.status !== "in_progress" && (
                 <Card className="bg-muted/30 border-muted/50">
@@ -526,7 +553,7 @@ export default function SubmissionDetail() {
                         questionText={getQuestionText(question)}
                         questionType={getQuestionType(question)}
                         correctAnswer={getCorrectAnswer(question)}
-                        points={question.points || 1}
+                        points={getQuestionAssessmentWeight(question)}
                         answerText={answer?.answerText || null}
                         audioUrl={answer?.audioUrl || null}
                         score={answer?.score ?? null}

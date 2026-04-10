@@ -11,6 +11,7 @@ import { SubmissionHeader } from "@/components/grading/SubmissionHeader";
 import { AnswerGradingCard } from "@/components/grading/AnswerGradingCard";
 import { useAuth } from "@/hooks/useAuth";
 import { RichContent } from "@/components/exam/RichContent";
+import { getFillBlankBlankCount } from "@/lib/fillBlank";
 
 interface GradeUpdate {
   answerId: string;
@@ -50,6 +51,14 @@ const getQuestionType = (question: any) =>
 
 const getCorrectAnswer = (question: any) =>
   question?.correctAnswer || question?.correct_answer || null;
+
+const getQuestionAssessmentWeight = (question: any) => {
+  if (getQuestionType(question) === "fill_blank") {
+    const blankCount = getFillBlankBlankCount(getCorrectAnswer(question));
+    if (blankCount > 0) return blankCount;
+  }
+  return Math.max(1, Number(question?.points || 1));
+};
 
 export default function SubmissionGrade() {
   const { id } = useParams<{ id: string }>();
@@ -124,7 +133,10 @@ export default function SubmissionGrade() {
 
   const getEffectiveMaxScore = useCallback(
     (question: any) => {
-      return maxScores[question.id] ?? Math.max(1, Number(question.points || 1));
+      return (
+        maxScores[question.id] ??
+        getQuestionAssessmentWeight(question)
+      );
     },
     [maxScores],
   );
@@ -208,11 +220,12 @@ export default function SubmissionGrade() {
   });
 
   // Stats
-  const gradedCount = allQuestions.filter((q: any) => {
+  const gradedCount = allQuestions.reduce((sum: number, q: any) => {
     const grade = grades[q.id];
     const answer = answerMap[q.id];
-    return grade?.score != null || answer?.score != null;
-  }).length;
+    if (grade?.score == null && answer?.score == null) return sum;
+    return sum + getQuestionAssessmentWeight(q);
+  }, 0);
 
   const totalPoints = allQuestions.reduce((sum, q: any) => {
     return sum + getEffectiveMaxScore(q);
@@ -285,7 +298,7 @@ export default function SubmissionGrade() {
               <div>
                 <span className="text-muted-foreground">Đã chấm:</span>{" "}
                 <span className="font-semibold">
-                  {gradedCount}/{allQuestions.length}
+                  {gradedCount}/{totalPoints}
                 </span>
               </div>
               <div>
@@ -359,6 +372,21 @@ export default function SubmissionGrade() {
                 </CardContent>
               </Card>
             )}
+
+            {section.sectionType === "listening" &&
+              section.audioScript &&
+              submission.status !== "in_progress" && (
+                <Card className="border border-muted/60 bg-muted/10">
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-sm font-semibold">
+                      Transcript nghe chép
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="prose prose-sm max-w-none text-foreground">
+                    <RichContent html={section.audioScript} />
+                  </CardContent>
+                </Card>
+              )}
 
             {(section.questionGroups || [])
               .sort(compareByDisplayOrder)

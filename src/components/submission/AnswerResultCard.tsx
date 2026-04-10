@@ -12,6 +12,10 @@ import { FillBlankResultRenderer } from "@/components/exam/FillBlankResultRender
 import { hasFillBlankPlaceholders } from "@/components/exam/FillBlankHtmlRenderer";
 import { RichContent } from "@/components/exam/RichContent";
 import { ReviewAudioPlayer } from "@/components/exam/ReviewAudioPlayer";
+import {
+  getFillBlankBlankCount,
+  parseFillBlankCorrectAnswers,
+} from "@/lib/fillBlank";
 
 interface AnswerResultCardProps {
   questionIndex: number;
@@ -59,6 +63,11 @@ export function AnswerResultCard({
   const isAutoGradable = ["listening", "reading", "general"].includes(sectionType || "");
   const isFillBlankWithPlaceholders =
     questionType === "fill_blank" && hasFillBlankPlaceholders(questionText);
+  const fillBlankPointCount = getFillBlankBlankCount(correctAnswer);
+  const effectivePoints =
+    questionType === "fill_blank" && fillBlankPointCount > 0
+      ? fillBlankPointCount
+      : points;
   const isMultiSelectQuestion =
     (questionType === "multiple_choice" || questionType === "listening") &&
     !!correctAnswer &&
@@ -87,23 +96,27 @@ export function AnswerResultCard({
     if (questionType === "fill_blank") {
       try {
         const parsedStudent = JSON.parse(answerText);
-        const parsedCorrect = JSON.parse(correctAnswer);
+        const parsedCorrect = parseFillBlankCorrectAnswers(correctAnswer);
         if (
-          typeof parsedStudent === "object" && typeof parsedCorrect === "object" &&
-          parsedStudent !== null && parsedCorrect !== null
+          typeof parsedStudent === "object" &&
+          parsedStudent !== null &&
+          parsedCorrect.length > 0
         ) {
-          const keys = Object.keys(parsedCorrect);
-          const blankCount = keys.length;
+          const orderedStudentKeys = Object.keys(parsedStudent).sort(
+            (a, b) => Number(a) - Number(b),
+          );
+          const blankCount = parsedCorrect.length;
           if (blankCount === 0) return 0;
 
           let correctBlanks = 0;
-          for (const key of keys) {
-            const correctVal = String(parsedCorrect[key] || "").trim();
+          for (const key of orderedStudentKeys) {
+            const idx = Number(key);
+            const correctVal = parsedCorrect[idx] || "";
             const studentVal = String(parsedStudent[key] || "").trim();
             const alternatives = correctVal.split("|").map((a: string) => a.trim().toLowerCase());
             if (alternatives.includes(studentVal.toLowerCase())) correctBlanks++;
           }
-          return (correctBlanks / blankCount) * points;
+          return Math.min(correctBlanks, blankCount);
         }
       } catch {
         // Not JSON, fall through to string comparison
@@ -188,7 +201,7 @@ export function AnswerResultCard({
     
     if (rawScore != null) {
       const effectiveScore = Number(rawScore);
-      const numPoints = Number(points);
+      const numPoints = Number(effectivePoints);
       if (effectiveScore >= numPoints) return <CheckCircle className="h-4 w-4 text-green-600" />;
       if (effectiveScore === 0) return <XCircle className="h-4 w-4 text-destructive" />;
       return <Minus className="h-4 w-4 text-yellow-600" />;
@@ -216,7 +229,7 @@ export function AnswerResultCard({
 
     if (rawScore != null) {
       const effectiveScore = Number(rawScore);
-      const numPoints = Number(points);
+      const numPoints = Number(effectivePoints);
       const ratio = numPoints > 0 ? effectiveScore / numPoints : 0;
       const variant =
         ratio >= 1 ? "default" : ratio > 0 ? "secondary" : "destructive";
@@ -254,7 +267,7 @@ export function AnswerResultCard({
               {getStatusIcon()}
               <span className="font-semibold text-sm">Câu {questionIndex}</span>
               <Badge variant="outline" className="text-xs">
-                {questionTypeLabels[questionType] || questionType}
+              {questionTypeLabels[questionType] || questionType}
               </Badge>
               {getScoreBadge()}
             </div>

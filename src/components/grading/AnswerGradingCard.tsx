@@ -8,6 +8,7 @@ import { CheckCircle, XCircle, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RichContent } from "@/components/exam/RichContent";
 import { ReviewAudioPlayer } from "@/components/exam/ReviewAudioPlayer";
+import { getFillBlankBlankCount, parseFillBlankCorrectAnswers } from "@/lib/fillBlank";
 
 interface AnswerGradingCardProps {
   questionIndex: number;
@@ -55,6 +56,11 @@ export function AnswerGradingCard({
 }: AnswerGradingCardProps) {
   const isManualGradeOnly = ["speaking", "writing"].includes(sectionType || "");
   const isSpeakingSection = sectionType === "speaking" || questionType === "speaking";
+  const fillBlankPointCount = getFillBlankBlankCount(correctAnswer);
+  const effectivePoints =
+    questionType === "fill_blank" && fillBlankPointCount > 0
+      ? fillBlankPointCount
+      : points;
   const [score, setScore] = useState<string>(
     currentScore != null ? String(currentScore) : "",
   );
@@ -78,7 +84,7 @@ export function AnswerGradingCard({
       onScoreChange(null);
       return;
     }
-    const clamped = Math.min(Math.max(num, 0), points);
+    const clamped = Math.min(Math.max(num, 0), effectivePoints);
     onScoreChange(clamped);
   };
 
@@ -95,7 +101,7 @@ export function AnswerGradingCard({
   const getStatusIcon = () => {
     if (currentScore == null)
       return <Minus className="h-4 w-4 text-muted-foreground" />;
-    if (currentScore >= points)
+    if (currentScore >= effectivePoints)
       return <CheckCircle className="h-4 w-4 text-green-600" />;
     if (currentScore === 0)
       return <XCircle className="h-4 w-4 text-destructive" />;
@@ -135,31 +141,9 @@ export function AnswerGradingCard({
       </div>
     );
 
-    try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) {
-        return renderItems(parsed.map((item) => String(item ?? "").trim()));
-      }
-
-      if (parsed && typeof parsed === "object") {
-        const orderedKeys = Object.keys(parsed).sort(
-          (a, b) => Number(a) - Number(b),
-        );
-        return renderItems(
-          orderedKeys.map((key) => String(parsed[key] ?? "").trim()),
-        );
-      }
-    } catch {
-      // Keep backward-compatible formats (pipe-delimited string)
-    }
-
-    if (value.includes("|")) {
-      return renderItems(
-        value
-          .split("|")
-          .map((item) => item.trim())
-          .filter(Boolean),
-      );
+    const parsedItems = parseFillBlankCorrectAnswers(value);
+    if (parsedItems.length > 0) {
+      return renderItems(parsedItems);
     }
 
     return <p className="text-sm whitespace-pre-wrap">{value}</p>;
@@ -186,7 +170,7 @@ export function AnswerGradingCard({
                 </Badge>
               )}
               <span className="text-xs text-muted-foreground">
-                ({points} điểm)
+                ({effectivePoints} điểm)
               </span>
             </div>
             <RichContent
@@ -248,13 +232,20 @@ export function AnswerGradingCard({
                 (() => {
                   try {
                     const parsedStudent = JSON.parse(answerText);
-                    const parsedCorrect = JSON.parse(correctAnswer || "{}");
+                    const parsedCorrectValues = parseFillBlankCorrectAnswers(correctAnswer || "");
+                    const orderedStudentKeys =
+                      parsedStudent && typeof parsedStudent === "object" && !Array.isArray(parsedStudent)
+                        ? Object.keys(parsedStudent).sort((a, b) => Number(a) - Number(b))
+                        : [];
                     return (
                       <div className="space-y-1 mt-2">
-                        {Object.keys(parsedCorrect).map((key, idx) => {
-                          const studentVal = String(parsedStudent[key] || "").trim();
-                          const correctVal = String(parsedCorrect[key] || "").trim();
-                          const isCorrect = correctVal.split("|").map(v => v.trim().toLowerCase()).includes(studentVal.toLowerCase());
+                        {(parsedCorrectValues.length > 0 ? parsedCorrectValues : orderedStudentKeys.map((key) => String(parsedStudent[key] ?? "").trim())).map((correctVal, idx) => {
+                          const key = orderedStudentKeys[idx] ?? String(idx);
+                          const studentVal = String(parsedStudent?.[key] || "").trim();
+                          const isCorrect = correctVal
+                            .split("|")
+                            .map(v => v.trim().toLowerCase())
+                            .includes(studentVal.toLowerCase());
                           return (
                             <div key={idx} className="flex items-center gap-2 text-xs p-1.5 rounded border bg-background">
                               <span className="font-bold text-muted-foreground min-w-[50px]">Ô {Number(key) + 1}:</span>
@@ -308,11 +299,11 @@ export function AnswerGradingCard({
           {/* Score & Feedback */}
           <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-3 pt-1">
             <div>
-              <Label className="text-xs">Điểm (/{points})</Label>
+              <Label className="text-xs">Điểm (/{effectivePoints})</Label>
               <Input
                 type="number"
                 min={0}
-                max={points}
+                max={effectivePoints}
                 step={0.5}
                 value={score}
                 onChange={(e) => handleScoreChange(e.target.value)}
@@ -327,7 +318,7 @@ export function AnswerGradingCard({
                     type="number"
                     min={1}
                     step={1}
-                    defaultValue={points}
+                    defaultValue={effectivePoints}
                     onBlur={(e) => {
                       const next = Number.parseInt(e.target.value, 10);
                       onMaxScoreChange(Number.isFinite(next) && next > 0 ? next : 1);

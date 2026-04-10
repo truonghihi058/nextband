@@ -29,6 +29,7 @@ import { ExamTimer } from "@/components/exam/ExamTimer";
 import { QuestionPagination } from "@/components/exam/QuestionPagination";
 import { ExamReviewDialog } from "@/components/exam/ExamReviewDialog";
 import { SEO } from "@/components/common/SEO";
+import { getFillBlankBlankCount } from "@/lib/fillBlank";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -232,21 +233,21 @@ export default function ExamInterface() {
   const paginationQuestions = useMemo(() => {
     const list: any[] = [];
     currentSectionQuestions.forEach((q) => {
-      // Split fill_blank into sub-questions  
-      if (q.questionType === "fill_blank" && q.correctAnswer) {
-        try {
-          const parsed = JSON.parse(q.correctAnswer);
-          if (typeof parsed === "object" && parsed !== null) {
-            const keys = Object.keys(parsed);
-            if (keys.length > 0) {
-              keys.forEach((key) => {
-                list.push({ ...q, isSubQuestion: true, subIndex: key });
-              });
-              return;
-            }
+      // Split fill_blank into sub-questions
+      if (q.questionType === "fill_blank") {
+        const blankCount = getFillBlankBlankCount(q.correctAnswer);
+        if (blankCount > 0) {
+          const baseNumber = Number(q.orderIndex ?? q.order_index ?? list.length + 1);
+          for (let idx = 0; idx < blankCount; idx++) {
+            list.push({
+              ...q,
+              isSubQuestion: true,
+              subIndex: String(idx),
+              displayNumber: baseNumber,
+              displayLabel: `${baseNumber}.${idx + 1}`,
+            });
           }
-        } catch {
-          // fallback
+          return;
         }
       }
 

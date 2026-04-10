@@ -64,11 +64,20 @@ export function QuestionPagination({
     return { isAnswered, isFlagged, isCurrent };
   };
 
+  const formatQuestionLabel = (q: Question, index: number) => {
+    const baseNumber = q.displayNumber ?? q.order_index ?? index + 1;
+    if (q.isSubQuestion && q.subIndex !== undefined) {
+      const subNumber = Number(q.subIndex);
+      return Number.isFinite(subNumber) ? `${baseNumber}.${subNumber + 1}` : `${baseNumber}.${q.subIndex}`;
+    }
+    return String(baseNumber);
+  };
+
   return (
     <div className={cn('flex flex-wrap items-center gap-1.5', className)}>
       {questions.map((q, index) => {
         const { isAnswered, isFlagged, isCurrent } = getQuestionState(q);
-        const displayNumber = q.displayNumber ?? q.order_index ?? index + 1;
+        const displayNumber = formatQuestionLabel(q, index);
         const uniqueKey = q.isSubQuestion ? `${q.id}-${q.subIndex}` : q.id;
 
         return (
