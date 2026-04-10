@@ -2,6 +2,13 @@ import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { GripVertical, X, CheckCircle2, Plus } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 interface MatchingData {
     items: string[];
@@ -61,10 +68,19 @@ export const MatchingRenderer = ({
     };
 
     const usedOptionLetters = Object.values(currentAnswers) as string[];
-    const availableOptions = data.options.filter(
-        (_, i) => !usedOptionLetters.includes(String.fromCharCode(65 + i)),
-    );
-    const allUsed = data.options.length > 0 && availableOptions.length === 0;
+    const availableOptionEntries = data.options
+        .map((optionText, i) => ({
+            letter: String.fromCharCode(65 + i),
+            optionText,
+        }))
+        .filter(({ letter }) => !usedOptionLetters.includes(letter));
+    const allUsed = data.options.length > 0 && availableOptionEntries.length === 0;
+
+    const renderOptionLabel = (letter: string) => {
+        const idx = letter.charCodeAt(0) - 65;
+        const text = data.options[idx] || "";
+        return `${letter}. ${text}`;
+    };
 
     return (
         <div className="space-y-6 py-4">
@@ -189,12 +205,31 @@ export const MatchingRenderer = ({
                                                 <X className="h-3 w-3" />
                                             </button>
                                         </div>
-                                    ) : (
-                                        <div className="flex items-center gap-2 text-slate-400 w-full justify-center">
-                                            <div className="h-6 w-6 rounded-lg bg-slate-100 border border-slate-200 border-dashed flex items-center justify-center flex-shrink-0">
-                                                <Plus className="h-3 w-3" />
+                                ) : (
+                                        <div className="flex flex-col gap-1.5 w-full">
+                                            <div className="flex items-center gap-2 text-slate-400 w-full justify-center">
+                                                <div className="h-6 w-6 rounded-lg bg-slate-100 border border-slate-200 border-dashed flex items-center justify-center flex-shrink-0">
+                                                    <Plus className="h-3 w-3" />
+                                                </div>
+                                                <span className="text-[11px] font-medium">Kéo hoặc chọn</span>
                                             </div>
-                                            <span className="text-[11px] font-medium">Kéo đáp án vào đây</span>
+
+                                            <Select
+                                                value=""
+                                                onValueChange={(value) => handleMatch(itemKey, value)}
+                                                disabled={availableOptionEntries.length === 0}
+                                            >
+                                                <SelectTrigger className="h-8 w-full text-xs bg-white">
+                                                    <SelectValue placeholder={availableOptionEntries.length === 0 ? "Hết lựa chọn" : "Chọn đáp án"} />
+                                                </SelectTrigger>
+                                                <SelectContent className="z-[80] max-h-56">
+                                                    {availableOptionEntries.map(({ letter }) => (
+                                                        <SelectItem key={letter} value={letter}>
+                                                            {renderOptionLabel(letter)}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                     )}
                                 </div>
