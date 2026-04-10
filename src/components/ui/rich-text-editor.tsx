@@ -397,7 +397,7 @@ export function RichTextEditor({
       <div
         ref={editorRef}
         contentEditable
-        className="p-3 text-sm outline-none rich-content w-full"
+        className="p-3 text-sm outline-none rich-content-editor w-full"
         style={{ minHeight }}
         data-placeholder={placeholder}
         onInput={(e) => onChange((e.target as HTMLDivElement).innerHTML)}
@@ -414,7 +414,27 @@ export function RichTextEditor({
           color: hsl(var(--muted-foreground));
           pointer-events: none;
         }
-        [contenteditable] img {
+        .rich-content-editor {
+          line-height: 1.5;
+          word-break: break-word;
+          overflow-wrap: break-word;
+          width: 100%;
+        }
+        .rich-content-editor p {
+          margin: 0 0 0.75em;
+        }
+        .rich-content-editor p:last-child {
+          margin-bottom: 0;
+        }
+        .rich-content-editor ul,
+        .rich-content-editor ol {
+          margin: 0 0 0.75em;
+          padding-left: 1.5em;
+        }
+        .rich-content-editor li {
+          margin-bottom: 0.25em;
+        }
+        .rich-content-editor img {
           max-width: 100%;
           height: auto;
           border-radius: 8px;
