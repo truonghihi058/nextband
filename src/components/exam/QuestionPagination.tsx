@@ -9,6 +9,7 @@ interface Question {
   isSubQuestion?: boolean;
   subIndex?: string;
   displayNumber?: number;
+  focusId?: string;
 }
 
 interface QuestionPaginationProps {
@@ -58,8 +59,8 @@ export function QuestionPagination({
             : false;
     }
 
-    const isFlagged = flaggedQuestions.has(q.id);
-    const isCurrent = q.id === currentQuestionId;
+    const isFlagged = flaggedQuestions.has(q.focusId || q.id);
+    const isCurrent = (q.focusId || q.id) === currentQuestionId;
 
     return { isAnswered, isFlagged, isCurrent };
   };
@@ -78,16 +79,17 @@ export function QuestionPagination({
       {questions.map((q, index) => {
         const { isAnswered, isFlagged, isCurrent } = getQuestionState(q);
         const displayNumber = formatQuestionLabel(q, index);
-        const uniqueKey = q.isSubQuestion ? `${q.id}-${q.subIndex}` : q.id;
+        const targetId = q.focusId || q.id;
+        const uniqueKey = q.isSubQuestion ? `${targetId}` : q.id;
 
         return (
           <Tooltip key={uniqueKey}>
             <TooltipTrigger asChild>
               <button
-                onClick={() => onQuestionClick(q.id)}
+                onClick={() => onQuestionClick(targetId)}
                 onContextMenu={(e) => {
                   e.preventDefault();
-                  onToggleFlag(q.id);
+                  onToggleFlag(targetId);
                 }}
                 className={cn(
                   'relative w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-all',

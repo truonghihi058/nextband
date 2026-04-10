@@ -243,6 +243,7 @@ export default function ExamInterface() {
               ...q,
               isSubQuestion: true,
               subIndex: String(idx),
+              focusId: `${q.id}::blank:${idx}`,
               displayNumber: baseNumber,
               displayLabel: `${baseNumber}.${idx + 1}`,
             });
@@ -278,33 +279,33 @@ export default function ExamInterface() {
   }, [currentSectionQuestions]);
 
   const currentQuestionIndex = useMemo(() => {
-    if (!currentQuestionId || currentSectionQuestions.length === 0) return -1;
-    return currentSectionQuestions.findIndex(
-      (q: any) => q.id === currentQuestionId,
+    if (!currentQuestionId || paginationQuestions.length === 0) return -1;
+    return paginationQuestions.findIndex(
+      (q: any) => (q.focusId || q.id) === currentQuestionId,
     );
-  }, [currentQuestionId, currentSectionQuestions]);
+  }, [currentQuestionId, paginationQuestions]);
 
   useEffect(() => {
     if (
       currentSection &&
-      currentSectionQuestions.length > 0 &&
+      paginationQuestions.length > 0 &&
       !currentQuestionId
     ) {
-      setCurrentQuestionId(currentSectionQuestions[0].id);
+      setCurrentQuestionId(paginationQuestions[0].focusId || paginationQuestions[0].id);
     }
-  }, [currentSection, currentSectionQuestions, currentQuestionId]);
+  }, [currentSection, paginationQuestions, currentQuestionId]);
 
   const handlePrevQuestion = () => {
     if (currentQuestionIndex > 0) {
-      const prevQuestion = currentSectionQuestions[currentQuestionIndex - 1];
-      handleQuestionClick(prevQuestion.id);
+      const prevQuestion = paginationQuestions[currentQuestionIndex - 1];
+      handleQuestionClick(prevQuestion.focusId || prevQuestion.id);
     }
   };
 
   const handleNextQuestion = () => {
-    if (currentQuestionIndex < currentSectionQuestions.length - 1) {
-      const nextQuestion = currentSectionQuestions[currentQuestionIndex + 1];
-      handleQuestionClick(nextQuestion.id);
+    if (currentQuestionIndex < paginationQuestions.length - 1) {
+      const nextQuestion = paginationQuestions[currentQuestionIndex + 1];
+      handleQuestionClick(nextQuestion.focusId || nextQuestion.id);
     }
   };
 
@@ -315,7 +316,11 @@ export default function ExamInterface() {
   const handleQuestionClick = useCallback((questionId: string) => {
     setCurrentQuestionId(questionId);
     // Scroll to question
-    const element = questionRefs.current.get(questionId);
+    const element =
+      questionRefs.current.get(questionId) ||
+      (questionId.includes("::blank:")
+        ? questionRefs.current.get(questionId.split("::blank:")[0])
+        : undefined);
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "center" });
     }
@@ -335,16 +340,32 @@ export default function ExamInterface() {
 
   const handleGoToQuestion = useCallback(
     (sectionType: string, questionId: string) => {
+      const targetSection = sections.find(
+        (section: any) => section.sectionType === sectionType,
+      );
+      const targetQuestion = (targetSection?.questionGroups ||
+        targetSection?.question_groups ||
+        [])
+        .flatMap((group: any) => group.questions || [])
+        .find((question: any) => question.id === questionId);
+      const focusId =
+        targetQuestion?.questionType === "fill_blank" ||
+        targetQuestion?.question_type === "fill_blank"
+          ? `${questionId}::blank:0`
+          : questionId;
+
       setActiveSection(sectionType as SectionType);
-      setCurrentQuestionId(questionId);
+      setCurrentQuestionId(focusId);
       setTimeout(() => {
-        const element = questionRefs.current.get(questionId);
+        const element =
+          questionRefs.current.get(focusId) ||
+          questionRefs.current.get(questionId);
         if (element) {
           element.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       }, 100);
     },
-    [],
+    [sections],
   );
 
   const handleSubmit = useCallback(async () => {
@@ -633,7 +654,7 @@ export default function ExamInterface() {
                 size="sm"
                 onClick={handleNextQuestion}
                 disabled={
-                  currentQuestionIndex >= currentSectionQuestions.length - 1
+                  currentQuestionIndex >= paginationQuestions.length - 1
                 }
               >
                 Câu sau

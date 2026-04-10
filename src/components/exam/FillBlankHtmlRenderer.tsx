@@ -1,4 +1,10 @@
-import React, { useRef, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+  MutableRefObject,
+} from "react";
 
 const FILL_BLANK_PLACEHOLDER_REGEX = /(\[BLANK(?:_\d+)?\])/g;
 
@@ -7,6 +13,8 @@ interface FillBlankHtmlRendererProps {
   answers: Record<string, any>;
   questionId: string;
   onAnswerChange: (questionId: string, answer: any) => void;
+  questionRefs?: MutableRefObject<Map<string, HTMLElement>>;
+  currentQuestionId?: string;
 }
 
 export function FillBlankHtmlRenderer({
@@ -14,6 +22,8 @@ export function FillBlankHtmlRenderer({
   answers,
   questionId,
   onAnswerChange,
+  questionRefs,
+  currentQuestionId,
 }: FillBlankHtmlRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -60,11 +70,14 @@ export function FillBlankHtmlRenderer({
     // 1. Assign indices to slots
     assignIndices();
 
+    const registeredFocusIds: string[] = [];
+
     // 2. Clear out any existing inputs that might be lingering from previous renders
     // although dangerouslySetInnerHTML usually handles this, we ensure a clean state
     const slots = container.querySelectorAll(".fill-blank-slot");
     slots.forEach((slot) => {
       const blankKey = slot.getAttribute("data-fill-blank") || "0";
+      const focusId = `${questionIdRef.current}::blank:${blankKey}`;
       let input = slot.querySelector("input") as HTMLInputElement | null;
 
       if (!input) {
@@ -79,6 +92,12 @@ export function FillBlankHtmlRenderer({
       // Crucial: Set a unique identifier for this input instance to prevent cross-contamination
       input.setAttribute("data-blank-key", blankKey);
       input.setAttribute("data-owner-id", questionIdRef.current);
+      input.setAttribute("data-focus-id", focusId);
+
+      if (questionRefs?.current) {
+        questionRefs.current.set(focusId, slot as HTMLElement);
+        registeredFocusIds.push(focusId);
+      }
 
       const currentAnswers = answersRef.current || {};
       const currentValue = currentAnswers[blankKey] || "";
@@ -107,8 +126,13 @@ export function FillBlankHtmlRenderer({
     container.addEventListener("input", handleInput);
     return () => {
       container.removeEventListener("input", handleInput);
+      if (questionRefs?.current && registeredFocusIds.length > 0) {
+        registeredFocusIds.forEach((focusId) => {
+          questionRefs.current.delete(focusId);
+        });
+      }
     };
-  }, [processedHtml, assignIndices]); // Re-run if HTML changes
+  }, [processedHtml, assignIndices, questionRefs]); // Re-run if HTML changes
 
   // 4. Sync Side Effect: Watch answers prop for external changes (like Resets or Multi-input sync)
   useEffect(() => {
@@ -125,6 +149,17 @@ export function FillBlankHtmlRenderer({
       }
     });
   }, [answers, questionId]);
+
+  useEffect(() => {
+    if (!currentQuestionId || !questionRefs?.current) return;
+    if (!currentQuestionId.startsWith(`${questionId}::blank:`)) return;
+    const target = questionRefs.current.get(currentQuestionId);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      const input = target.querySelector("input") as HTMLInputElement | null;
+      input?.focus();
+    }
+  }, [currentQuestionId, questionId, questionRefs]);
 
   return React.createElement("div", {
     ref: containerRef,

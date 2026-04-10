@@ -170,7 +170,13 @@ export function ListeningSection({
                   )}
 
                   {currentQuestions.map((question: any, qIndex: number) => {
-                    const isCurrent = question.id === currentQuestionId;
+                    const isCurrent =
+                      question.id === currentQuestionId ||
+                      currentQuestionId?.startsWith(`${question.id}::blank:`);
+                    const focusQuestionId =
+                      question.question_type === "fill_blank"
+                        ? `${question.id}::blank:0`
+                        : question.id;
 
                     return (
                       <Card
@@ -186,7 +192,7 @@ export function ListeningSection({
                             ? "ring-1 ring-primary shadow-md border-l-primary bg-primary/5"
                             : "border-l-transparent hover:border-l-muted-foreground/30 hover:shadow-sm",
                         )}
-                        onClick={() => onQuestionFocus?.(question.id)}
+                        onClick={() => onQuestionFocus?.(focusQuestionId)}
                       >
                         <CardContent className="p-5">
                           <div className="flex items-start gap-4 mb-4">
@@ -350,6 +356,8 @@ export function ListeningSection({
                                   answers={answers[question.id] || {}}
                                   questionId={question.id}
                                   onAnswerChange={onAnswerChange}
+                                  questionRefs={questionRefs}
+                                  currentQuestionId={currentQuestionId}
                                 />
                               )}
                             {/* Simple text input for short_answer or fill_blank without placeholders */}
