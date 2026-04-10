@@ -74,6 +74,8 @@ const sectionColors: Record<string, string> = {
   general: "bg-primary text-primary-foreground",
 };
 
+const MAX_EXAM_ATTEMPTS = 3;
+
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { user, isAuthenticated } = useAuth();
@@ -176,6 +178,19 @@ export default function CourseDetail() {
     }
     return map;
   })();
+
+  const attemptCountMap = useMemo(() => {
+    const submissions: any[] = submissionsData?.data || [];
+    const map: Record<string, number> = {};
+
+    for (const submission of submissions) {
+      const examId = submission?.exam?.id || submission?.examId;
+      if (!examId) continue;
+      map[examId] = (map[examId] || 0) + 1;
+    }
+
+    return map;
+  }, [submissionsData]);
 
   const latestReviewQueries = useQueries({
     queries: exams.map((exam: any) => ({
@@ -415,6 +430,13 @@ export default function CourseDetail() {
                 const isInProgress = examStatus === "in_progress";
                 const isNotStarted = !examStatus || examStatus === "not_started";
                 const isDone = isFilled;
+                const attemptCount = attemptCountMap[exam.id] || 0;
+                const remainingAttempts = Math.max(
+                  0,
+                  MAX_EXAM_ATTEMPTS - attemptCount,
+                );
+                const isAttemptLimitReached =
+                  attemptCount >= MAX_EXAM_ATTEMPTS;
                 const objectiveScore =
                   latestCompletedSubmission?.correctAnswers != null &&
                   latestCompletedSubmission?.totalQuestions != null
@@ -430,6 +452,8 @@ export default function CourseDetail() {
                   (exam.currentParticipants || 0) < exam.maxParticipants;
                 const canStartWithoutEnrollment = isOpenExam && hasSlots;
                 const canAccessExam = !!enrollment || canStartWithoutEnrollment;
+                const canRetakeExam = canAccessExam && !isAttemptLimitReached;
+                const canStartExam = canAccessExam && !isAttemptLimitReached;
 
                 // Build section type summary string
                 const sectionTypes = (exam.sections || [])
@@ -527,6 +551,19 @@ export default function CourseDetail() {
                                 : " slots"}
                             </div>
                           )}
+                          <div
+                            className={`flex items-center text-xs ${
+                              isAttemptLimitReached
+                                ? "text-amber-600 font-medium"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            <ClipboardCheck className="mr-1 h-3.5 w-3.5" />
+                            {attemptCount}/{MAX_EXAM_ATTEMPTS} lượt làm bài
+                            {isAttemptLimitReached
+                              ? " - đã hết lượt"
+                              : ` - còn ${remainingAttempts} lượt`}
+                          </div>
                         </div>
 
                         {/* Trạng thái & nút hành động */}
@@ -550,13 +587,25 @@ export default function CourseDetail() {
 
                           {isFilled && (
                             <>
-                              {canAccessExam && (
+                              {canRetakeExam ? (
                                 <Button size="sm" variant="outline" asChild>
                                   <Link to={`/exam/${exam.id}`}>
                                     <Play className="mr-1 h-3.5 w-3.5" />
                                     Làm lại
                                   </Link>
                                 </Button>
+                              ) : (
+                                canAccessExam && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled
+                                    title="Đã đạt tối đa 3 lượt làm bài"
+                                  >
+                                    <Play className="mr-1 h-3.5 w-3.5" />
+                                    Hết lượt làm lại
+                                  </Button>
+                                )
                               )}
                               {latestReviewLoading && (
                                 <Button size="sm" variant="outline" disabled>
@@ -596,8 +645,8 @@ export default function CourseDetail() {
                                   Xem lại
                                 </Link>
                               </Button>
-                            )}
-                          {isNotStarted && canAccessExam && (
+                          )}
+                          {isNotStarted && canStartExam && (
                             !hasSlots && isOpenExam ? (
                               <Button size="sm" disabled>
                                 <Play className="mr-1 h-3.5 w-3.5" />
@@ -611,6 +660,17 @@ export default function CourseDetail() {
                                 </Link>
                               </Button>
                             )
+                          )}
+                          {isNotStarted && canAccessExam && !canStartExam && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled
+                              title="Đã đạt tối đa 3 lượt làm bài"
+                            >
+                              <Play className="mr-1 h-3.5 w-3.5" />
+                              Hết lượt làm bài
+                            </Button>
                           )}
                         </div>
                       </div>

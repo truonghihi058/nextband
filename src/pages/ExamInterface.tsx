@@ -110,7 +110,11 @@ export default function ExamInterface() {
   }, [sections]);
 
   // Create or fetch existing submission
-  const { data: submissionData, isLoading: submissionLoading } = useQuery({
+  const {
+    data: submissionData,
+    isLoading: submissionLoading,
+    error: submissionError,
+  } = useQuery({
     queryKey: ["exam-submission", examId, user?.id],
     queryFn: async () => {
       if (!user || !examId) return null;
@@ -118,9 +122,14 @@ export default function ExamInterface() {
       return result;
     },
     enabled: !!examId && !!user && !!exam,
+    retry: false,
   });
 
   const submission = submissionData;
+  const submissionStartErrorMessage =
+    (submissionError as any)?.response?.data?.error ||
+    (submissionError as any)?.message ||
+    "";
 
   useEffect(() => {
     if (!exam) return;
@@ -461,6 +470,35 @@ export default function ExamInterface() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (submissionError) {
+    const isAttemptLimitError =
+      (submissionError as any)?.response?.status === 409 ||
+      submissionStartErrorMessage.includes("lượt làm bài");
+
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4 text-center">
+        <FileText className="h-16 w-16 text-muted-foreground/50" />
+        <h2 className="text-xl font-semibold">
+          {isAttemptLimitError ? "Đã hết lượt làm bài" : "Không thể bắt đầu bài thi"}
+        </h2>
+        <p className="text-muted-foreground max-w-md">
+          {submissionStartErrorMessage ||
+            "Có lỗi xảy ra khi khởi tạo bài thi. Vui lòng thử lại sau."}
+        </p>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" asChild>
+            <Link to={exam?.course ? `/course/${exam.course.id}` : "/"}>
+              Quay lại khóa học
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link to="/my-submissions">Xem bài đã làm</Link>
+          </Button>
+        </div>
       </div>
     );
   }
