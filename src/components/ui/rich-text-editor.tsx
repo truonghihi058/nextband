@@ -5,7 +5,6 @@ import {
   Italic,
   Underline,
   List,
-  ListOrdered,
   Type,
   Eraser,
   AlignLeft,
@@ -45,9 +44,22 @@ export function RichTextEditor({
 }: RichTextEditorProps) {
   const [uploading, setUploading] = useState(false);
   const [alignMode, setAlignMode] = useState<AlignMode>("left");
+  const [textColor, setTextColor] = useState("#000000");
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const colorInputRef = useRef<HTMLInputElement>(null);
+  const savedSelectionRef = useRef<Range | null>(null);
   const { toast } = useToast();
+
+  const saveSelection = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || !editorRef.current) return;
+
+    const range = selection.getRangeAt(0);
+    if (editorRef.current.contains(range.commonAncestorContainer)) {
+      savedSelectionRef.current = range.cloneRange();
+    }
+  }, []);
 
   const detectAlignMode = useCallback(() => {
     if (document.queryCommandState("justifyCenter")) {
@@ -74,10 +86,14 @@ export function RichTextEditor({
   }, [value, detectAlignMode]);
 
   useEffect(() => {
-    const syncAlignState = () => detectAlignMode();
-    document.addEventListener("selectionchange", syncAlignState);
-    return () => document.removeEventListener("selectionchange", syncAlignState);
-  }, [detectAlignMode]);
+    const syncEditorState = () => {
+      detectAlignMode();
+      saveSelection();
+    };
+    document.addEventListener("selectionchange", syncEditorState);
+    return () =>
+      document.removeEventListener("selectionchange", syncEditorState);
+  }, [detectAlignMode, saveSelection]);
 
   const insertImageAtRange = (
     fullUrl: string,
@@ -236,13 +252,29 @@ export function RichTextEditor({
     }
   };
 
-  const exec = (command: string) => {
-    document.execCommand(command);
+  const restoreSelection = () => {
+    const selection = window.getSelection();
+    if (!selection || !savedSelectionRef.current) return;
+
+    editorRef.current?.focus();
+    selection.removeAllRanges();
+    selection.addRange(savedSelectionRef.current);
+  };
+
+  const exec = (command: string, value?: string) => {
+    document.execCommand(command, false, value);
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
       editorRef.current.focus();
     }
     detectAlignMode();
+  };
+
+  const handleTextColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const nextColor = e.target.value;
+    setTextColor(nextColor);
+    restoreSelection();
+    exec("foreColor", nextColor);
   };
 
   return (
@@ -284,10 +316,30 @@ export function RichTextEditor({
           type="button"
           variant="ghost"
           size="icon"
-          onClick={() => exec("insertOrderedList")}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            saveSelection();
+          }}
+          onClick={() => colorInputRef.current?.click()}
+          title="Màu chữ"
         >
-          <ListOrdered className="h-4 w-4" />
+          <span className="relative flex h-4 w-4 items-center justify-center text-[11px] font-bold leading-none">
+            A
+            <span
+              className="absolute -bottom-0.5 left-0 h-0.5 w-full rounded-full"
+              style={{ backgroundColor: textColor }}
+            />
+          </span>
         </Button>
+        <input
+          ref={colorInputRef}
+          type="color"
+          value={textColor}
+          onChange={handleTextColorChange}
+          className="sr-only"
+          tabIndex={-1}
+          aria-label="Chọn màu chữ"
+        />
 
         <div className="h-4 w-px bg-border mx-1" />
 
@@ -401,8 +453,14 @@ export function RichTextEditor({
         style={{ minHeight }}
         data-placeholder={placeholder}
         onInput={(e) => onChange((e.target as HTMLDivElement).innerHTML)}
-        onMouseUp={detectAlignMode}
-        onKeyUp={detectAlignMode}
+        onMouseUp={() => {
+          detectAlignMode();
+          saveSelection();
+        }}
+        onKeyUp={() => {
+          detectAlignMode();
+          saveSelection();
+        }}
         onPaste={handlePaste}
         onDrop={handleDrop}
         suppressContentEditableWarning
