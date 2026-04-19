@@ -7,12 +7,14 @@ interface FillBlankResultRendererProps {
   html: string;
   studentAnswers: Record<string, string>;
   correctAnswersValue: string | null;
+  showCorrectAnswers?: boolean;
 }
 
 export function FillBlankResultRenderer({
   html,
   studentAnswers,
   correctAnswersValue,
+  showCorrectAnswers = false,
 }: FillBlankResultRendererProps) {
   const escapeHtml = (value: string) =>
     value
@@ -53,7 +55,11 @@ export function FillBlankResultRenderer({
 
       const statusClass = isCorrect
         ? "text-green-600 font-bold border-b-2 border-green-600/30 px-1 inline-flex items-center gap-1 mx-1"
-        : "border-b-2 border-destructive/30 px-1 inline-flex items-center gap-1 mx-1";
+        : hasAnswer
+          ? "border-b-2 border-destructive/30 px-1 inline-flex items-center gap-1 mx-1"
+          : showCorrectAnswers && correctAnswerSlot
+            ? "border-b-2 border-green-600/30 px-1 inline-flex items-center gap-1 mx-1"
+            : "border-b-2 border-border px-1 inline-flex items-center gap-1 mx-1";
 
       const answerClass = isCorrect
         ? ""
@@ -63,7 +69,7 @@ export function FillBlankResultRenderer({
 
       let displayContent = `<span class="${answerClass}">${displayAnswer}</span>`;
 
-      if (!isCorrect && correctAnswerSlot) {
+      if (!isCorrect && showCorrectAnswers && correctAnswerSlot) {
         displayContent += `<span class="text-green-700 bg-green-100 dark:bg-green-900/40 border border-green-200 dark:border-green-800 text-[11px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap leading-none tracking-wide uppercase">Đúng: ${displayCorrect}</span>`;
       }
 
@@ -73,7 +79,7 @@ export function FillBlankResultRenderer({
           : autoCursor + 1;
       return `<span class="${statusClass}">${displayContent}</span>`;
     });
-  }, [html, studentAnswers, correctAnswers]);
+  }, [html, studentAnswers, correctAnswers, showCorrectAnswers]);
 
   return (
     <div

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { submissionsApi } from "@/lib/api";
@@ -16,6 +16,8 @@ import {
   AlertCircle,
   Loader2,
   Trophy,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { AnswerResultCard } from "@/components/submission/AnswerResultCard";
 import { RichContent } from "@/components/exam/RichContent";
@@ -90,6 +92,7 @@ export default function SubmissionDetail() {
   const navigate = useNavigate();
   const { isAuthenticated, isAdmin, isTeacher } = useAuth();
   const submissionId = id || searchParams.get("submissionId") || undefined;
+  const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
 
   const { data: submission, isLoading } = useQuery({
     queryKey: ["student-submission", submissionId],
@@ -444,6 +447,37 @@ export default function SubmissionDetail() {
               </div>
             </>
           )}
+
+          <Separator />
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">
+                Đáp án đúng
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Bật để hiện toàn bộ đáp án đúng, kể cả các câu học sinh chưa chọn.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant={showCorrectAnswers ? "default" : "outline"}
+              onClick={() => setShowCorrectAnswers((current) => !current)}
+              className="gap-2 self-start sm:self-auto"
+            >
+              {showCorrectAnswers ? (
+                <>
+                  <EyeOff className="h-4 w-4" />
+                  Ẩn đáp án đúng
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4" />
+                  Hiện đáp án đúng
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -529,6 +563,7 @@ export default function SubmissionDetail() {
                         correctAnswer={getCorrectAnswer(question)}
                         points={getQuestionAssessmentWeight(question)}
                         options={getQuestionOptions(question)}
+                        showCorrectAnswers={showCorrectAnswers}
                         answerText={answer?.answerText || null}
                         audioUrl={answer?.audioUrl || null}
                         score={answer?.score ?? null}

@@ -25,6 +25,7 @@ interface AnswerResultCardProps {
   correctAnswer: string | null;
   points: number;
   options?: string[] | null;
+  showCorrectAnswers?: boolean;
   answerText: string | null;
   audioUrl: string | null;
   score: number | null;
@@ -52,6 +53,7 @@ export function AnswerResultCard({
   correctAnswer,
   points,
   options,
+  showCorrectAnswers = false,
   answerText,
   audioUrl,
   score,
@@ -196,6 +198,7 @@ export function AnswerResultCard({
 
   // Can show result: graded, or auto-gradable section that's been submitted
   const canShowResult = isGraded || shouldShowAutoResult;
+  const shouldRevealCorrectAnswers = canShowResult && showCorrectAnswers;
   const canRenderChoiceOptions =
     choiceOptions.length > 0 &&
     [
@@ -326,6 +329,7 @@ export function AnswerResultCard({
                   html={questionText}
                   studentAnswers={parseJsonAnswer(answerText)}
                   correctAnswersValue={correctAnswer}
+                  showCorrectAnswers={shouldRevealCorrectAnswers}
                 />
               </div>
             ) : (
@@ -355,13 +359,13 @@ export function AnswerResultCard({
                     normalizedCorrectSelections.has(normalizedOption);
 
                   const stateClass = canShowResult
-                    ? isCorrect
-                      ? isSelected
-                        ? "border-green-300 bg-green-50 ring-1 ring-green-200 dark:border-green-800 dark:bg-green-950/30 dark:ring-green-900"
-                        : "border-green-200 bg-green-50/70 dark:border-green-900 dark:bg-green-950/15"
+                    ? isSelected && isCorrect
+                      ? "border-green-300 bg-green-50 ring-1 ring-green-200 dark:border-green-800 dark:bg-green-950/30 dark:ring-green-900"
                       : isSelected
                         ? "border-destructive/40 bg-destructive/10 ring-1 ring-destructive/20 dark:border-destructive/50 dark:bg-destructive/10"
-                        : "border-border/60 bg-background"
+                        : shouldRevealCorrectAnswers && isCorrect
+                          ? "border-green-200 bg-green-50/70 dark:border-green-900 dark:bg-green-950/15"
+                          : "border-border/60 bg-background"
                     : isSelected
                       ? "border-primary/30 bg-primary/5 ring-1 ring-primary/20"
                       : "border-border/60 bg-background";
@@ -378,10 +382,12 @@ export function AnswerResultCard({
                         className={cn(
                           "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold",
                           canShowResult
-                            ? isCorrect
+                            ? isSelected && isCorrect
                               ? "border-green-600 bg-white text-green-700 dark:border-green-500 dark:bg-green-950/40 dark:text-green-400"
                               : isSelected
                                 ? "border-destructive bg-white text-destructive dark:bg-destructive/10"
+                                : shouldRevealCorrectAnswers && isCorrect
+                                  ? "border-green-500/60 bg-white text-green-700 dark:bg-green-950/20 dark:text-green-400"
                                 : "border-muted-foreground/30 text-muted-foreground"
                             : isSelected
                               ? "border-primary bg-white text-primary"
@@ -395,7 +401,7 @@ export function AnswerResultCard({
                         {option}
                       </div>
 
-                      {canShowResult && isCorrect && (
+                      {canShowResult && (isSelected || shouldRevealCorrectAnswers) && isCorrect && (
                         <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
                           <CheckCircle className="h-4 w-4" />
                         </div>
@@ -424,8 +430,9 @@ export function AnswerResultCard({
               studentSelections = (answerText || "").split("|").flatMap((p) => p.split(",")).map((v) => v.trim()).filter(Boolean);
             }
 
-            // Gather all unique options (correct ∪ student)
-            const allOptions = Array.from(new Set([...correctOptions, ...studentSelections]));
+            const allOptions = shouldRevealCorrectAnswers
+              ? Array.from(new Set([...correctOptions, ...studentSelections]))
+              : Array.from(new Set(studentSelections));
 
             return (
               <div className="space-y-2 mt-1">
@@ -452,7 +459,7 @@ export function AnswerResultCard({
                           {opt}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {status === "hit" ? "Đúng ✓" : status === "wrong" ? "Sai ✗" : "Bỏ qua"}
+                          {status === "hit" ? "Đúng ✓" : status === "wrong" ? "Sai ✗" : "Đáp án đúng"}
                         </span>
                       </div>
                     );
@@ -516,7 +523,9 @@ export function AnswerResultCard({
               
               return (
                 <div className="space-y-3 mt-4">
-                  <Label className="text-xs text-muted-foreground mb-2 block">Chi tiết ghép nối</Label>
+                  <Label className="text-xs text-muted-foreground mb-2 block">
+                    {shouldRevealCorrectAnswers ? "Chi tiết ghép nối" : "Câu trả lời của bạn"}
+                  </Label>
                   <div className="rounded-md border bg-card divide-y">
                     {items.map((item: string, idx: number) => {
                       const correctOpt = pairs[String(idx)];
@@ -536,10 +545,20 @@ export function AnswerResultCard({
                                 <XCircle className="w-3 h-3" />
                               </div>
                             )}
-                            <div className={isCorrect ? "flex items-center gap-1.5 text-sm font-medium text-green-600 dark:text-green-500" : "flex items-center gap-1.5 text-sm font-medium"}>
-                              <span>{correctOpt || "—"}</span>
-                              {isCorrect && <CheckCircle className="w-4 h-4" />}
-                            </div>
+                            {isCorrect ? (
+                              <div className="flex items-center gap-1.5 text-sm font-medium text-green-600 dark:text-green-500">
+                                <span>{studentOpt || correctOpt || "—"}</span>
+                                <CheckCircle className="w-4 h-4" />
+                              </div>
+                            ) : shouldRevealCorrectAnswers ? (
+                              <div className="flex items-center gap-1.5 text-sm font-medium">
+                                <span>{correctOpt || "—"}</span>
+                              </div>
+                            ) : !studentOpt ? (
+                              <div className="text-xs italic text-muted-foreground">
+                                Chưa chọn
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       );
@@ -553,7 +572,7 @@ export function AnswerResultCard({
           })()}
 
           {/* Correct answer - show for auto-gradable or graded */}
-          {canShowResult &&
+          {shouldRevealCorrectAnswers &&
             correctAnswer &&
             !isFillBlankWithPlaceholders &&
             questionType !== "matching" &&
