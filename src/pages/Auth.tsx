@@ -24,6 +24,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { authApi } from "@/lib/api";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
+import { SiteLogo } from "@/components/common/SiteLogo";
 
 const emailSchema = z.string().email("Email không hợp lệ");
 const passwordSchema = z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự");
@@ -108,11 +109,7 @@ export default function Auth() {
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/10 via-secondary to-primary/5 p-12 flex-col justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <img
-              src="/logo.png"
-              alt="NextBand Logo"
-              className="max-h-12 w-auto object-contain"
-            />
+            <SiteLogo alt="NextBand Logo" className="max-h-12 w-auto" />
           </h1>
           <p className="text-muted-foreground mt-2">
             Nền tảng học IELTS hiện đại
@@ -158,11 +155,7 @@ export default function Auth() {
         <Card className="w-full max-w-md border-0 shadow-lg">
           <CardHeader className="text-center">
             <div className="lg:hidden flex items-center justify-center gap-2 mb-4">
-              <img
-                src="/logo.png"
-                alt="NextBand Logo"
-                className="max-h-10 w-auto object-contain"
-              />
+              <SiteLogo alt="NextBand Logo" className="max-h-10 w-auto" />
             </div>
             <CardTitle className="text-2xl">Đăng nhập</CardTitle>
             <CardDescription>Đăng nhập để tiếp tục học tập</CardDescription>

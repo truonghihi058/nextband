@@ -27,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { SiteLogo } from "@/components/common/SiteLogo";
 
 const navigationItems = [
   {
@@ -104,10 +105,9 @@ export function AdminSidebar() {
       <SidebarHeader className="border-b px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-full items-center justify-start overflow-hidden">
-            <img
-              src="/logo.png"
+            <SiteLogo
               alt="NextBand Admin Logo"
-              className={`object-contain transition-all ${collapsed ? "w-8" : "max-h-8 w-auto"}`}
+              className={`transition-all ${collapsed ? "w-8" : "max-h-8 w-auto"}`}
             />
           </div>
         </div>

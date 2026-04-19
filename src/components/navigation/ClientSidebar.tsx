@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SiteLogo } from "@/components/common/SiteLogo";
 
 const navigationItems = [
   {
@@ -63,10 +64,9 @@ export function ClientSidebar() {
       <SidebarHeader className="border-b px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-full items-center justify-start overflow-hidden">
-            <img
-              src="/logo.png"
+            <SiteLogo
               alt="NextBand Logo"
-              className={`object-contain transition-all ${collapsed ? "w-8" : "max-h-8 w-auto"}`}
+              className={`transition-all ${collapsed ? "w-8" : "max-h-8 w-auto"}`}
             />
           </div>
         </div>
