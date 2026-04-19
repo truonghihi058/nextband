@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { submissionsApi, sectionsApi } from "@/lib/api";
+import { submissionsApi } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,6 @@ import {
   Trophy,
 } from "lucide-react";
 import { AnswerResultCard } from "@/components/submission/AnswerResultCard";
-import { ReadingSection } from "@/components/exam/ReadingSection";
 import { RichContent } from "@/components/exam/RichContent";
 import { getFillBlankBlankCount } from "@/lib/fillBlank";
 import { format } from "date-fns";
@@ -74,6 +73,9 @@ const getQuestionType = (question: any) =>
 const getCorrectAnswer = (question: any) =>
   question?.correctAnswer || question?.correct_answer || null;
 
+const getQuestionOptions = (question: any) =>
+  Array.isArray(question?.options) ? question.options : [];
+
 const getQuestionAssessmentWeight = (question: any) => {
   if (getQuestionType(question) === "fill_blank") {
     const blankCount = getFillBlankBlankCount(getCorrectAnswer(question));
@@ -97,7 +99,6 @@ export default function SubmissionDetail() {
 
   const sections = submission?.exam?.sections || [];
   const answers = submission?.answers || [];
-  const isReviewMode = true;
 
   const answerMap = useMemo(() => {
     const map: Record<string, any> = {};
@@ -455,33 +456,6 @@ export default function SubmissionDetail() {
           compareByDisplayOrder,
         );
 
-        // Reuse ReadingSection for review to keep layout/highlight identical
-        if (section.sectionType === "reading") {
-          return (
-            <Card key={section.id} className="overflow-hidden">
-              <CardHeader className="px-4 pt-4 pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  {section.title}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    (Reading)
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-0 pb-4">
-                <ReadingSection
-                  section={section}
-                  answers={{}}
-                  onAnswerChange={() => {}}
-                  questionRefs={undefined}
-                  currentQuestionId={undefined}
-                  onQuestionFocus={() => {}}
-                />
-              </CardContent>
-            </Card>
-          );
-        }
-
         return (
           <div key={section.id} className="space-y-4">
             <CardHeader className="px-0 pb-2">
@@ -554,6 +528,7 @@ export default function SubmissionDetail() {
                         questionType={getQuestionType(question)}
                         correctAnswer={getCorrectAnswer(question)}
                         points={getQuestionAssessmentWeight(question)}
+                        options={getQuestionOptions(question)}
                         answerText={answer?.answerText || null}
                         audioUrl={answer?.audioUrl || null}
                         score={answer?.score ?? null}
