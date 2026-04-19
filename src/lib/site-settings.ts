@@ -1,6 +1,11 @@
 export type SiteSettings = {
   siteName: string;
   logoUrl: string;
+  authTagline: string;
+  authFeatureOneTitle: string;
+  authFeatureOneDescription: string;
+  authFeatureTwoTitle: string;
+  authFeatureTwoDescription: string;
   highlightPresent: string;
   highlightAbsent: string;
   highlightInactive: string;
@@ -25,6 +30,11 @@ export type SiteSettings = {
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   siteName: "NextBand",
   logoUrl: "",
+  authTagline: "Nền tảng học IELTS hiện đại",
+  authFeatureOneTitle: "Khóa học chất lượng",
+  authFeatureOneDescription: "Hàng trăm bài học từ cơ bản đến nâng cao",
+  authFeatureTwoTitle: "Giáo viên uy tín",
+  authFeatureTwoDescription: "Đội ngũ giáo viên giàu kinh nghiệm",
   highlightPresent: "#fff7a5",
   highlightAbsent: "#ffd7d7",
   highlightInactive: "#e5e7eb",
@@ -52,6 +62,17 @@ export function normalizeSiteSettings(raw: any): SiteSettings {
     ...DEFAULT_SITE_SETTINGS,
     ...raw,
     logoUrl: raw?.logoUrl || "",
+    authTagline: raw?.authTagline ?? DEFAULT_SITE_SETTINGS.authTagline,
+    authFeatureOneTitle:
+      raw?.authFeatureOneTitle ?? DEFAULT_SITE_SETTINGS.authFeatureOneTitle,
+    authFeatureOneDescription:
+      raw?.authFeatureOneDescription ??
+      DEFAULT_SITE_SETTINGS.authFeatureOneDescription,
+    authFeatureTwoTitle:
+      raw?.authFeatureTwoTitle ?? DEFAULT_SITE_SETTINGS.authFeatureTwoTitle,
+    authFeatureTwoDescription:
+      raw?.authFeatureTwoDescription ??
+      DEFAULT_SITE_SETTINGS.authFeatureTwoDescription,
     sloganFontWeight: ["light", "regular", "bold"].includes(
       raw?.sloganFontWeight,
     )

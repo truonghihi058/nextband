@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import FileUpload from "@/components/admin/FileUpload";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -13,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { BookOpen, Users } from "lucide-react";
 import {
   DEFAULT_SITE_SETTINGS,
   normalizeSiteSettings,
@@ -64,6 +66,16 @@ export default function AdminSettings() {
 
   const handleSave = () => {
     saveMutation.mutate(data);
+  };
+
+  const getPreviewLogoUrl = (url: string) => {
+    if (url.startsWith("/uploads")) {
+      const apiUrl =
+        import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
+      const baseUrl = apiUrl.replace("/api/v1", "");
+      return `${baseUrl}${url}`;
+    }
+    return url || "/logo.png";
   };
 
   return (
@@ -158,6 +170,146 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Nội dung màn đăng nhập</CardTitle>
+          <CardDescription>
+            Quản lý phần giới thiệu và 2 khối nội dung bên trái của trang đăng nhập.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label>Dòng mô tả đầu trang</Label>
+            <Textarea
+              value={data.authTagline}
+              rows={2}
+              maxLength={120}
+              onChange={(e) =>
+                updateSettings((prev) => ({
+                  ...prev,
+                  authTagline: e.target.value.slice(0, 120),
+                }))
+              }
+              placeholder="Nhập mô tả ngắn cho màn đăng nhập"
+            />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="space-y-4 rounded-lg border p-4">
+              <p className="text-sm font-medium">Khối nội dung 1</p>
+              <div className="space-y-2">
+                <Label>Tiêu đề</Label>
+                <Input
+                  value={data.authFeatureOneTitle}
+                  onChange={(e) =>
+                    updateSettings((prev) => ({
+                      ...prev,
+                      authFeatureOneTitle: e.target.value,
+                    }))
+                  }
+                  placeholder="Ví dụ: Khóa học chất lượng"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mô tả</Label>
+                <Textarea
+                  value={data.authFeatureOneDescription}
+                  rows={3}
+                  maxLength={160}
+                  onChange={(e) =>
+                    updateSettings((prev) => ({
+                      ...prev,
+                      authFeatureOneDescription: e.target.value.slice(0, 160),
+                    }))
+                  }
+                  placeholder="Nhập mô tả khối nội dung 1"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4 rounded-lg border p-4">
+              <p className="text-sm font-medium">Khối nội dung 2</p>
+              <div className="space-y-2">
+                <Label>Tiêu đề</Label>
+                <Input
+                  value={data.authFeatureTwoTitle}
+                  onChange={(e) =>
+                    updateSettings((prev) => ({
+                      ...prev,
+                      authFeatureTwoTitle: e.target.value,
+                    }))
+                  }
+                  placeholder="Ví dụ: Giáo viên uy tín"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mô tả</Label>
+                <Textarea
+                  value={data.authFeatureTwoDescription}
+                  rows={3}
+                  maxLength={160}
+                  onChange={(e) =>
+                    updateSettings((prev) => ({
+                      ...prev,
+                      authFeatureTwoDescription: e.target.value.slice(0, 160),
+                    }))
+                  }
+                  placeholder="Nhập mô tả khối nội dung 2"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border bg-gradient-to-br from-primary/10 via-secondary to-primary/5 p-6">
+            <p className="mb-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Preview màn đăng nhập
+            </p>
+            <div className="space-y-8">
+              <div>
+                <img
+                  src={getPreviewLogoUrl(data.logoUrl)}
+                  alt={`${data.siteName} Logo`}
+                  className="max-h-12 w-auto object-contain"
+                />
+                <p className="mt-2 text-muted-foreground">
+                  {data.authTagline || "Nhập mô tả đầu trang"}
+                </p>
+              </div>
+
+              <div className="space-y-8">
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg bg-primary/10 p-3">
+                    <BookOpen className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">
+                      {data.authFeatureOneTitle || "Tiêu đề khối 1"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {data.authFeatureOneDescription || "Mô tả khối 1"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg bg-primary/10 p-3">
+                    <Users className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">
+                      {data.authFeatureTwoTitle || "Tiêu đề khối 2"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {data.authFeatureTwoDescription || "Mô tả khối 2"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

@@ -15,7 +15,6 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
   BookOpen,
-  GraduationCap,
   Users,
   Eye,
   EyeOff,
@@ -25,6 +24,7 @@ import { authApi } from "@/lib/api";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SiteLogo } from "@/components/common/SiteLogo";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const emailSchema = z.string().email("Email không hợp lệ");
 const passwordSchema = z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự");
@@ -41,6 +41,7 @@ export default function Auth() {
   const [showGoogleHint, setShowGoogleHint] = useState(false);
 
   const { signIn, user } = useAuth();
+  const { settings } = useSiteSettings();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -112,7 +113,7 @@ export default function Auth() {
             <SiteLogo alt="NextBand Logo" className="max-h-12 w-auto" />
           </h1>
           <p className="text-muted-foreground mt-2">
-            Nền tảng học IELTS hiện đại
+            {settings.authTagline}
           </p>
         </div>
 
@@ -123,10 +124,10 @@ export default function Auth() {
             </div>
             <div>
               <h3 className="font-semibold text-foreground">
-                Khóa học chất lượng
+                {settings.authFeatureOneTitle}
               </h3>
               <p className="text-sm text-muted-foreground">
-                Hàng trăm bài học từ cơ bản đến nâng cao
+                {settings.authFeatureOneDescription}
               </p>
             </div>
           </div>
@@ -137,10 +138,10 @@ export default function Auth() {
             </div>
             <div>
               <h3 className="font-semibold text-foreground">
-                Giáo viên uy tín
+                {settings.authFeatureTwoTitle}
               </h3>
               <p className="text-sm text-muted-foreground">
-                Đội ngũ giáo viên giàu kinh nghiệm
+                {settings.authFeatureTwoDescription}
               </p>
             </div>
           </div>
