@@ -692,22 +692,20 @@ export function ReadingSection({
                 const isCurrent =
                   question.id === currentQuestionId ||
                   currentQuestionId?.startsWith(`${question.id}::blank:`);
-                const focusQuestionId =
-                  isFillBlankLike ? `${question.id}::blank:0` : question.id;
                 const questionText = question.question_text || "";
                 const groupPassageText = group.passage || passageText || "";
                 const isDuplicatePassageQuestion = isLikelyDuplicateWithPassage(
                   questionText,
                   groupPassageText,
                 );
-                const hasPlaceholders = hasFillBlankPlaceholders(
-                  questionText,
-                );
+                const hasPlaceholders = hasFillBlankPlaceholders(questionText);
                 const isFillBlankLike =
                   question.question_type === "fill_blank" || hasPlaceholders;
                 const compactBlankKeys = isFillBlankLike
                   ? getBlankKeysFromQuestionText(questionText)
                   : [];
+                const focusQuestionId =
+                  isFillBlankLike ? `${question.id}::blank:0` : question.id;
 
                 if (import.meta.env.DEV && hasPlaceholders && question.id) {
                   console.debug("[ReadingSection][fill_blank debug]", {
